@@ -21,6 +21,28 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.34.0] - 2026-05-18
+
+### Added
+- Added configurable summary providers.
+- Added `config/summary_providers.yaml`.
+- Added `config/summary_providers.d/`.
+- Added `bookmem summary-providers`.
+- Added `bookmem validate-summary-providers`.
+- Added `--provider` to `bookmem summarise-book`.
+- Added `--provider` to `bookmem summarise-books`.
+- Added optional OpenAI summary provider.
+- Added optional local Ollama summary provider.
+- Added `bookmem/summary_providers.py`.
+- Added `docs/SUMMARY_PROVIDERS.md`.
+- Added provider/model metadata and `review_status: machine_draft` markers to summary outputs.
+
+### Behaviour
+- Deterministic summaries remain the default provider.
+- LLM-assisted providers must be explicitly enabled in config.
+- LLM-assisted summaries are evidence/search aids and are not marked as human-reviewed.
+
 ## [0.33.0] - 2026-05-18
 
 ### Added

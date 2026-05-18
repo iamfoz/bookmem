@@ -15,6 +15,7 @@ from .frontmatter import find_isbns_in_text
 from .prepare import prepare_book as prepare_one_book
 from .manifest import load_manifest, manifest_path, status_for_book
 from .summaries import search_summaries as search_summary_index, summarise_book as summarise_one_book, summarise_books as summarise_many_books
+from .summary_providers import load_summary_providers, validate_summary_providers, summarise_book_with_provider, summarise_books_with_provider
 from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
@@ -863,14 +864,53 @@ def ask_search_command(
             )
         )
 
+@app.command("summary-providers")
+def summary_providers_command():
+    """List configured summary providers."""
+    providers = load_summary_providers()
+    table_out = Table(title="Summary providers")
+    table_out.add_column("Provider")
+    table_out.add_column("Enabled")
+    table_out.add_column("Generator")
+    table_out.add_column("Model")
+    table_out.add_column("Description")
+    for name, cfg in sorted(providers.items()):
+        table_out.add_row(
+            str(name),
+            "yes" if cfg.get("enabled") else "no",
+            str(cfg.get("generator") or ""),
+            str(cfg.get("model") or ""),
+            str(cfg.get("description") or ""),
+        )
+    console.print(table_out)
+
+
+@app.command("validate-summary-providers")
+def validate_summary_providers_command():
+    """Validate configured summary providers."""
+    issues = validate_summary_providers()
+    if not issues:
+        console.print("[green]Summary providers validated successfully[/green]")
+        return
+    table_out = Table(title="Summary provider validation issues")
+    table_out.add_column("Provider")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(str(issue.get("provider", "")), str(issue.get("issue", "")), str(issue.get("message", "")))
+    console.print(table_out)
+    raise typer.Exit(code=1)
+
+
 @app.command("summarise-book")
 def summarise_book_command(
     path: Path,
     write: bool = typer.Option(True, "--write/--dry-run", help="Write derived summary files. Use --dry-run to preview paths only."),
     overwrite: bool = typer.Option(True, "--overwrite/--no-overwrite", help="Overwrite existing summary files."),
+    provider: str = typer.Option("deterministic", "--provider", help="Summary provider: deterministic, openai or local_ollama."),
 ):
     """Generate book-level and chapter-level YAML summaries for one canonical Markdown book."""
-    result = summarise_one_book(path, write=write, overwrite=overwrite)
+    result = summarise_book_with_provider(path, provider=provider, write=write, overwrite=overwrite)
     console.print(
         Panel(
             f"[bold]{result.title}[/bold]\n"
@@ -891,6 +931,7 @@ def summarise_books_command(
     books_dir: Path,
     write: bool = typer.Option(True, "--write/--dry-run", help="Write derived summary files. Use --dry-run to preview only."),
     overwrite: bool = typer.Option(True, "--overwrite/--no-overwrite", help="Overwrite existing summary files."),
+    provider: str = typer.Option("deterministic", "--provider", help="Summary provider: deterministic, openai or local_ollama."),
 ):
     """Generate book-level and chapter-level summaries for all Markdown books under a directory."""
     files = sorted(books_dir.glob("**/*.md"))
@@ -904,7 +945,7 @@ def summarise_books_command(
     table_out.add_column("Chapters", justify="right")
     table_out.add_column("Summary path")
 
-    results = summarise_many_books(books_dir, write=write, overwrite=overwrite)
+    results = summarise_books_with_provider(books_dir, provider=provider, write=write, overwrite=overwrite)
     for result in results:
         table_out.add_row(
             result.title,

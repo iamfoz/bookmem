@@ -767,3 +767,20 @@ bookmem answer-pack "What do my books say about systems versus goals?" --json
 
 This is designed for Sandy and other agents that need evidence before
 producing a final answer. See `docs/ANSWER_PACKS.md`.
+
+
+## Summary providers
+
+Deterministic summaries remain the default, with optional LLM-assisted
+providers:
+
+```bash
+bookmem summary-providers
+bookmem summarise-book "data/books/.../Book.md" --provider deterministic
+bookmem summarise-book "data/books/.../Book.md" --provider openai
+bookmem summarise-books data/books --provider local_ollama
+```
+
+LLM-assisted summaries are always marked as `review_status:
+machine_draft` and record provider/model metadata. See
+`docs/SUMMARY_PROVIDERS.md`.

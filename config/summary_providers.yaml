@@ -1,0 +1,27 @@
+summary_providers:
+  deterministic:
+    enabled: true
+    label: Deterministic extractor
+    description: Offline deterministic summary map generator.
+    generator: deterministic_extract
+    model:
+
+  openai:
+    enabled: false
+    label: OpenAI summary provider
+    description: LLM-assisted summary generation using the OpenAI API.
+    generator: openai
+    model: gpt-5.5-thinking
+    api_key_env: OPENAI_API_KEY
+    temperature: 0.2
+    max_input_chars: 120000
+
+  local_ollama:
+    enabled: false
+    label: Local Ollama summary provider
+    description: LLM-assisted summary generation using a local Ollama server.
+    generator: local_ollama
+    model: qwen3
+    base_url: http://localhost:11434
+    temperature: 0.2
+    max_input_chars: 120000

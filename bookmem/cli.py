@@ -53,6 +53,7 @@ from .saved_queries import save_query, list_saved_queries, run_saved_query, gene
 from .reading_lists import generate_reading_list
 from .reading_metadata import infer_reading_metadata, result_as_dict as reading_metadata_result_as_dict
 from .passages import extract_passages, search_passages, favourite_passage, export_passages
+from .topic_compare import compare_topic, render_compare_markdown
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1934,6 +1935,75 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@app.command("compare-topic")
+def compare_topic_command(
+    topic: str,
+    limit: int = typer.Option(12, "--limit", "-n", help="Maximum books per stance group."),
+    markdown: bool = typer.Option(False, "--markdown", help="Render Markdown output."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Optional output path for JSON or Markdown."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Compare supportive, critical and mixed stances on a topic."""
+    import json as json_lib
+
+    result = compare_topic(topic, limit=limit)
+
+    if markdown:
+        text = render_compare_markdown(result)
+        if output:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(text, encoding="utf-8")
+            console.print(f"[green]Wrote topic comparison:[/green] {output}")
+        else:
+            console.print(text)
+        return
+
+    if json_output or output:
+        text = json_lib.dumps(result, indent=2, ensure_ascii=False, default=str)
+        if output:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(text + "\n", encoding="utf-8")
+            console.print(f"[green]Wrote topic comparison:[/green] {output}")
+        else:
+            console.print(text)
+        return
+
+    console.print(
+        Panel(
+            f"Topic: {result['topic']}\n"
+            f"Favouring: {len(result['books_favouring'])}\n"
+            f"Criticising: {len(result['books_criticising'])}\n"
+            f"Mixed: {len(result['books_mixed'])}\n"
+            f"Neutral: {len(result['books_neutral'])}\n"
+            f"Review status: {result['review_status']}",
+            title="Topic comparison",
+            expand=False,
+        )
+    )
+
+    def show_group(title, rows):
+        console.print(f"\n[bold]{title}[/bold]")
+        if not rows:
+            console.print("[dim]None found.[/dim]")
+            return
+        for row in rows[:limit]:
+            console.print(f"- [bold]{row.get('title') or 'Untitled'}[/bold] — {row.get('author') or 'Unknown author'}")
+            if row.get("reason"):
+                console.print(f"  Reason: {row.get('reason')}")
+            if row.get("citations"):
+                console.print(f"  Citation: {row['citations'][0]}")
+            if row.get("evidence"):
+                console.print(f"  Evidence: {row['evidence'][0][:240]}")
+
+    show_group("Books favouring", result["books_favouring"])
+    show_group("Books criticising", result["books_criticising"])
+    show_group("Mixed / context-dependent", result["books_mixed"])
+
+    console.print("\n[bold]Tensions[/bold]")
+    for tension in result["tensions"]:
+        console.print(f"- {tension}")
 
 
 @passages_app.command("extract")

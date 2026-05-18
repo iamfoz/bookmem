@@ -43,6 +43,23 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.55.0] - 2026-05-18
+
+### Added
+- Added contradiction/disagreement mapping.
+- Added `bookmem compare-topic`.
+- Added `bookmem compare-topic --json`.
+- Added `bookmem compare-topic --markdown`.
+- Added `bookmem/topic_compare.py`.
+- Added `docs/TOPIC_COMPARISON.md`.
+
+### Behaviour
+- Topic comparison groups evidence into favouring, criticising, mixed and neutral stances.
+- Comparison uses curated passages, summaries and chunk search.
+- Generated comparisons include tensions and are marked `review_status: machine_draft`.
+- Topic comparison writes audit records.
+
 ## [0.54.0] - 2026-05-18
 
 ### Added

@@ -1106,3 +1106,17 @@ bookmem passages export --format obsidian --output exports/commonplace.md
 
 Passage data lives in `data/passages/extracted.yaml` and
 `data/passages/favourites.yaml`. See `docs/PASSAGES.md`.
+
+
+## Topic comparison / disagreement mapping
+
+Compare supportive, critical and mixed stances on a topic:
+
+```bash
+bookmem compare-topic "goals"
+bookmem compare-topic "goals" --json
+bookmem compare-topic "goals" --markdown --output exports/goals-comparison.md
+```
+
+Comparisons use passages, summaries and chunk search, and are marked
+`review_status: machine_draft`. See `docs/TOPIC_COMPARISON.md`.

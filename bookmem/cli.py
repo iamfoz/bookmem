@@ -19,6 +19,7 @@ from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
 from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts
+from .topic_maps import map_topic as build_topic_map, write_topic_map
 from .citation_exports import (
     export_references,
     format_reference,
@@ -922,6 +923,96 @@ def search_summaries_command(
             )
         )
 
+
+
+@app.command("map-topic")
+def map_topic_command(
+    query: str,
+    book_limit: int = typer.Option(8, "--book-limit", help="Maximum number of strongest books to display."),
+    summary_limit: int = typer.Option(12, "--summary-limit", help="Maximum summary hits to inspect."),
+    chunk_limit: int = typer.Option(12, "--chunk-limit", help="Maximum chunk hits to inspect."),
+    themes_limit: int = typer.Option(12, "--themes-limit", help="Maximum common themes to display."),
+    include_chunks: bool = typer.Option(True, "--chunks/--no-chunks", help="Include indexed chunk retrieval as well as summaries."),
+    fallback: bool = typer.Option(True, "--fallback/--no-fallback", help="Fall back to broad chunk search if routed chunk search finds nothing."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Write the topic map as YAML, or JSON if the path ends in .json."),
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON."),
+):
+    """Map a topic across the library using summaries and indexed chunks."""
+    topic_map = build_topic_map(
+        query=query,
+        book_limit=book_limit,
+        summary_limit=summary_limit,
+        chunk_limit=chunk_limit,
+        themes_limit=themes_limit,
+        include_chunks=include_chunks,
+        fallback=fallback,
+    )
+
+    if output:
+        write_topic_map(topic_map, output)
+
+    if json_output:
+        console.print(topic_map.to_json(indent=2))
+        if output:
+            console.print(f"[green]Wrote topic map:[/green] {output}")
+        return
+
+    route = topic_map.route
+    console.print(
+        Panel(
+            f"Aliases: {', '.join(route.get('aliases', [])) or 'none'}\n"
+            f"Classes: {', '.join(route.get('class_codes', [])) or 'none'}\n"
+            f"Confidence: {float(route.get('confidence', 0.0)):.2f}\n"
+            f"Matched terms: {', '.join(route.get('matched_terms', [])) or 'none'}\n\n"
+            f"{route.get('reason', '')}",
+            title="Topic route",
+            expand=False,
+        )
+    )
+
+    if topic_map.strongest_books:
+        table_out = Table(title="Strongest books")
+        table_out.add_column("Rank", justify="right")
+        table_out.add_column("Book")
+        table_out.add_column("Author")
+        table_out.add_column("Score", justify="right")
+        table_out.add_column("Why matched")
+        for idx, book in enumerate(topic_map.strongest_books, start=1):
+            table_out.add_row(
+                str(idx),
+                book.title,
+                book.author or "",
+                f"{book.score:.2f}",
+                "; ".join(book.reasons[:4]),
+            )
+        console.print(table_out)
+    else:
+        console.print("[yellow]No matching books found. Run bookmem summarise-books and bookmem ingest first.[/yellow]")
+
+    if topic_map.common_themes:
+        console.print("[bold]Common themes[/bold]")
+        for theme in topic_map.common_themes:
+            console.print(f"- {theme}")
+
+    for idx, book in enumerate(topic_map.strongest_books[:3], start=1):
+        evidence_lines: list[str] = []
+        for hit in book.summary_hits[:2]:
+            label = hit.get("chapter_title") or hit.get("level")
+            evidence_lines.append(f"Summary: {label} · score {hit.get('score')}\n{hit.get('excerpt', '')}")
+        for hit in book.chunk_hits[:2]:
+            citation = hit.get("citation") or hit.get("chunk_id")
+            evidence_lines.append(f"Chunk: {citation}\n{hit.get('excerpt', '')}")
+        if evidence_lines:
+            console.print(
+                Panel(
+                    "\n\n".join(evidence_lines),
+                    title=f"Evidence for {idx}. {book.title}",
+                    expand=False,
+                )
+            )
+
+    if output:
+        console.print(f"[green]Wrote topic map:[/green] {output}")
 
 @app.command("cite")
 def cite_command(

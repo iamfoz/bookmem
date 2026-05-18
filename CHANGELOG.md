@@ -6,6 +6,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+## [0.16.0] - 2026-05-18
+
+### Added
+
+- Added topic map generation for agent reasoning.
+- Added `bookmem/topic_maps.py`.
+- Added `docs/TOPIC_MAPS.md`.
+- Added `bookmem map-topic <query>` command.
+- Topic maps combine:
+  - deterministic routing,
+  - book and chapter summary search,
+  - indexed chunk retrieval,
+  - recurring theme extraction,
+  - evidence snippets with chunk citations where available.
+- Added JSON/YAML output support for saved topic maps.
+
+### Notes
+
+- Topic maps are derived reasoning aids and can be regenerated. They do not replace canonical Markdown frontmatter or indexed chunk citations.
+
 ## [0.15.0] - 2026-05-18
 
 ### Added

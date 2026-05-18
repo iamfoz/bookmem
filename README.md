@@ -384,6 +384,20 @@ bookmem stats --json
 
 See `docs/STATS.md`.
 
+## Topic maps
+
+Build an agent-friendly map of a topic across summaries and indexed chunks:
+
+```bash
+bookmem map-topic "systems thinking"
+bookmem map-topic "compound interest" --json
+bookmem map-topic "energy management" --output exports/topic-maps/energy-management.yaml
+```
+
+Topic maps show likely BMDC routing, strongest books, recurring themes and evidence snippets so an agent can decide what to read next.
+
+See `docs/TOPIC_MAPS.md`.
+
 ## Reference exports
 
 BookMem can generate formatted book citations and export reference-manager files from canonical Markdown frontmatter.

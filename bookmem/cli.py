@@ -29,6 +29,7 @@ from .backup import create_backup, restore_backup, inspect_backup, result_as_dic
 from .importers import import_epub, import_html, import_pdf, import_calibre, result_as_dict as import_result_as_dict
 from .calibre import scan_calibre_library, find_calibre_book, enrich_markdown_from_calibre, import_calibre_metadata_stubs, calibre_book_as_dict
 from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as_dict as grimmory_result_as_dict
+from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_books, enrich_metadata
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1634,6 +1635,110 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("enrich-openlibrary")
+def enrich_openlibrary_command(
+    book: Path,
+    write: bool = typer.Option(False, "--write", help="Write metadata updates to frontmatter."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing unreviewed fields."),
+    timeout: int = typer.Option(20, "--timeout"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Enrich one book from Open Library metadata."""
+    import json as json_lib
+
+    result = enrich_with_openlibrary(book, write=write, overwrite=overwrite, timeout=timeout)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Provider: Open Library\n"
+            f"Matched: {'yes' if result.get('matched') else 'no'}\n"
+            f"Changed fields: {', '.join(result.get('changed', [])) or '(none)'}\n"
+            f"Wrote: {'yes' if write else 'no'}",
+            title="Metadata enrichment",
+            expand=False,
+        )
+    )
+
+
+@app.command("enrich-google-books")
+def enrich_google_books_command(
+    book: Path,
+    write: bool = typer.Option(False, "--write", help="Write metadata updates to frontmatter."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing unreviewed fields."),
+    timeout: int = typer.Option(20, "--timeout"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Enrich one book from Google Books metadata."""
+    import json as json_lib
+
+    result = enrich_with_google_books(book, write=write, overwrite=overwrite, timeout=timeout)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Provider: Google Books\n"
+            f"Matched: {'yes' if result.get('matched') else 'no'}\n"
+            f"Changed fields: {', '.join(result.get('changed', [])) or '(none)'}\n"
+            f"Wrote: {'yes' if write else 'no'}",
+            title="Metadata enrichment",
+            expand=False,
+        )
+    )
+
+
+@app.command("enrich-metadata")
+def enrich_metadata_command(
+    book: Path,
+    providers: str = typer.Option("loc,openlibrary,google", "--providers", help="Comma-separated providers: loc,openlibrary,google"),
+    write: bool = typer.Option(False, "--write", help="Write metadata updates to frontmatter."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing unreviewed fields."),
+    overwrite_classification: bool = typer.Option(False, "--overwrite-classification", help="Allow LoC enrichment to replace classification."),
+    timeout: int = typer.Option(20, "--timeout"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Run metadata enrichment providers in priority order."""
+    import json as json_lib
+
+    provider_list = [item.strip() for item in providers.split(",") if item.strip()]
+    result = enrich_metadata(
+        book,
+        providers=provider_list,
+        write=write,
+        overwrite=overwrite,
+        overwrite_classification=overwrite_classification,
+        timeout=timeout,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Metadata enrichment")
+    table_out.add_column("Provider")
+    table_out.add_column("Matched")
+    table_out.add_column("Changed / Result")
+    for item in result["results"]:
+        provider = str(item.get("provider", ""))
+        if "error" in item:
+            table_out.add_row(provider, "error", str(item["error"]))
+            continue
+        if provider == "library_of_congress":
+            table_out.add_row(provider, "", str(item.get("result", "")))
+            continue
+        table_out.add_row(
+            provider,
+            "yes" if item.get("matched") else "no",
+            ", ".join(item.get("changed", [])) or "(none)",
+        )
+    console.print(table_out)
+    console.print(f"[green]Wrote: {'yes' if write else 'no'}[/green]")
 
 
 @app.command("backup")

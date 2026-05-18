@@ -17,6 +17,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.30.0] - 2026-05-18
+
+### Added
+- Added Open Library metadata enrichment.
+- Added Google Books metadata enrichment.
+- Added provider orchestration command `bookmem enrich-metadata`.
+- Added `bookmem enrich-openlibrary`.
+- Added `bookmem enrich-google-books`.
+- Added `bookmem/metadata_enrichment.py`.
+- Added `docs/METADATA_ENRICHMENT.md`.
+- Added `metadata_sources` provenance tracking for enriched fields.
+- Added optional `GOOGLE_BOOKS_API_KEY` support.
+- Added `requests` dependency for metadata provider HTTP calls.
+
+### Behaviour
+- Enrichment fills missing fields by default.
+- Existing reviewed metadata is preserved unless `--overwrite` is supplied.
+- Library of Congress classification replacement still requires `--overwrite-classification`.
+
 ## [0.29.0] - 2026-05-18
 
 ### Added

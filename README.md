@@ -707,3 +707,19 @@ bookmem grimmory export data/books --output-dir exports/grimmory --copy-markdown
 ```
 
 See `docs/GRIMMORY.md`.
+
+
+## Metadata enrichment
+
+Optional online metadata enrichment supports Library of Congress, Open
+Library and Google Books:
+
+```bash
+bookmem enrich-openlibrary "data/books/.../Book.md" --write
+bookmem enrich-google-books "data/books/.../Book.md" --write
+bookmem enrich-metadata "data/books/.../Book.md" --providers loc,openlibrary,google --write
+```
+
+Enrichment fills missing metadata, records provenance in
+`metadata_sources`, and does not overwrite reviewed fields unless
+explicitly told to. See `docs/METADATA_ENRICHMENT.md`.

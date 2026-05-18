@@ -35,6 +35,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.48.0] - 2026-05-18
+
+### Added
+- Added restore points and rollback.
+- Added `bookmem restore-points create`.
+- Added `bookmem restore-points list`.
+- Added `bookmem restore-points show`.
+- Added `bookmem rollback`.
+- Added `bookmem rollback --last`.
+- Added `bookmem rollback --audit-id`.
+- Added `bookmem/restore_points.py`.
+- Added `data/restore-points/`.
+- Added `docs/RESTORE_POINTS.md`.
+
+### Behaviour
+- Rollback is dry-run by default and requires `--execute` to restore files.
+- Rollback blocks `data/books/` and `data/raw-books/` unless `--include-canonical-books` is supplied.
+- Automatic restore points are created before migrations, derived artefact cleaning, human review writes and metadata enrichment writes.
+- Audit entries can now include restore point IDs and rollback metadata.
+
 ## [0.47.0] - 2026-05-18
 
 ### Added

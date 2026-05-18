@@ -143,3 +143,30 @@ Useful pattern:
 
 The audit log is append-only by convention. BookMem does not currently
 prevent manual editing, but tools should avoid modifying old records.
+
+
+## Restore points and rollback
+
+The audit log is the timeline. Restore points are the recovery mechanism.
+
+Higher-risk write actions can include rollback metadata:
+
+```json
+{
+  "details": {
+    "restore_point_id": "20260518T120000Z-before-change",
+    "rollback": {
+      "restore_point_id": "20260518T120000Z-before-change"
+    }
+  }
+}
+```
+
+Use:
+
+```bash
+bookmem restore-points list
+bookmem rollback --audit-id "metadata.enrich_metadata"
+```
+
+See `docs/RESTORE_POINTS.md`.

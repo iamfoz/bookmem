@@ -59,6 +59,19 @@ def write_yaml(path: Path, data: dict[str, Any]) -> None:
     path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
 
+def _auto_restore_before_review(label: str, paths: list[str | Path]):
+    try:
+        from .restore_points import create_restore_point
+        return create_restore_point(
+            label=label,
+            paths=paths,
+            reason="automatic restore point before human review change",
+            write_audit=False,
+        )
+    except Exception:
+        return None
+
+
 def append_review_log(action: str, target: str, status: str | None = None, detail: dict[str, Any] | None = None) -> None:
     REVIEW_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     record = {

@@ -997,3 +997,22 @@ bookmem audit export --format jsonl
 The log lives at `data/audit/bookmem.log.jsonl` and records command,
 action, status, changed files, provider and details. See
 `docs/AUDIT.md`.
+
+
+## Restore points and rollback
+
+Create recoverable snapshots and roll back safely:
+
+```bash
+bookmem restore-points create "before metadata enrichment"
+bookmem restore-points list
+bookmem restore-points show <restore_point_id>
+bookmem rollback <restore_point_id>
+bookmem rollback <restore_point_id> --execute
+bookmem rollback --last
+bookmem rollback --audit-id "metadata.enrich_metadata"
+```
+
+Rollback is dry-run by default and blocks canonical book restoration
+unless `--include-canonical-books` is supplied. See
+`docs/RESTORE_POINTS.md`.

@@ -46,6 +46,7 @@ from .migrations import migration_status, apply_migrations, create_migration
 from .clean_derived import clean_derived, clean_result_as_dict
 from .human_review import machine_drafts, drafts_as_dict, approve_summary, approve_concepts, reject_concept, mark_human_reviewed, set_summary_status, set_concepts_status
 from .audit import tail_audit, search_audit, export_audit, append_audit_record
+from .restore_points import create_restore_point, list_restore_points, show_restore_point, rollback_restore_point, restore_point_from_audit_id, restore_point_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -72,6 +73,7 @@ eval_app = typer.Typer(help="Run retrieval benchmark/evaluation sets")
 setup_app = typer.Typer(help="First-run setup wizard and presets")
 migrations_app = typer.Typer(help="Explicit schema/data migrations")
 audit_app = typer.Typer(help="Inspect and export the durable audit log")
+restore_points_app = typer.Typer(help="Create, inspect and roll back restore points")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -84,6 +86,7 @@ app.add_typer(eval_app, name="eval")
 app.add_typer(setup_app, name="setup")
 app.add_typer(migrations_app, name="migrations")
 app.add_typer(audit_app, name="audit")
+app.add_typer(restore_points_app, name="restore-points")
 console = Console()
 
 
@@ -1866,6 +1869,147 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@restore_points_app.command("list")
+def restore_points_list_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List restore points."""
+    import json as json_lib
+
+    points = list_restore_points()
+    if json_output:
+        console.print(json_lib.dumps(points, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Restore points")
+    table_out.add_column("ID")
+    table_out.add_column("Created")
+    table_out.add_column("Label")
+    table_out.add_column("Canonical")
+    table_out.add_column("Archive")
+    for point in points:
+        table_out.add_row(
+            point.get("restore_point_id", ""),
+            point.get("created_at", ""),
+            point.get("label", ""),
+            "yes" if point.get("include_canonical_books") else "no",
+            point.get("archive_path", ""),
+        )
+    console.print(table_out)
+
+
+@restore_points_app.command("create")
+def restore_points_create_command(
+    label: str,
+    include_canonical_books: bool = typer.Option(False, "--include-canonical-books", help="Also include data/books and data/raw-books."),
+    path: list[Path] | None = typer.Option(None, "--path", "-p", help="Specific path to include. Can be used multiple times."),
+    reason: str | None = typer.Option(None, "--reason", help="Reason for the restore point."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Create a restore point."""
+    import json as json_lib
+
+    point = create_restore_point(
+        label=label,
+        paths=path,
+        include_canonical_books=include_canonical_books,
+        reason=reason,
+    )
+    payload = restore_point_as_dict(point)
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"ID: {point.restore_point_id}\n"
+            f"Archive: {point.archive_path}\n"
+            f"Included paths: {len(point.included_paths)}\n"
+            f"Canonical books: {'yes' if point.include_canonical_books else 'no'}",
+            title="Restore point created",
+            expand=False,
+        )
+    )
+
+
+@restore_points_app.command("show")
+def restore_points_show_command(
+    restore_point_id: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show restore point details."""
+    import json as json_lib
+
+    point = show_restore_point(restore_point_id)
+    if json_output:
+        console.print(json_lib.dumps(point, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"ID: {point['restore_point_id']}\n"
+            f"Label: {point['label']}\n"
+            f"Created: {point['created_at']}\n"
+            f"Archive exists: {'yes' if point['archive_exists'] else 'no'}\n"
+            f"Members: {len(point['archive_members'])}",
+            title="Restore point",
+            expand=False,
+        )
+    )
+    for member in point["archive_members"][:200]:
+        console.print(f"- {member}")
+
+
+@app.command("rollback")
+def rollback_command(
+    restore_point_id: str | None = typer.Argument(None, help="Restore point ID."),
+    last: bool = typer.Option(False, "--last", help="Roll back to the most recent restore point."),
+    audit_id: str | None = typer.Option(None, "--audit-id", help="Find restore point from matching audit record text/id."),
+    include_canonical_books: bool = typer.Option(False, "--include-canonical-books", help="Allow restoring data/books and data/raw-books."),
+    dry_run: bool = typer.Option(True, "--dry-run/--execute", help="Preview by default. Use --execute to restore files."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Roll back to a restore point."""
+    import json as json_lib
+
+    if audit_id:
+        point = restore_point_from_audit_id(audit_id)
+        restore_point_id = point["restore_point_id"]
+    if not last and not restore_point_id:
+        console.print("[red]Provide a restore point ID, --last, or --audit-id.[/red]")
+        raise typer.Exit(code=1)
+
+    result = rollback_restore_point(
+        restore_point_id=restore_point_id,
+        last=last,
+        dry_run=dry_run,
+        include_canonical_books=include_canonical_books,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Restore point: {result['restore_point_id']}\n"
+            f"Mode: {'dry-run' if result['dry_run'] else 'execute'}\n"
+            f"Status: {result['status']}\n"
+            f"Archive: {result['archive_path']}",
+            title="Rollback",
+            expand=False,
+        )
+    )
+    if result.get("blocked"):
+        console.print("[yellow]Blocked paths[/yellow]")
+        for item in result["blocked"]:
+            console.print(f"- {item}")
+    for item in (result.get("would_restore") or result.get("restored") or [])[:200]:
+        console.print(f"- {item}")
+    if dry_run:
+        console.print("\n[yellow]Dry run only. Re-run with --execute to restore files.[/yellow]")
 
 
 @audit_app.command("tail")

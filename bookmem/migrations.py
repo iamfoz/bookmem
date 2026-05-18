@@ -150,6 +150,19 @@ def apply_migrations(dry_run: bool = False, target: str | None = None) -> dict[s
             ],
         }
 
+    restore_point = None
+    if migrations:
+        try:
+            from .restore_points import create_restore_point
+            restore_point = create_restore_point(
+                label="before migrations apply",
+                paths=["data/manifests", "data/summaries", "data/concepts", "data/graphs", "data/notes", "data/review", "config"],
+                reason="automatic restore point before applying migrations",
+                write_audit=False,
+            )
+        except Exception:
+            restore_point = None
+
     state.setdefault("schema_version", 1)
     state["migration_system_version"] = MIGRATION_SYSTEM_VERSION
     state.setdefault("applied", [])

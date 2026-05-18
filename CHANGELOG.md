@@ -46,6 +46,29 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.58.0] - 2026-05-18
+
+### Added
+- Added lightweight plugin architecture.
+- Added `plugins/`.
+- Added plugin category directories:
+  - `plugins/importers/`
+  - `plugins/enrichers/`
+  - `plugins/exporters/`
+  - `plugins/summary_providers/`
+  - `plugins/citation_styles/`
+- Added example plugin manifests.
+- Added `bookmem plugins list`.
+- Added `bookmem plugins validate`.
+- Added `bookmem/plugins.py`.
+- Added `docs/PLUGINS.md`.
+
+### Behaviour
+- Plugin discovery is YAML-manifest based.
+- Optional entrypoint metadata is validated but not executed.
+- Validation checks categories, duplicate IDs, capabilities and importable entrypoint modules.
+
 ## [0.57.0] - 2026-05-18
 
 ### Added

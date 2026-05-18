@@ -1,0 +1,19 @@
+schema_version: 1
+plugin:
+  id: example_summary_provider
+  name: Example Summary Provider
+  category: summary_providers
+  version: 0.1.0
+  description: Example manifest for a summary provider plugin.
+  enabled: false
+  entrypoint:
+    module: example_plugins.summary_provider
+    object: summarise_book
+  capabilities:
+    - summarise.book
+    - summarise.chapter
+  config_schema:
+    type: object
+    properties:
+      model:
+        type: string

@@ -1,0 +1,18 @@
+schema_version: 1
+plugin:
+  id: example_epub_importer
+  name: Example EPUB Importer
+  category: importers
+  version: 0.1.0
+  description: Example manifest for an importer plugin.
+  enabled: false
+  entrypoint:
+    module: example_plugins.epub_importer
+    object: import_epub
+  capabilities:
+    - import.epub
+  config_schema:
+    type: object
+    properties:
+      preserve_images:
+        type: boolean

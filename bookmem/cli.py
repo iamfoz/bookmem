@@ -56,6 +56,7 @@ from .reading_metadata import infer_reading_metadata, result_as_dict as reading_
 from .passages import extract_passages, search_passages, favourite_passage, export_passages
 from .topic_compare import compare_topic, render_compare_markdown
 from .claims import extract_claims, search_claims, compare_claims, render_claims_compare_markdown
+from .plugins import discover_plugins, plugins_as_dict, validate_plugins, plugin_summary
 from .citation_exports import (
     export_references,
     format_reference,
@@ -91,6 +92,7 @@ reading_metadata_app = typer.Typer(help="Infer and manage book reading metadata"
 passages_app = typer.Typer(help="Extract, search, favourite and export passages")
 claims_app = typer.Typer(help="Extract, search and compare assertion claims")
 graph_app = typer.Typer(help="Build and export graph visualisations")
+plugins_app = typer.Typer(help="Discover and validate BookMem plugins")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -112,6 +114,7 @@ app.add_typer(reading_metadata_app, name="reading-metadata")
 app.add_typer(passages_app, name="passages")
 app.add_typer(claims_app, name="claims")
 app.add_typer(graph_app, name="graph")
+app.add_typer(plugins_app, name="plugins")
 console = Console()
 
 
@@ -3814,6 +3817,101 @@ def answer_pack_command(
         console.print("\n[yellow]Warnings[/yellow]")
         for error in pack["errors"]:
             console.print(f"- {error}")
+
+
+@plugins_app.command("list")
+def plugins_list_command(
+    category: str | None = typer.Option(None, "--category", "-c", help="Filter by plugin category."),
+    enabled_only: bool = typer.Option(False, "--enabled-only", help="Only show enabled plugins."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List discovered plugin manifests."""
+    import json as json_lib
+
+    plugins = discover_plugins()
+    if category:
+        plugins = [plugin for plugin in plugins if plugin.category == category]
+    if enabled_only:
+        plugins = [plugin for plugin in plugins if plugin.enabled]
+
+    payload = plugins_as_dict(plugins)
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    summary = plugin_summary()
+    console.print(
+        Panel(
+            f"Total: {summary['total']}\n"
+            f"Enabled: {summary['enabled']}\n"
+            f"Root: {summary['root']}",
+            title="Plugin summary",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title="Plugins")
+    table_out.add_column("ID")
+    table_out.add_column("Category")
+    table_out.add_column("Enabled")
+    table_out.add_column("Version")
+    table_out.add_column("Capabilities")
+    table_out.add_column("Entrypoint")
+    table_out.add_column("Path")
+
+    for plugin in plugins:
+        entrypoint = ""
+        if plugin.entrypoint_module:
+            entrypoint = plugin.entrypoint_module
+            if plugin.entrypoint_object:
+                entrypoint += f":{plugin.entrypoint_object}"
+        table_out.add_row(
+            plugin.id,
+            plugin.category,
+            "yes" if plugin.enabled else "no",
+            plugin.version,
+            ", ".join(plugin.capabilities),
+            entrypoint,
+            plugin.path,
+        )
+    console.print(table_out)
+
+
+@plugins_app.command("validate")
+def plugins_validate_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Validate plugin manifests."""
+    import json as json_lib
+
+    issues = validate_plugins()
+    if json_output:
+        console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+        return
+
+    if not issues:
+        console.print("[green]Plugin manifests are valid.[/green]")
+        return
+
+    table_out = Table(title="Plugin validation")
+    table_out.add_column("Level")
+    table_out.add_column("Plugin")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    table_out.add_column("Path")
+    for issue in issues:
+        level = issue.get("level", "")
+        table_out.add_row(
+            str(level),
+            str(issue.get("plugin") or ""),
+            str(issue.get("issue") or ""),
+            str(issue.get("message") or ""),
+            str(issue.get("path") or ""),
+        )
+    console.print(table_out)
+
+    if any(issue.get("level") == "error" for issue in issues):
+        raise typer.Exit(code=1)
 
 
 @graph_app.command("export")

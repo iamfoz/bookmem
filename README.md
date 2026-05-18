@@ -1150,3 +1150,18 @@ bookmem graph export --format all
 ```
 
 Outputs are written to `exports/graphs/`. See `docs/GRAPH_EXPORTS.md`.
+
+
+## Plugins
+
+Discover and validate lightweight plugin manifests:
+
+```bash
+bookmem plugins list
+bookmem plugins list --category importers
+bookmem plugins validate
+```
+
+Plugin manifests live under `plugins/` in category directories such as
+`importers/`, `enrichers/`, `exporters/`, `summary_providers/` and
+`citation_styles/`. See `docs/PLUGINS.md`.

@@ -20,6 +20,10 @@ __pycache__/
 # Local book corpus: uncomment if you do not want source markdown in git
 # /data/books/**/*.md
 
+# Reference exports
+/exports/*
+!/exports/.gitkeep
+
 # OS/editor
 .DS_Store
 .idea/

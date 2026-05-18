@@ -17,6 +17,14 @@ from .manifest import load_manifest, manifest_path, status_for_book
 from .summaries import search_summaries as search_summary_index, summarise_book as summarise_one_book, summarise_books as summarise_many_books
 from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
+from .citation_exports import (
+    SUPPORTED_FORMATS,
+    SUPPORTED_STYLES,
+    export_references,
+    format_reference,
+    reference_from_frontmatter,
+    references_from_directory,
+)
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
 review_app = typer.Typer(help="Generate, inspect and apply review queues")
@@ -866,6 +874,69 @@ def search_summaries_command(
                 expand=False,
             )
         )
+
+
+@app.command("cite")
+def cite_command(
+    path: Path,
+    style: str = typer.Option("apa", "--style", help="Citation style: apa, harvard, mla, chicago"),
+):
+    """Generate a formatted citation for one canonical Markdown book."""
+    style = style.lower().strip()
+    if style not in SUPPORTED_STYLES:
+        console.print(f"[red]Unsupported style: {style}. Supported: {', '.join(sorted(SUPPORTED_STYLES))}[/red]")
+        raise typer.Exit(code=1)
+    reference = reference_from_frontmatter(path)
+    console.print(format_reference(reference, style=style))
+
+
+@app.command("cite-books")
+def cite_books_command(
+    books_dir: Path,
+    style: str = typer.Option("apa", "--style", help="Citation style: apa, harvard, mla, chicago"),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Optional file to write citations to"),
+):
+    """Generate formatted citations for all canonical Markdown books in a directory."""
+    style = style.lower().strip()
+    if style not in SUPPORTED_STYLES:
+        console.print(f"[red]Unsupported style: {style}. Supported: {', '.join(sorted(SUPPORTED_STYLES))}[/red]")
+        raise typer.Exit(code=1)
+    references = references_from_directory(books_dir)
+    if not references:
+        console.print(f"[yellow]No Markdown files found under {books_dir}[/yellow]")
+        return
+    lines = [format_reference(reference, style=style) for reference in references]
+    text = "\n\n".join(lines) + "\n"
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+        console.print(f"[green]Wrote {len(references)} citations to {output}[/green]")
+        return
+    console.print(text)
+
+
+@app.command("export-references")
+def export_references_command(
+    books_dir: Path,
+    format: str = typer.Option("bibtex", "--format", help="Export format: bibtex, ris, csl-json, endnote-xml"),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output file. Prints to stdout when omitted."),
+):
+    """Export book references for Zotero, EndNote, Mendeley and other reference managers."""
+    export_format = format.lower().strip()
+    if export_format not in SUPPORTED_FORMATS:
+        console.print(f"[red]Unsupported format: {export_format}. Supported: {', '.join(sorted(SUPPORTED_FORMATS))}[/red]")
+        raise typer.Exit(code=1)
+    references = references_from_directory(books_dir)
+    if not references:
+        console.print(f"[yellow]No Markdown files found under {books_dir}[/yellow]")
+        return
+    text = export_references(references, export_format=export_format)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+        console.print(f"[green]Exported {len(references)} references to {output}[/green]")
+        return
+    console.print(text)
 
 
 if __name__ == "__main__":

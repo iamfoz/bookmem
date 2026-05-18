@@ -5,6 +5,34 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+
+## [0.11.0] - 2026-05-18
+
+### Added
+
+- Added formatted book citation generation from canonical Markdown frontmatter.
+- Added citation styles:
+  - `apa`
+  - `harvard`
+  - `mla`
+  - `chicago`
+- Added reference manager exports:
+  - `bibtex`
+  - `ris`
+  - `csl-json`
+  - `endnote-xml`
+- Added commands:
+  - `bookmem cite <path> --style apa`
+  - `bookmem cite-books <books_dir> --style harvard --output <file>`
+  - `bookmem export-references <books_dir> --format bibtex --output <file>`
+- Added `bookmem/citation_exports.py`.
+- Added `docs/REFERENCE_EXPORTS.md`.
+
+### Notes
+
+- Reference exports use book-level frontmatter. Passage-level citations still come from indexed chunk metadata and line ranges.
+- Formatted style output is intended as a practical working citation layer. Final university submissions should still be checked against the relevant institutional style guide.
+
 ## [0.10.0] - 2026-05-18
 
 ### Added

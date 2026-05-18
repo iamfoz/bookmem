@@ -1,6 +1,6 @@
 # BookMem
 
-Current package version: **0.10.0**
+Current package version: **0.11.0**
 
 
 BookMem is a local, agent-readable Markdown book corpus.
@@ -47,6 +47,7 @@ The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented 
 - BMDC class and routing alias filters
 - Context reading around a retrieved chunk
 - Review queue for metadata, classification, ISBN conflicts and low-confidence matches
+- Formatted citations and reference manager exports
 - CLI-first workflow suitable for agent tools
 
 ## Project layout
@@ -352,6 +353,23 @@ See `docs/READING_TOOLS.md` for the agent guidance and metadata details.
 BookMem stores source-location metadata on every indexed chunk, including `source_path`, `heading_path`, `chapter_id`, `section_id`, `start_line`, `end_line` and a generated citation string. Search, routed search and reading commands now display line ranges and reusable citations for agent answers.
 
 See [`docs/CITATIONS.md`](docs/CITATIONS.md).
+
+## Reference exports
+
+BookMem can generate formatted book citations and export reference-manager files from canonical Markdown frontmatter.
+
+```bash
+bookmem cite "data/books/Book.md" --style apa
+bookmem cite-books data/books --style harvard --output exports/references-harvard.md
+bookmem export-references data/books --format bibtex --output exports/references.bib
+bookmem export-references data/books --format ris --output exports/references.ris
+bookmem export-references data/books --format csl-json --output exports/references.json
+bookmem export-references data/books --format endnote-xml --output exports/references.xml
+```
+
+Supported formatted styles are `apa`, `harvard`, `mla` and `chicago`. Supported export formats are `bibtex`, `ris`, `csl-json` and `endnote-xml`.
+
+See [`docs/REFERENCE_EXPORTS.md`](docs/REFERENCE_EXPORTS.md).
 
 ## Review queue
 

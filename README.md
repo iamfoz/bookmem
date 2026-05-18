@@ -660,3 +660,23 @@ Backups include `data/books`, `data/summaries`, `data/notes`,
 `data/manifests`, `data/review`, `config` and project metadata. They
 exclude `data/lancedb`, `.venv`, caches and exports. See
 `docs/BACKUP_RESTORE.md`.
+
+
+## Import adapters
+
+Import source book formats into raw Markdown under `data/raw-books/`:
+
+```bash
+bookmem import epub "Book.epub"
+bookmem import html "Book.html"
+bookmem import pdf "Book.pdf"
+bookmem import calibre "/path/to/Calibre Library"
+```
+
+The normal pipeline then takes over:
+
+```text
+import → raw Markdown → clean → frontmatter → classify → prepare → ingest
+```
+
+See `docs/IMPORT_ADAPTERS.md`.

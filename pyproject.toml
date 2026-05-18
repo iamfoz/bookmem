@@ -1,6 +1,6 @@
 [project]
 name = "bookmem"
-version = "0.27.0"
+version = "0.28.0"
 description = "Machine-readable Markdown book corpus for agent retrieval"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -15,6 +15,7 @@ dependencies = [
     "pydantic>=2.7.0",
     "python-dotenv>=1.0.1",
     "mcp>=1.2.0",
+    "pypdf>=4.0.0",
     "uvicorn[standard]>=0.30.0",
     "fastapi>=0.111.0",
     "pyarrow>=15.0.0",

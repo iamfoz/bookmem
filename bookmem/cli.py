@@ -26,6 +26,7 @@ from .clean_check import assess_cleanliness, summarise_clean_check
 from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleaning_profiles, report_as_dict
 from .doctor import run_doctor
 from .backup import create_backup, restore_backup, inspect_backup, result_as_dict
+from .importers import import_epub, import_html, import_pdf, import_calibre, result_as_dict as import_result_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -42,8 +43,10 @@ from .citation_exports import (
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
 review_app = typer.Typer(help="Generate, inspect and apply review queues")
 notes_app = typer.Typer(help="Generate Obsidian-friendly book notes")
+import_app = typer.Typer(help="Import source book formats into raw Markdown")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
+app.add_typer(import_app, name="import")
 console = Console()
 
 
@@ -1362,6 +1365,111 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@import_app.command("epub")
+def import_epub_command(
+    source: Path,
+    output_dir: Path = typer.Option(Path("data/raw-books"), "--output-dir", "-o"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite an existing raw Markdown file."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Import an EPUB file into raw Markdown."""
+    import json as json_lib
+
+    result = import_epub(source, output_dir=output_dir, overwrite=overwrite)
+    if json_output:
+        console.print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
+        return
+    console.print(
+        Panel(
+            f"Source: {result.source_path}\n"
+            f"Output: {result.output_path}\n"
+            f"Title: {result.title or ''}\n"
+            f"Author: {result.author or ''}\n"
+            f"Sections: {result.item_count}",
+            title="EPUB imported",
+            expand=False,
+        )
+    )
+
+
+@import_app.command("html")
+def import_html_command(
+    source: Path,
+    output_dir: Path = typer.Option(Path("data/raw-books"), "--output-dir", "-o"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite an existing raw Markdown file."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Import an HTML file into raw Markdown."""
+    import json as json_lib
+
+    result = import_html(source, output_dir=output_dir, overwrite=overwrite)
+    if json_output:
+        console.print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
+        return
+    console.print(
+        Panel(
+            f"Source: {result.source_path}\n"
+            f"Output: {result.output_path}\n"
+            f"Sections: {result.item_count}",
+            title="HTML imported",
+            expand=False,
+        )
+    )
+
+
+@import_app.command("pdf")
+def import_pdf_command(
+    source: Path,
+    output_dir: Path = typer.Option(Path("data/raw-books"), "--output-dir", "-o"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite an existing raw Markdown file."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Import a PDF file into raw Markdown using best-effort text extraction."""
+    import json as json_lib
+
+    result = import_pdf(source, output_dir=output_dir, overwrite=overwrite)
+    if json_output:
+        console.print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
+        return
+    console.print(
+        Panel(
+            f"Source: {result.source_path}\n"
+            f"Output: {result.output_path}\n"
+            f"Title: {result.title or ''}\n"
+            f"Author: {result.author or ''}\n"
+            f"Pages with text: {result.item_count}\n"
+            f"Warning: {result.warning or ''}",
+            title="PDF imported",
+            expand=False,
+        )
+    )
+
+
+@import_app.command("calibre")
+def import_calibre_command(
+    library_path: Path,
+    output_dir: Path = typer.Option(Path("data/raw-books"), "--output-dir", "-o"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing raw Markdown stubs."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Import Calibre metadata into raw Markdown stubs."""
+    import json as json_lib
+
+    results = import_calibre(library_path, output_dir=output_dir, overwrite=overwrite)
+    if json_output:
+        console.print(json_lib.dumps([import_result_as_dict(item) for item in results], indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Calibre metadata imported")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("Output")
+    for result in results:
+        table_out.add_row(result.title or "", result.author or "", result.output_path)
+    console.print(table_out)
+    console.print(f"[green]{len(results)} metadata stub(s) written[/green]")
 
 
 @app.command("backup")

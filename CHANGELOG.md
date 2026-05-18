@@ -15,6 +15,25 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.28.0] - 2026-05-18
+
+### Added
+- Added import adapter command group: `bookmem import`.
+- Added `bookmem import epub`.
+- Added `bookmem import html`.
+- Added `bookmem import pdf`.
+- Added `bookmem import calibre`.
+- Added `bookmem/importers.py`.
+- Added `docs/IMPORT_ADAPTERS.md`.
+- Added raw Markdown import frontmatter under `bookmem_import`.
+- Added `pypdf` dependency for best-effort PDF text extraction.
+
+### Notes
+- Import adapters write to `data/raw-books/`.
+- Canonical Markdown under `data/books/` is still produced by the existing clean/frontmatter/prepare workflow.
+- Calibre import currently creates metadata stubs rather than converting ebook content.
+
 ## [0.27.0] - 2026-05-18
 
 ### Added

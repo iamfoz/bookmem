@@ -14,6 +14,20 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.27.0] - 2026-05-18
+
+### Added
+- Added backup and restore commands.
+- Added `bookmem backup`.
+- Added `bookmem restore`.
+- Added `bookmem/backup.py`.
+- Added `docs/BACKUP_RESTORE.md`.
+- Backups include canonical books, summaries, Obsidian notes, manifests, review queues, config and project metadata.
+- Backups exclude LanceDB indexes, virtual environments, caches, exports and backup archives.
+- Restore supports `--dry-run`, `--overwrite`, `--target-root` and JSON output.
+- Restore protects against unsafe archive paths.
+
 ## [0.26.0] - 2026-05-18
 
 ### Added

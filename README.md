@@ -644,3 +644,19 @@ Authorization: Bearer change-me
 ```
 
 See `docs/API_AUTH.md`.
+
+
+## Backup and restore
+
+Create a portable backup of canonical and reviewable BookMem state:
+
+```bash
+bookmem backup --output backups/bookmem-2026-05-18.tar.gz
+bookmem restore backups/bookmem-2026-05-18.tar.gz --dry-run
+bookmem restore backups/bookmem-2026-05-18.tar.gz
+```
+
+Backups include `data/books`, `data/summaries`, `data/notes`,
+`data/manifests`, `data/review`, `config` and project metadata. They
+exclude `data/lancedb`, `.venv`, caches and exports. See
+`docs/BACKUP_RESTORE.md`.

@@ -25,6 +25,7 @@ from .notes import generate_note, generate_notes_for_directory, load_note_templa
 from .clean_check import assess_cleanliness, summarise_clean_check
 from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleaning_profiles, report_as_dict
 from .doctor import run_doctor
+from .backup import create_backup, restore_backup, inspect_backup, result_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1361,6 +1362,86 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@app.command("backup")
+def backup_command(
+    output: Path = typer.Option(..., "--output", "-o", help="Output .tar.gz backup path."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite an existing backup file."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Create a BookMem backup archive."""
+    import json as json_lib
+
+    result = create_backup(output_path=output, overwrite=overwrite)
+    payload = result_as_dict(result)
+
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Output: {result.output_path}\n"
+            f"Files: {result.file_count}\n\n"
+            f"Included roots:\n"
+            f"- data/books\n"
+            f"- data/summaries\n"
+            f"- data/notes\n"
+            f"- data/manifests\n"
+            f"- data/review\n"
+            f"- config\n"
+            f"- project metadata/docs\n\n"
+            f"Excluded: data/lancedb, exports, backups, .venv, caches",
+            title="Backup created",
+            expand=False,
+        )
+    )
+
+
+@app.command("restore")
+def restore_command(
+    archive: Path,
+    target_root: Path = typer.Option(Path("."), "--target-root", help="Directory to restore into."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing files."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be restored without writing files."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Restore a BookMem backup archive."""
+    import json as json_lib
+
+    manifest = inspect_backup(archive)
+    result = restore_backup(
+        archive_path=archive,
+        target_root=target_root,
+        overwrite=overwrite,
+        dry_run=dry_run,
+    )
+    payload = result_as_dict(result)
+    payload["manifest"] = manifest
+
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    title = "Restore dry run" if dry_run else "Restore complete"
+    console.print(
+        Panel(
+            f"Archive: {result.archive_path}\n"
+            f"Target root: {target_root}\n"
+            f"Restored/would restore: {result.restored_count}\n"
+            f"Skipped existing files: {len(result.skipped_paths)}",
+            title=title,
+            expand=False,
+        )
+    )
+
+    if result.skipped_paths:
+        console.print("\n[yellow]Skipped existing files. Use --overwrite to replace them.[/yellow]")
+        for path in result.skipped_paths[:20]:
+            console.print(f"- {path}")
+        if len(result.skipped_paths) > 20:
+            console.print(f"... and {len(result.skipped_paths) - 20} more")
 
 
 @app.command("doctor")

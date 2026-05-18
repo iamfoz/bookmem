@@ -20,6 +20,7 @@ from .review import apply_review_queue, load_review_queue, review_file_path, wri
 from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
 from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts
 from .topic_maps import map_topic as build_topic_map, write_topic_map
+from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1013,6 +1014,35 @@ def map_topic_command(
 
     if output:
         console.print(f"[green]Wrote topic map:[/green] {output}")
+
+
+
+@app.command("export")
+def agent_export_command(
+    format: str = typer.Option("jsonl", "--format", help="Agent export format: jsonl, llamaindex, langchain, markdown-index, or all"),
+    output_dir: Path = typer.Option(Path("exports"), "--output-dir", "-o", help="Directory to write export files into"),
+    books_dir: Path | None = typer.Option(None, "--books-dir", help="Canonical books directory. Defaults to BOOKMEM_BOOKS_DIR."),
+):
+    """Export the BookMem corpus for other agents and retrieval frameworks."""
+    export_format = format.lower().strip()
+    supported = set(SUPPORTED_AGENT_EXPORT_FORMATS) | {"all"}
+    if export_format not in supported:
+        console.print(f"[red]Unsupported format: {export_format}. Supported: {', '.join(sorted(supported))}[/red]")
+        raise typer.Exit(code=1)
+
+    result = export_agent_corpus(export_format=export_format, output_dir=output_dir, books_dir=books_dir)
+
+    table_out = Table(title="Agent export files")
+    table_out.add_column("File")
+    table_out.add_column("Size", justify="right")
+    for path in result.files:
+        size = path.stat().st_size if path.exists() else 0
+        table_out.add_row(str(path), f"{size:,} bytes")
+    console.print(table_out)
+    console.print(
+        f"[green]Exported {result.book_count} books and {result.chunk_count} chunks "
+        f"for format '{result.format}' to {result.output_dir}[/green]"
+    )
 
 @app.command("cite")
 def cite_command(

@@ -5,6 +5,31 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+## [0.17.0] - 2026-05-18
+
+### Added
+
+- Added portable corpus exports for other agents and retrieval frameworks.
+- Added `bookmem/agent_exports.py`.
+- Added `docs/AGENT_EXPORTS.md`.
+- Added `bookmem export` command with formats:
+  - `jsonl`
+  - `llamaindex`
+  - `langchain`
+  - `markdown-index`
+  - `all`
+- Added common agent export files:
+  - `exports/bookmem_books.json`
+  - `exports/bookmem_chunks.jsonl`
+  - `exports/bookmem_agent_tools.md`
+  - `exports/bookmem_export_manifest.json`
+
+### Notes
+
+- Agent exports are separate from academic reference-manager exports. They are designed for retrieval agents and framework interop.
+- Chunk exports require an indexed LanceDB table. Book metadata exports can still be generated from canonical Markdown frontmatter.
+
+
 
 ## [0.16.0] - 2026-05-18
 

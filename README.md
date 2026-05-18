@@ -1,6 +1,6 @@
 # BookMem
 
-Current package version: **0.15.0**
+Current package version: **0.17.0**
 
 
 BookMem is a local, agent-readable Markdown book corpus.
@@ -50,6 +50,7 @@ The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented 
 - Formatted citations and pluggable reference manager exports
 - Collection-level statistics by class, author and topic
 - CLI-first workflow suitable for agent tools
+- Portable exports for Sandy, OpenClaw, Claude Code, LlamaIndex and LangChain
 
 ## Project layout
 
@@ -397,6 +398,26 @@ bookmem map-topic "energy management" --output exports/topic-maps/energy-managem
 Topic maps show likely BMDC routing, strongest books, recurring themes and evidence snippets so an agent can decide what to read next.
 
 See `docs/TOPIC_MAPS.md`.
+
+## Agent exports
+
+BookMem can export the corpus for other agents and retrieval frameworks. See [`docs/AGENT_EXPORTS.md`](docs/AGENT_EXPORTS.md).
+
+```bash
+bookmem export --format jsonl
+bookmem export --format llamaindex
+bookmem export --format langchain
+bookmem export --format markdown-index
+bookmem export --format all
+```
+
+Useful output files include:
+
+```text
+exports/bookmem_chunks.jsonl
+exports/bookmem_books.json
+exports/bookmem_agent_tools.md
+```
 
 ## Reference exports
 

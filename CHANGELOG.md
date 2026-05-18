@@ -30,6 +30,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.43.0] - 2026-05-18
+
+### Added
+- Added sane setup wizard re-run modes:
+  - `safe`
+  - `repair`
+  - `rebuild`
+- Added `--mode` to `bookmem setup plan`.
+- Added `--mode` to `bookmem setup run`.
+- Added `--force` to `bookmem setup run`.
+- Added setup preflight reporting for enabled steps, long-running steps, destructive/generated rebuild steps and warnings.
+- Added TUI setup mode controls for safe/repair/rebuild.
+- Added setup safe-mode skipping for already-generated summaries, concepts and book graph unless `--force` is used.
+
+### Changed
+- Setup wizard is now explicitly idempotent and suitable for first-run or re-run workflows.
+- CLI setup progress now updates based on completed/skipped/planned steps instead of blindly advancing all steps.
+- Documentation now explains rerun behaviour and long-task status expectations.
+
 ## [0.42.0] - 2026-05-18
 
 ### Added

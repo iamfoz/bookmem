@@ -206,3 +206,81 @@ setup_presets:
     summary_provider: deterministic
     embedding_profile: default
 ```
+
+
+## Re-running setup
+
+The wizard is designed to be safe to run on an existing BookMem setup.
+
+Rerun modes:
+
+```text
+safe     Default. Uses changed-only operations and skips expensive generated artefacts when they already exist.
+repair   Runs validation/fix steps and enabled workflow steps without intentionally resetting generated indexes.
+rebuild  Recreates generated artefacts where appropriate, including index reset/rebuild behaviour.
+```
+
+CLI examples:
+
+```bash
+bookmem setup run balanced
+bookmem setup run balanced --mode safe
+bookmem setup run balanced --mode repair
+bookmem setup run agent_ready --mode rebuild
+```
+
+Force safe mode to run steps it would normally skip:
+
+```bash
+bookmem setup run full_fat --mode safe --force
+```
+
+Dry-run an existing setup:
+
+```bash
+bookmem setup run agent_ready --mode rebuild --dry-run
+```
+
+The TUI Setup tab also exposes the same modes:
+
+```text
+Mode: safe
+Mode: repair
+Mode: rebuild
+```
+
+## Long-running task feedback
+
+Any setup path that can take more than a couple of seconds should expose
+visible status.
+
+CLI setup uses:
+
+```text
+spinner
+progress bar
+elapsed time
+rolling status line
+per-step status
+```
+
+TUI setup uses:
+
+```text
+fixed Setup tab
+current preset/mode display
+plan preview
+streaming log output
+dashboard refresh after completion
+```
+
+Long-running setup steps are explicitly marked in the plan:
+
+```text
+prepare changed raw books
+ingest changed books
+generate summaries
+extract concepts
+```
+
+This makes first-run and re-run behaviour predictable rather than opaque.

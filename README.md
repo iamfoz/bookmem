@@ -917,3 +917,16 @@ bookmem tui
 
 Open the `Setup` tab to choose from `full_fat`, `balanced`, `minimal`,
 `import_ready` and `agent_ready`. See `docs/SETUP_WIZARD.md`.
+
+
+Setup can be re-run safely on existing installations:
+
+```bash
+bookmem setup run balanced --mode safe
+bookmem setup run balanced --mode repair
+bookmem setup run agent_ready --mode rebuild
+bookmem setup run full_fat --mode safe --force
+```
+
+Long-running setup steps use spinner/progress/status output in the CLI
+and a streaming log in the TUI.

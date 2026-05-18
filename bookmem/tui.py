@@ -177,6 +177,10 @@ class BookMemTUI(App):
                     yield Label("First-run setup wizard. Choose a preset, inspect the plan, then run it.")
                     yield DataTable(id="setup-presets-table")
                     with Horizontal():
+                        yield Button("Mode: safe", id="setup-mode-safe")
+                        yield Button("Mode: repair", id="setup-mode-repair")
+                        yield Button("Mode: rebuild", id="setup-mode-rebuild")
+                    with Horizontal():
                         yield Button("Use full_fat", id="setup-full_fat")
                         yield Button("Use balanced", id="setup-balanced")
                         yield Button("Use minimal", id="setup-minimal")

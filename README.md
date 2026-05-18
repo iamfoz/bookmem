@@ -753,3 +753,17 @@ bookmem related --topic "systems thinking"
 The graph is stored at `data/graphs/book_graph.json` and uses signals
 such as shared topics, class, summaries, author and work/edition groups.
 See `docs/BOOK_GRAPH.md`.
+
+
+## Answer packs
+
+Gather route, relevant books, passages, context, related books and
+citations into one structured evidence bundle:
+
+```bash
+bookmem answer-pack "What do my books say about systems versus goals?"
+bookmem answer-pack "What do my books say about systems versus goals?" --json
+```
+
+This is designed for Sandy and other agents that need evidence before
+producing a final answer. See `docs/ANSWER_PACKS.md`.

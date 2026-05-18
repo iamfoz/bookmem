@@ -32,6 +32,7 @@ from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as
 from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_books, enrich_metadata
 from .editions import list_editions, group_editions, edition_records_as_dict, ensure_work_edition_frontmatter
 from .book_graph import build_book_graph, related_books
+from .answer_pack import build_answer_pack
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1637,6 +1638,91 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("answer-pack")
+def answer_pack_command(
+    query: str,
+    limit: int = typer.Option(6, "--limit", "-n", help="Number of top passages/books to collect."),
+    context: int = typer.Option(1, "--context", "-c", help="Neighbouring chunks to include around top passages."),
+    no_summaries: bool = typer.Option(False, "--no-summaries", help="Skip summary search."),
+    no_text: bool = typer.Option(False, "--no-text", help="Return excerpts/metadata rather than full text."),
+    rebuild_graph: bool = typer.Option(False, "--rebuild-graph", help="Rebuild book relationship graph before lookup."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Build a structured evidence bundle for answering from the corpus."""
+    import json as json_lib
+
+    pack = build_answer_pack(
+        query=query,
+        limit=limit,
+        context=context,
+        summaries_first=not no_summaries,
+        include_text=not no_text,
+        rebuild_graph=rebuild_graph,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(pack, indent=2, ensure_ascii=False))
+        return
+
+    console.print(Panel(
+        f"[bold]Query:[/bold] {pack['query']}\n"
+        f"[bold]Route:[/bold] {pack['route'].get('reason', '')}\n"
+        f"[bold]Confidence:[/bold] {pack['route'].get('confidence', '')}\n"
+        f"[bold]Aliases:[/bold] {', '.join(pack['route'].get('aliases', []) or [])}\n"
+        f"[bold]Classes:[/bold] {', '.join(str(x) for x in (pack['route'].get('class_codes', []) or []))}",
+        title="Answer pack",
+        expand=False,
+    ))
+
+    books_table = Table(title="Relevant books")
+    books_table.add_column("#", justify="right")
+    books_table.add_column("Title")
+    books_table.add_column("Author")
+    books_table.add_column("Class")
+    for index, book in enumerate(pack.get("relevant_books", []), start=1):
+        books_table.add_row(
+            str(index),
+            str(book.get("title") or ""),
+            str(book.get("author") or ""),
+            str(book.get("primary_class") or ""),
+        )
+    console.print(books_table)
+
+    passages_table = Table(title="Top passages")
+    passages_table.add_column("#", justify="right")
+    passages_table.add_column("Book")
+    passages_table.add_column("Location")
+    passages_table.add_column("Citation")
+    for index, passage in enumerate(pack.get("top_passages", []), start=1):
+        passages_table.add_row(
+            str(index),
+            str(passage.get("title") or ""),
+            str(passage.get("heading_path") or passage.get("chapter_title") or ""),
+            str(passage.get("citation") or ""),
+        )
+    console.print(passages_table)
+
+    synthesis = pack.get("suggested_synthesis", {})
+    console.print("\n[bold]Suggested synthesis approach[/bold]")
+    for point in synthesis.get("possible_synthesis_points", []):
+        console.print(f"- {point}")
+
+    if synthesis.get("recurring_themes"):
+        console.print("\n[bold]Recurring themes[/bold]")
+        for theme in synthesis.get("recurring_themes", [])[:10]:
+            console.print(f"- {theme}")
+
+    if pack.get("citations"):
+        console.print("\n[bold]Citations[/bold]")
+        for citation in pack["citations"][:15]:
+            console.print(f"- {citation}")
+
+    if pack.get("errors"):
+        console.print("\n[yellow]Warnings[/yellow]")
+        for error in pack["errors"]:
+            console.print(f"- {error}")
 
 
 @app.command("build-graph")

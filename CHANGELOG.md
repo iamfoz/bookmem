@@ -20,6 +20,20 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.33.0] - 2026-05-18
+
+### Added
+- Added structured corpus answer packs.
+- Added `bookmem answer-pack`.
+- Added JSON output for answer packs.
+- Added `bookmem/answer_pack.py`.
+- Added `docs/ANSWER_PACKS.md`.
+- Answer packs include route, relevant books, summary matches, top passages, read-around context, related books, suggested synthesis guidance, citations and warnings.
+
+### Notes
+- `answer-pack` prepares evidence for an agent or human. It does not generate a final prose answer locally.
+
 ## [0.32.0] - 2026-05-18
 
 ### Added

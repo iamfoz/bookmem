@@ -964,3 +964,20 @@ bookmem clean-derived --index --execute
 The cleaner never deletes `data/books/`, `data/raw-books/` or `config/`.
 Review queues are cleaned only with explicit `--review`. See
 `docs/CLEAN_DERIVED.md`.
+
+
+## Human review workflow
+
+Promote, reject or mark generated machine-draft artefacts:
+
+```bash
+bookmem review machine-drafts
+bookmem review approve-summary <book_id>
+bookmem review approve-concepts <book_id>
+bookmem review reject-concept <concept_id>
+bookmem review mark-human-reviewed <path>
+```
+
+Supported review statuses are `machine_draft`, `needs_human_review`,
+`human_reviewed`, `rejected` and `superseded`. See
+`docs/HUMAN_REVIEW.md`.

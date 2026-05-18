@@ -33,6 +33,28 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.46.0] - 2026-05-18
+
+### Added
+- Added human review workflow for machine-generated artefacts.
+- Added `bookmem review machine-drafts`.
+- Added `bookmem review approve-summary <book_id>`.
+- Added `bookmem review approve-concepts <book_id>`.
+- Added `bookmem review reject-concept <concept_id>`.
+- Added `bookmem review mark-human-reviewed <path>`.
+- Added `bookmem review set-summary-status`.
+- Added `bookmem review set-concepts-status`.
+- Added `bookmem/human_review.py`.
+- Added `docs/HUMAN_REVIEW.md`.
+- Added review log at `data/review/human_review_log.jsonl`.
+
+### Behaviour
+- Supports review statuses: `machine_draft`, `needs_human_review`, `human_reviewed`, `rejected`, `superseded`.
+- Summary approval updates both `book.yaml` and `chapters.yaml`.
+- Concept approval updates `concepts.yaml` and syncs `data/concepts/concepts.json`.
+- Rejected concepts are marked rejected rather than deleted.
+
 ## [0.45.0] - 2026-05-18
 
 ### Added

@@ -44,6 +44,7 @@ from .tui import run_tui
 from .setup_wizard import load_setup_presets, presets_as_dict, setup_steps_for_preset, setup_status, run_setup_preset
 from .migrations import migration_status, apply_migrations, create_migration
 from .clean_derived import clean_derived, clean_result_as_dict
+from .human_review import machine_drafts, drafts_as_dict, approve_summary, approve_concepts, reject_concept, mark_human_reviewed, set_summary_status, set_concepts_status
 from .citation_exports import (
     export_references,
     format_reference,
@@ -128,6 +129,144 @@ def review_command(
     console.print(f"[dim]{review_file_path('metadata', summary.review_dir)}[/dim]")
     console.print(f"[dim]{review_file_path('classification', summary.review_dir)}[/dim]")
     console.print(f"[dim]{review_file_path('low_confidence', summary.review_dir)}[/dim]")
+
+
+@review_app.command("machine-drafts")
+def review_machine_drafts_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List machine-generated summaries/concepts awaiting human review."""
+    import json as json_lib
+
+    drafts = machine_drafts()
+    payload = drafts_as_dict(drafts)
+
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Machine drafts")
+    table_out.add_column("Type")
+    table_out.add_column("ID")
+    table_out.add_column("Title")
+    table_out.add_column("Status")
+    table_out.add_column("Detail")
+    table_out.add_column("Path")
+    for item in drafts:
+        table_out.add_row(
+            item.artefact_type,
+            item.id,
+            item.title or "",
+            item.status,
+            item.detail or "",
+            item.path,
+        )
+    console.print(table_out)
+    console.print(f"[green]{len(drafts)} machine draft(s) found[/green]")
+
+
+@review_app.command("approve-summary")
+def review_approve_summary_command(
+    book_id: str,
+    reviewer: str | None = typer.Option(None, "--reviewer", help="Reviewer name/identifier."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Mark a book summary and chapter summary as human-reviewed."""
+    import json as json_lib
+
+    result = approve_summary(book_id, reviewer=reviewer)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[green]Approved summary for {book_id}[/green]")
+    for path in result.get("changed", []):
+        console.print(f"- {path}")
+
+
+@review_app.command("approve-concepts")
+def review_approve_concepts_command(
+    book_id: str,
+    reviewer: str | None = typer.Option(None, "--reviewer", help="Reviewer name/identifier."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Mark all extracted concepts for a book as human-reviewed."""
+    import json as json_lib
+
+    result = approve_concepts(book_id, reviewer=reviewer)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[green]Approved concepts for {book_id}[/green]")
+    console.print(f"Concepts changed: {len(result.get('changed_concepts', []))}")
+
+
+@review_app.command("reject-concept")
+def review_reject_concept_command(
+    concept_id: str,
+    reason: str | None = typer.Option(None, "--reason", help="Reason for rejection."),
+    reviewer: str | None = typer.Option(None, "--reviewer", help="Reviewer name/identifier."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Mark one extracted concept as rejected."""
+    import json as json_lib
+
+    result = reject_concept(concept_id, reason=reason, reviewer=reviewer)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[yellow]Rejected concept {concept_id}[/yellow]")
+    if reason:
+        console.print(f"Reason: {reason}")
+
+
+@review_app.command("mark-human-reviewed")
+def review_mark_human_reviewed_command(
+    path: Path,
+    reviewer: str | None = typer.Option(None, "--reviewer", help="Reviewer name/identifier."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Mark a YAML or Markdown artefact as human-reviewed."""
+    import json as json_lib
+
+    result = mark_human_reviewed(path, reviewer=reviewer)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[green]Marked human-reviewed:[/green] {result['path']}")
+
+
+@review_app.command("set-summary-status")
+def review_set_summary_status_command(
+    book_id: str,
+    status: str = typer.Argument(..., help="machine_draft, needs_human_review, human_reviewed, rejected or superseded."),
+    reviewer: str | None = typer.Option(None, "--reviewer", help="Reviewer name/identifier."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Set review status for a summary."""
+    import json as json_lib
+
+    result = set_summary_status(book_id, status=status, reviewer=reviewer)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[green]Summary status updated:[/green] {book_id} -> {status}")
+
+
+@review_app.command("set-concepts-status")
+def review_set_concepts_status_command(
+    book_id: str,
+    status: str = typer.Argument(..., help="machine_draft, needs_human_review, human_reviewed, rejected or superseded."),
+    reviewer: str | None = typer.Option(None, "--reviewer", help="Reviewer name/identifier."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Set review status for all concepts in a book."""
+    import json as json_lib
+
+    result = set_concepts_status(book_id, status=status, reviewer=reviewer)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[green]Concept status updated:[/green] {book_id} -> {status}")
 
 
 @review_app.command("classifications")

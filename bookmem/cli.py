@@ -16,9 +16,142 @@ from .prepare import prepare_book as prepare_one_book
 from .manifest import load_manifest, manifest_path, status_for_book
 from .summaries import search_summaries as search_summary_index, summarise_book as summarise_one_book, summarise_books as summarise_many_books
 from .router import route_query
+from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
+review_app = typer.Typer(help="Generate, inspect and apply review queues")
+app.add_typer(review_app, name="review")
 console = Console()
+
+
+def _print_review_table(queue_name: str, issues: list[dict]) -> None:
+    if not issues:
+        console.print(f"[green]No {queue_name} review issues found[/green]")
+        return
+
+    table_out = Table(title=f"Review queue: {queue_name}")
+    table_out.add_column("Issue")
+    table_out.add_column("Severity")
+    table_out.add_column("Class")
+    table_out.add_column("Title")
+    table_out.add_column("Path")
+
+    for issue in issues:
+        table_out.add_row(
+            str(issue.get("issue", "")),
+            str(issue.get("severity", "")),
+            str(issue.get("primary_class") or issue.get("suggested_primary_class") or ""),
+            str(issue.get("title", "")),
+            str(issue.get("path", "")),
+        )
+    console.print(table_out)
+
+
+@review_app.callback(invoke_without_command=True)
+def review_command(
+    ctx: typer.Context,
+    books_dir: Path | None = typer.Option(None, "--books-dir", help="Canonical books directory. Defaults to BOOKMEM_BOOKS_DIR."),
+):
+    """Generate and summarise review queue files."""
+    if ctx.invoked_subcommand is not None:
+        return
+    summary = write_review_queues(books_dir=books_dir)
+    console.print(
+        Panel(
+            f"Review directory: {summary.review_dir}\n\n"
+            f"Needs metadata: {summary.metadata_count}\n"
+            f"Needs classification: {summary.classification_count}\n"
+            f"Low-confidence matches: {summary.low_confidence_count}",
+            title="Review queues generated",
+            expand=False,
+        )
+    )
+    console.print(f"[dim]{review_file_path('metadata', summary.review_dir)}[/dim]")
+    console.print(f"[dim]{review_file_path('classification', summary.review_dir)}[/dim]")
+    console.print(f"[dim]{review_file_path('low_confidence', summary.review_dir)}[/dim]")
+
+
+@review_app.command("classifications")
+def review_classifications_command(
+    regenerate: bool = typer.Option(False, "--regenerate", help="Regenerate review files before displaying."),
+    books_dir: Path | None = typer.Option(None, "--books-dir"),
+):
+    """Show books needing classification review."""
+    if regenerate:
+        write_review_queues(books_dir=books_dir)
+    data = load_review_queue("classification")
+    _print_review_table("needs_classification", data.get("issues", []))
+
+
+@review_app.command("isbn-conflicts")
+def review_isbn_conflicts_command(
+    regenerate: bool = typer.Option(False, "--regenerate", help="Regenerate review files before displaying."),
+    books_dir: Path | None = typer.Option(None, "--books-dir"),
+):
+    """Show ISBN-related conflicts and duplicate candidates."""
+    if regenerate:
+        write_review_queues(books_dir=books_dir)
+    metadata = load_review_queue("metadata").get("issues", [])
+    classification = load_review_queue("classification").get("issues", [])
+    relevant = [
+        issue for issue in metadata + classification
+        if str(issue.get("issue", "")).startswith("duplicate_")
+        or issue.get("issue") == "multiple_isbns_found"
+        or issue.get("issue") == "loc_class_conflict"
+    ]
+    _print_review_table("isbn_conflicts", relevant)
+
+
+@review_app.command("metadata")
+def review_metadata_command(
+    regenerate: bool = typer.Option(False, "--regenerate", help="Regenerate review files before displaying."),
+    books_dir: Path | None = typer.Option(None, "--books-dir"),
+):
+    """Show books needing metadata review."""
+    if regenerate:
+        write_review_queues(books_dir=books_dir)
+    data = load_review_queue("metadata")
+    _print_review_table("needs_metadata", data.get("issues", []))
+
+
+@review_app.command("low-confidence")
+def review_low_confidence_command(
+    regenerate: bool = typer.Option(False, "--regenerate", help="Regenerate review files before displaying."),
+    books_dir: Path | None = typer.Option(None, "--books-dir"),
+):
+    """Show low-confidence classification matches."""
+    if regenerate:
+        write_review_queues(books_dir=books_dir)
+    data = load_review_queue("low_confidence")
+    _print_review_table("low_confidence_matches", data.get("issues", []))
+
+
+@review_app.command("apply")
+def review_apply_command(
+    regenerate_after: bool = typer.Option(True, "--regenerate-after/--no-regenerate-after", help="Regenerate review files after applying approved changes."),
+):
+    """Apply approved edits from review YAML files to Markdown frontmatter."""
+    results = apply_review_queue()
+    if not results:
+        console.print("[yellow]No approved review entries to apply[/yellow]")
+        return
+
+    table_out = Table(title="Applied review changes")
+    table_out.add_column("Status")
+    table_out.add_column("Class")
+    table_out.add_column("Path")
+    for result in results:
+        table_out.add_row(str(result.get("status", "")), str(result.get("primary_class", "")), str(result.get("path", "")))
+    console.print(table_out)
+    if regenerate_after:
+        summary = write_review_queues()
+        console.print(
+            f"[green]Review queues regenerated:[/green] "
+            f"metadata={summary.metadata_count}, "
+            f"classification={summary.classification_count}, "
+            f"low_confidence={summary.low_confidence_count}"
+        )
+
 
 @app.command("status")
 def status_command(

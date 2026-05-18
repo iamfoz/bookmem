@@ -5,6 +5,40 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+## [0.10.0] - 2026-05-18
+
+### Added
+
+- Added generated review queue support under:
+
+  ```text
+  data/review/
+    needs_metadata.yaml
+    needs_classification.yaml
+    low_confidence_matches.yaml
+  ```
+
+- Added review commands:
+  - `bookmem review`
+  - `bookmem review metadata`
+  - `bookmem review classifications`
+  - `bookmem review isbn-conflicts`
+  - `bookmem review low-confidence`
+  - `bookmem review apply`
+- Added detection for missing title/author metadata.
+- Added detection for multiple ISBNs in one book.
+- Added duplicate detection by ISBN and by title/author pair.
+- Added detection for external catalogue class conflicts.
+- Added low-confidence classification review prompts.
+- Added YAML-driven review application for approved metadata and classification edits.
+- Added `bookmem/review.py`.
+- Added `docs/REVIEW_QUEUE.md`.
+
+### Changed
+
+- Review application updates canonical Markdown frontmatter only. It does not silently delete, rename or move books.
+- `.gitignore` now treats `data/review/` as generated operational state while preserving `.gitkeep`.
+
 ## [0.9.1] - 2026-05-18
 
 ### Changed

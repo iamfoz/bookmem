@@ -1,6 +1,6 @@
 # BookMem
 
-Current package version: **0.9.1**
+Current package version: **0.10.0**
 
 
 BookMem is a local, agent-readable Markdown book corpus.
@@ -46,6 +46,7 @@ The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented 
 - Hybrid, vector and full-text search modes
 - BMDC class and routing alias filters
 - Context reading around a retrieved chunk
+- Review queue for metadata, classification, ISBN conflicts and low-confidence matches
 - CLI-first workflow suitable for agent tools
 
 ## Project layout
@@ -351,6 +352,40 @@ See `docs/READING_TOOLS.md` for the agent guidance and metadata details.
 BookMem stores source-location metadata on every indexed chunk, including `source_path`, `heading_path`, `chapter_id`, `section_id`, `start_line`, `end_line` and a generated citation string. Search, routed search and reading commands now display line ranges and reusable citations for agent answers.
 
 See [`docs/CITATIONS.md`](docs/CITATIONS.md).
+
+## Review queue
+
+Automatic metadata extraction and classification are useful, but they should not be treated as infallible. BookMem can generate a review queue under:
+
+```text
+data/review/
+  needs_metadata.yaml
+  needs_classification.yaml
+  low_confidence_matches.yaml
+```
+
+Generate the queue:
+
+```bash
+bookmem review
+```
+
+Inspect specific queues:
+
+```bash
+bookmem review metadata
+bookmem review classifications
+bookmem review isbn-conflicts
+bookmem review low-confidence
+```
+
+To apply edits, mark entries in the YAML as approved and set the relevant reviewed fields, then run:
+
+```bash
+bookmem review apply
+```
+
+Review application updates Markdown frontmatter only. It does not silently delete files or move books around.
 
 ## Changelog
 

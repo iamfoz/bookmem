@@ -14,6 +14,8 @@ __pycache__/
 !/data/lancedb/.gitkeep
 /data/manifests/*
 !/data/manifests/.gitkeep
+/data/review/*
+!/data/review/.gitkeep
 
 # Local book corpus: uncomment if you do not want source markdown in git
 # /data/books/**/*.md

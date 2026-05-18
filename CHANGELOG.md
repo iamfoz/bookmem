@@ -13,6 +13,22 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.26.0] - 2026-05-18
+
+### Added
+- Added optional bearer-token authentication for the local FastAPI service.
+- Added `BOOKMEM_API_REQUIRE_KEY`.
+- Added `BOOKMEM_API_KEY`.
+- Added `bookmem serve --require-api-key`.
+- Added `bookmem serve --api-key`.
+- Added `docs/API_AUTH.md`.
+- Added Docker Compose environment variable support for API auth.
+
+### Changed
+- API `/health` now reports whether API authentication is required.
+- Protected API endpoints now require `Authorization: Bearer <token>` when API auth is enabled.
+
 ## [0.25.0] - 2026-05-18
 
 ### Added

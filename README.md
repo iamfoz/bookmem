@@ -621,3 +621,26 @@ docker compose run --rm bookmem-worker bookmem ingest --changed-only
 
 The compose file mounts `./data`, `./config` and `./exports` into the
 container so the corpus remains on the host. See `docs/DOCKER.md`.
+
+
+## API authentication
+
+The local API can require a simple bearer token:
+
+```bash
+BOOKMEM_API_REQUIRE_KEY=true BOOKMEM_API_KEY=change-me bookmem serve
+```
+
+Or:
+
+```bash
+bookmem serve --require-api-key --api-key "change-me"
+```
+
+Use:
+
+```http
+Authorization: Bearer change-me
+```
+
+See `docs/API_AUTH.md`.

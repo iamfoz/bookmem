@@ -1695,9 +1695,21 @@ def serve_api(
     host: str = typer.Option("127.0.0.1", "--host", help="Host interface to bind"),
     port: int = typer.Option(8765, "--port", "-p", help="Port to listen on"),
     reload: bool = typer.Option(False, "--reload", help="Enable Uvicorn reload mode"),
+    require_api_key: bool = typer.Option(False, "--require-api-key", help="Require Authorization: Bearer <token> for API requests."),
+    api_key: str | None = typer.Option(None, "--api-key", help="API key to require. Prefer BOOKMEM_API_KEY in production."),
 ):
     """Run the local BookMem FastAPI service."""
+    import os
     import uvicorn
+
+    if require_api_key:
+        os.environ["BOOKMEM_API_REQUIRE_KEY"] = "true"
+    if api_key:
+        os.environ["BOOKMEM_API_KEY"] = api_key
+
+    if os.getenv("BOOKMEM_API_REQUIRE_KEY", "").lower() in {"1", "true", "yes", "y", "on"} and not os.getenv("BOOKMEM_API_KEY"):
+        console.print("[red]BOOKMEM_API_REQUIRE_KEY is enabled but BOOKMEM_API_KEY is not set.[/red]")
+        raise typer.Exit(code=1)
 
     uvicorn.run("bookmem.api:app", host=host, port=port, reload=reload)
 

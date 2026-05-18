@@ -8,8 +8,9 @@ functions used by the CLI and MCP server.
 from __future__ import annotations
 
 from typing import Any, Literal
+import os
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from . import __version__
@@ -24,6 +25,45 @@ from .search import (
     search_books,
 )
 from .topic_maps import build_topic_map
+
+
+
+def _truthy(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def api_auth_required() -> bool:
+    return _truthy(os.getenv("BOOKMEM_API_REQUIRE_KEY"))
+
+
+def configured_api_key() -> str | None:
+    value = os.getenv("BOOKMEM_API_KEY")
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def require_api_key(request: Request) -> None:
+    """Require Authorization: Bearer <token> when API auth is enabled."""
+    if not api_auth_required():
+        return
+
+    expected = configured_api_key()
+    if not expected:
+        raise HTTPException(
+            status_code=500,
+            detail="BOOKMEM_API_REQUIRE_KEY is enabled but BOOKMEM_API_KEY is not set.",
+        )
+
+    header = request.headers.get("authorization", "")
+    prefix = "Bearer "
+    if not header.startswith(prefix):
+        raise HTTPException(status_code=401, detail="Missing bearer token.")
+
+    supplied = header[len(prefix):].strip()
+    if supplied != expected:
+        raise HTTPException(status_code=403, detail="Invalid bearer token.")
 
 
 app = FastAPI(
@@ -104,11 +144,12 @@ def _book_from_frontmatter(path) -> dict[str, Any]:
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": __version__}
+    return {"status": "ok", "version": __version__, "api_auth_required": str(api_auth_required()).lower()}
 
 
 @app.get("/books")
 def list_books(
+    auth: None = Depends(require_api_key),
     class_code: str | None = Query(default=None),
     author: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=500),
@@ -136,7 +177,7 @@ def list_books(
 
 
 @app.post("/search")
-def search(request: SearchRequest) -> dict[str, Any]:
+def search(request: SearchRequest, auth: None = Depends(require_api_key)) -> dict[str, Any]:
     results = search_books(
         query=request.query,
         limit=request.limit,
@@ -157,7 +198,7 @@ def search(request: SearchRequest) -> dict[str, Any]:
 
 
 @app.post("/route")
-def route(request: RouteRequest) -> dict[str, Any]:
+def route(request: RouteRequest, auth: None = Depends(require_api_key)) -> dict[str, Any]:
     routed = route_query(request.query)
     if hasattr(routed, "model_dump"):
         return routed.model_dump()
@@ -170,6 +211,7 @@ def route(request: RouteRequest) -> dict[str, Any]:
 def get_chunk(
     chunk_id: str,
     context: int = Query(default=0, ge=0, le=20),
+    auth: None = Depends(require_api_key),
 ) -> dict[str, Any]:
     chunks = read_chunk(chunk_id=chunk_id, context=context)
     if not chunks:
@@ -186,6 +228,7 @@ def get_chunk_around(
     chunk_id: str,
     before: int = Query(default=2, ge=0, le=20),
     after: int = Query(default=3, ge=0, le=20),
+    auth: None = Depends(require_api_key),
 ) -> dict[str, Any]:
     chunks = read_around(chunk_id=chunk_id, before=before, after=after)
     if not chunks:
@@ -199,7 +242,7 @@ def get_chunk_around(
 
 
 @app.get("/chunks/{chunk_id}/section")
-def get_chunk_section(chunk_id: str) -> dict[str, Any]:
+def get_chunk_section(chunk_id: str, auth: None = Depends(require_api_key)) -> dict[str, Any]:
     chunks = read_section(chunk_id=chunk_id)
     if not chunks:
         raise HTTPException(status_code=404, detail="Chunk or section not found")
@@ -207,7 +250,7 @@ def get_chunk_section(chunk_id: str) -> dict[str, Any]:
 
 
 @app.get("/books/{book_id}/chapters")
-def list_book_chapters(book_id: str) -> dict[str, Any]:
+def list_book_chapters(book_id: str, auth: None = Depends(require_api_key)) -> dict[str, Any]:
     # Reuse indexed rows for chapter discovery.
     from .search import _rows_for_book  # local import keeps internal helper private elsewhere
 
@@ -235,7 +278,7 @@ def list_book_chapters(book_id: str) -> dict[str, Any]:
 
 
 @app.get("/books/{book_id}/chapters/{chapter}")
-def get_book_chapter(book_id: str, chapter: str) -> dict[str, Any]:
+def get_book_chapter(book_id: str, chapter: str, auth: None = Depends(require_api_key)) -> dict[str, Any]:
     chunks = read_chapter(book=book_id, chapter=chapter)
     if not chunks:
         raise HTTPException(status_code=404, detail="Chapter not found")
@@ -247,7 +290,7 @@ def get_book_chapter(book_id: str, chapter: str) -> dict[str, Any]:
 
 
 @app.post("/topic-map")
-def topic_map(request: TopicMapRequest) -> dict[str, Any]:
+def topic_map(request: TopicMapRequest, auth: None = Depends(require_api_key)) -> dict[str, Any]:
     result = build_topic_map(
         topic=request.topic,
         book_limit=request.book_limit,

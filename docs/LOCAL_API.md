@@ -181,3 +181,26 @@ config/
 4. GET /chunks/{chunk_id}/section when more context is needed
 5. GET /books/{book_id}/chapters/{chapter} only for wider context
 ```
+
+
+## API authentication
+
+Optional bearer-token authentication is available:
+
+```bash
+BOOKMEM_API_REQUIRE_KEY=true BOOKMEM_API_KEY=change-me bookmem serve
+```
+
+Or:
+
+```bash
+bookmem serve --require-api-key --api-key "change-me"
+```
+
+Requests must include:
+
+```http
+Authorization: Bearer change-me
+```
+
+See `docs/API_AUTH.md`.

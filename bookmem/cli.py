@@ -3836,6 +3836,98 @@ def answer_pack_command(
             console.print(f"- {error}")
 
 
+@jobs_app.command("list")
+def jobs_list_command(
+    status: str | None = typer.Option(None, "--status", help="Filter by status: active, ok, warn, error, cancelled."),
+    limit: int = typer.Option(25, "--limit", "-n", help="Maximum jobs to show."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List observed jobs."""
+    import json as json_lib
+
+    rows = list_jobs(limit=limit, status=status)
+    if json_output:
+        console.print(json_lib.dumps(rows, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Jobs")
+    table_out.add_column("Job ID")
+    table_out.add_column("Status")
+    table_out.add_column("Progress")
+    table_out.add_column("Started")
+    table_out.add_column("Finished")
+    table_out.add_column("Files")
+    table_out.add_column("Current file")
+    table_out.add_column("Command")
+
+    for row in rows:
+        progress = f"{float(row.get('progress') or 0) * 100:.0f}%"
+        table_out.add_row(
+            str(row.get("job_id") or ""),
+            str(row.get("status") or ""),
+            progress,
+            str(row.get("started_at") or ""),
+            str(row.get("finished_at") or ""),
+            str(row.get("files_processed") or 0),
+            str(row.get("current_file") or ""),
+            str(row.get("command") or "")[:80],
+        )
+    console.print(table_out)
+
+
+@jobs_app.command("status")
+def jobs_status_command(
+    job_id: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show one job status JSON."""
+    import json as json_lib
+
+    job = read_job(job_id)
+    payload = job_as_dict(job)
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Job ID: {job.job_id}\n"
+            f"Status: {job.status}\n"
+            f"Progress: {job.progress * 100:.0f}%\n"
+            f"Started: {job.started_at}\n"
+            f"Finished: {job.finished_at or ''}\n"
+            f"Command: {job.command}\n"
+            f"Current file: {job.current_file or ''}\n"
+            f"Files processed: {job.files_processed}\n"
+            f"Errors: {len(job.errors)}\n"
+            f"Warnings: {len(job.warnings)}\n"
+            f"Message: {job.message or ''}",
+            title="Job status",
+            expand=False,
+        )
+    )
+
+    if job.errors:
+        console.print("\n[red]Errors[/red]")
+        for err in job.errors:
+            console.print(f"- {err}")
+
+    if job.warnings:
+        console.print("\n[yellow]Warnings[/yellow]")
+        for warning in job.warnings:
+            console.print(f"- {warning}")
+
+
+@jobs_app.command("tail")
+def jobs_tail_command(
+    job_id: str,
+    lines: int = typer.Option(80, "--lines", "-n", help="Number of log lines to show."),
+):
+    """Tail one job log."""
+    for line in tail_job(job_id, lines=lines):
+        console.print(line)
+
+
 @profile_app.command("current")
 def profile_current_command(
     json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),

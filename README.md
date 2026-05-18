@@ -1180,3 +1180,17 @@ bookmem profile use docker
 ```
 
 Profiles live in `config/profiles/`. See `docs/PROFILES.md`.
+
+
+## Jobs and observability
+
+Inspect long-running job status and logs:
+
+```bash
+bookmem jobs list
+bookmem jobs status <job_id>
+bookmem jobs tail <job_id>
+```
+
+Job files live in `data/jobs/` as `<job_id>.json` and `<job_id>.log`.
+See `docs/JOBS.md`.

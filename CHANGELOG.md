@@ -48,6 +48,23 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.60.0] - 2026-05-18
+
+### Added
+- Added jobs and observability ledger.
+- Added `data/jobs/`.
+- Added `bookmem jobs list`.
+- Added `bookmem jobs status <job_id>`.
+- Added `bookmem jobs tail <job_id>`.
+- Added `bookmem/jobs.py`.
+- Added `docs/JOBS.md`.
+- Added `JobTracker` helper for future long-running workflows.
+
+### Behaviour
+- Job status files track started/finished timestamps, status, command, progress, current file, files processed, errors, warnings and message.
+- Job logs are written as line-oriented text under `data/jobs/<job_id>.log`.
+
 ## [0.59.0] - 2026-05-18
 
 ### Added

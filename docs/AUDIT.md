@@ -106,7 +106,7 @@ superseded
 
 JSONL is easy to append, stream, grep, parse and import into other tools.
 
-It is also well suited to Sandy/OpenClaw-style agents because each action is
+It is also well suited to an assistant agent/OpenClaw-style agents because each action is
 a self-contained event.
 
 ## Audit log versus review log

@@ -54,7 +54,7 @@ diff
 edit
 test
 share between agents
-reuse from Sandy/OpenClaw/Claude Code
+reuse from an assistant agent/OpenClaw/Claude Code
 ```
 
 ## Recommended use

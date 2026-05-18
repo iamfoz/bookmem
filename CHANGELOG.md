@@ -37,6 +37,14 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.49.1] - 2026-05-18
+
+### Changed
+- Replaced the default Sandy-specific permissions profile name with generic `assistant_agent`.
+- Updated docs and examples to refer to generic agents rather than a specific named assistant.
+- Kept agent permissions fully customisable through `config/agent_permissions.yaml`.
+
 ## [0.49.0] - 2026-05-18
 
 ### Added

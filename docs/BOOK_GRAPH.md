@@ -84,7 +84,7 @@ Related books: Atomic Habits
    Reason: same class 158; shared topics: habits, effectiveness
 ```
 
-## How Sandy should use it
+## How an assistant agent should use it
 
 Recommended pattern:
 

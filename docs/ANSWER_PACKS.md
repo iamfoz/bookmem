@@ -65,7 +65,7 @@ Errors/warnings
 
 ## Recommended agent workflow
 
-For Sandy or another agent:
+For an assistant agent:
 
 ```text
 1. Call `bookmem answer-pack "<question>" --json`.

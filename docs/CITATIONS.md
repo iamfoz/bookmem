@@ -18,7 +18,7 @@ end_line: 1288
 citation: Book Title — Author — Chapter 6 > Goals Versus Systems — lines 1240-1288 — data/books/...
 ```
 
-The line numbers refer to the canonical cleaned Markdown file under `data/books/`, after YAML frontmatter has been removed for indexing. This keeps citations stable for the actual text Sandy reads.
+The line numbers refer to the canonical cleaned Markdown file under `data/books/`, after YAML frontmatter has been removed for indexing. This keeps citations stable for the actual text an assistant agent reads.
 
 ## Displayed search output
 
@@ -49,7 +49,7 @@ bookmem read-chapter --book "<book_id>" --chapter "Chapter 6"
 
 ## Agent guidance
 
-When Sandy answers from BookMem, it should:
+When an assistant agent answers from BookMem, it should:
 
 1. Search or route-search first.
 2. Read around the strongest chunk if needed.

@@ -2,7 +2,7 @@
 
 BookMem includes a declarative safety policy for agents.
 
-Before Sandy or another agent performs an action, it can ask BookMem whether
+Before an assistant agent performs an action, it can ask BookMem whether
 that action is allowed, requires confirmation or is denied.
 
 ## Policy file
@@ -15,7 +15,7 @@ Example:
 
 ```yaml
 agents:
-  sandy:
+  assistant_agent:
     allow:
       - search
       - read
@@ -39,13 +39,13 @@ agents:
 Check one permission:
 
 ```bash
-bookmem permissions check sandy enrich_metadata.write
+bookmem permissions check assistant_agent enrich_metadata.write
 ```
 
 List effective permissions for an agent:
 
 ```bash
-bookmem permissions list sandy
+bookmem permissions list assistant_agent
 ```
 
 List configured agents:
@@ -63,8 +63,8 @@ bookmem permissions validate
 JSON mode:
 
 ```bash
-bookmem permissions check sandy answer_pack --json
-bookmem permissions list sandy --json
+bookmem permissions check assistant_agent answer_pack --json
+bookmem permissions list assistant_agent --json
 ```
 
 ## Decisions
@@ -103,9 +103,9 @@ Unknown should be treated as not allowed until configured.
 
 ## Built-in profiles
 
-### `sandy`
+### `assistant_agent`
 
-Primary executive-assistant agent profile. Can search/read/answer, but
+Generic executive-assistant agent profile. Can search/read/answer, but
 requires confirmation for writes, rebuilds, migrations, rollback and review
 actions.
 
@@ -183,8 +183,8 @@ deny:
 Agents should check permissions before significant actions:
 
 ```bash
-bookmem permissions check sandy answer_pack
-bookmem permissions check sandy enrich_metadata.write
+bookmem permissions check assistant_agent answer_pack
+bookmem permissions check assistant_agent enrich_metadata.write
 ```
 
 If the decision is `require_confirmation`, the agent should ask the user

@@ -50,7 +50,7 @@ The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented 
 - Formatted citations and pluggable reference manager exports
 - Collection-level statistics by class, author and topic
 - CLI-first workflow suitable for agent tools
-- Portable exports for Sandy, OpenClaw, Claude Code, LlamaIndex and LangChain
+- Portable exports for an assistant agent, OpenClaw, Claude Code, LlamaIndex and LangChain
 
 ## Project layout
 
@@ -765,7 +765,7 @@ bookmem answer-pack "What do my books say about systems versus goals?"
 bookmem answer-pack "What do my books say about systems versus goals?" --json
 ```
 
-This is designed for Sandy and other agents that need evidence before
+This is designed for an assistant agent and other agents that need evidence before
 producing a final answer. See `docs/ANSWER_PACKS.md`.
 
 
@@ -1023,8 +1023,8 @@ unless `--include-canonical-books` is supplied. See
 Define what agents are allowed to do in `config/agent_permissions.yaml`:
 
 ```bash
-bookmem permissions check sandy enrich_metadata.write
-bookmem permissions list sandy
+bookmem permissions check assistant_agent enrich_metadata.write
+bookmem permissions list assistant_agent
 bookmem permissions agents
 bookmem permissions validate
 ```

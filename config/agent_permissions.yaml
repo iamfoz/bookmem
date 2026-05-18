@@ -40,8 +40,8 @@ defaults:
     - arbitrary_shell
 
 agents:
-  sandy:
-    description: Primary executive-assistant agent.
+  assistant_agent:
+    description: Generic executive-assistant style agent.
     allow:
       - search
       - read

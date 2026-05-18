@@ -4,7 +4,7 @@ BookMem can extract reusable concepts, models, frameworks and methods from
 books into a derived concept layer.
 
 This is more useful for agent reasoning than ordinary passage search alone.
-It lets Sandy ask questions such as:
+It lets an assistant agent ask questions such as:
 
 ```text
 Which books contain reusable models I can apply to planning?

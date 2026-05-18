@@ -2,7 +2,7 @@
 
 `bookmem doctor` runs a health check over the local BookMem installation.
 
-It is designed for use after upgrades, before exposing BookMem to Sandy, and
+It is designed for use after upgrades, before exposing BookMem to an assistant agent, and
 when diagnosing indexing/retrieval problems.
 
 ## Run

@@ -126,4 +126,4 @@ bookmem eval retrieval --json > eval/after.json
 
 This is not a full academic IR benchmark. It is a practical regression
 harness for your corpus. Improve it by adding queries that reflect the kinds
-of questions Sandy should answer.
+of questions an assistant agent should answer.

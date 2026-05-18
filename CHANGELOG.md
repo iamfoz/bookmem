@@ -28,6 +28,22 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.41.0] - 2026-05-18
+
+### Added
+- Added Textual-based terminal UI.
+- Added `bookmem tui`.
+- Added `bookmem/tui.py`.
+- Added `docs/TUI.md`.
+- Added TUI views for dashboard, books, search, review queue, duplicates, system diagnostics and control panel.
+- Added safe allowlisted TUI commands for doctor, doctor --fix, index-status, build-graph, retrieval evaluation, changed-only ingest and changed-only prepare-books.
+- Added streaming command log for long-running control-panel tasks.
+- Added `textual` dependency.
+
+### Notes
+- TUI design follows terminal-first patterns: persistent spatial layout, keyboard-first navigation, progressive help, semantic status display and safe command execution.
+
 ## [0.40.0] - 2026-05-18
 
 ### Added

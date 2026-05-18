@@ -40,6 +40,7 @@ from .index_versions import index_status, update_manifest_index_metadata
 from .embedding_management import current_embedding_info, embedding_profiles, profiles_as_dict, validate_embedding_models, benchmark_embeddings, reindex_with_embedding_model
 from .evaluation import evaluate_retrieval, load_eval_queries, eval_queries_as_dict
 from .web_ui import run_ui
+from .tui import run_tui
 from .citation_exports import (
     export_references,
     format_reference,
@@ -2458,6 +2459,12 @@ def enrich_metadata_command(
         )
     console.print(table_out)
     console.print(f"[green]Wrote: {'yes' if write else 'no'}[/green]")
+
+
+@app.command("tui")
+def tui_command():
+    """Run the interactive BookMem terminal UI."""
+    run_tui()
 
 
 @app.command("ui")

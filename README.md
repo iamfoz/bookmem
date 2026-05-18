@@ -883,3 +883,16 @@ docker compose up -d bookmem-ui
 The UI includes dashboard, books, classes, review queue, duplicates,
 search, topic maps, clean-check reports, system status and a small
 allowlisted control panel. See `docs/WEB_UI.md`.
+
+
+## Terminal UI
+
+Run the interactive Textual terminal UI:
+
+```bash
+bookmem tui
+```
+
+The TUI includes dashboard, books, search, review, duplicates, system
+status and a safe control panel for long-running operations such as
+changed-only ingestion. See `docs/TUI.md`.

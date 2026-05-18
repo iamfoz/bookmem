@@ -738,3 +738,18 @@ bookmem editions --write
 
 Edition metadata uses `work:` and `edition:` frontmatter blocks. See
 `docs/EDITIONS.md`.
+
+
+## Book relationship graph
+
+Build a derived graph of book-to-book relationships:
+
+```bash
+bookmem build-graph
+bookmem related "Atomic Habits"
+bookmem related --topic "systems thinking"
+```
+
+The graph is stored at `data/graphs/book_graph.json` and uses signals
+such as shared topics, class, summaries, author and work/edition groups.
+See `docs/BOOK_GRAPH.md`.

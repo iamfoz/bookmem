@@ -19,6 +19,18 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.32.0] - 2026-05-18
+
+### Added
+- Added derived book-to-book relationship graph.
+- Added `data/graphs/book_graph.json` output.
+- Added `bookmem build-graph`.
+- Added `bookmem related`.
+- Added `bookmem/book_graph.py`.
+- Added `docs/BOOK_GRAPH.md`.
+- Added graph relationship signals for shared topics, same class, routing aliases, similar summaries, same author and same work/edition group.
+
 ## [0.31.0] - 2026-05-18
 
 ### Added

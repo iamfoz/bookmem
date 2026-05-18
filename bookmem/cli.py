@@ -31,6 +31,7 @@ from .calibre import scan_calibre_library, find_calibre_book, enrich_markdown_fr
 from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as_dict as grimmory_result_as_dict
 from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_books, enrich_metadata
 from .editions import list_editions, group_editions, edition_records_as_dict, ensure_work_edition_frontmatter
+from .book_graph import build_book_graph, related_books
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1636,6 +1637,77 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("build-graph")
+def build_graph_command(
+    books_dir: Path = typer.Option(Path("data/books"), "--books-dir", help="Canonical books directory."),
+    output: Path = typer.Option(Path("data/graphs/book_graph.json"), "--output", "-o"),
+    min_score: float = typer.Option(0.2, "--min-score", help="Minimum relationship score to include."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Build the derived book-to-book relationship graph."""
+    import json as json_lib
+
+    graph = build_book_graph(books_dir=books_dir, output_path=output, min_score=min_score)
+
+    if json_output:
+        console.print(json_lib.dumps(graph, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Output: {output}\n"
+            f"Books: {graph['node_count']}\n"
+            f"Relationships: {graph['edge_count']}\n"
+            f"Minimum score: {min_score}",
+            title="Book graph built",
+            expand=False,
+        )
+    )
+
+
+@app.command("related")
+def related_command(
+    query: str | None = typer.Argument(None, help="Book title, author, ISBN, work id or broad topic."),
+    topic: str | None = typer.Option(None, "--topic", help="Find books related to a topic."),
+    limit: int = typer.Option(10, "--limit", "-n"),
+    graph_path: Path = typer.Option(Path("data/graphs/book_graph.json"), "--graph"),
+    rebuild: bool = typer.Option(False, "--rebuild", help="Rebuild graph before querying."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Find books related to a book or topic."""
+    import json as json_lib
+
+    if rebuild or not graph_path.exists():
+        build_book_graph(output_path=graph_path)
+
+    result = related_books(query=query, topic=topic, limit=limit, graph_path=graph_path)
+
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    label = topic or query or "(none)"
+    table_out = Table(title=f"Related books: {label}")
+    table_out.add_column("#", justify="right")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("Score", justify="right")
+    table_out.add_column("Reason")
+
+    for index, item in enumerate(result.get("related", []), start=1):
+        node = item["node"]
+        table_out.add_row(
+            str(index),
+            str(node.get("title") or ""),
+            str(node.get("author") or ""),
+            str(item.get("score") or ""),
+            "; ".join(item.get("reasons") or []),
+        )
+
+    console.print(table_out)
+    console.print(f"[green]{result.get('count', 0)} related book(s)[/green]")
 
 
 @app.command("editions")

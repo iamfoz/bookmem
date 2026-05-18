@@ -27,6 +27,22 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.40.0] - 2026-05-18
+
+### Added
+- Added small local web UI.
+- Added `bookmem ui`.
+- Added `bookmem/web_ui.py`.
+- Added `docs/WEB_UI.md`.
+- Added Docker Compose service `bookmem-ui`.
+- Added UI views for dashboard, books, classes, review queue, duplicates, search, topic maps, clean-check reports, system status and control panel.
+- Added allowlisted UI control-panel commands for doctor, doctor --fix, index-status, build-graph and retrieval evaluation.
+- Added `jinja2` dependency placeholder for web UI/template support.
+
+### Notes
+- The web UI is intended for local/trusted-network use and should be placed behind proper authentication if exposed remotely.
+
 ## [0.39.0] - 2026-05-18
 
 ### Added

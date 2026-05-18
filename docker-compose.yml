@@ -19,6 +19,27 @@ services:
       BOOKMEM_EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
     restart: unless-stopped
 
+
+bookmem-ui:
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: bookmem:latest
+  container_name: bookmem-ui
+  command: ["bookmem", "ui", "--host", "0.0.0.0", "--port", "8787"]
+  ports:
+    - "8787:8787"
+  volumes:
+    - ./data:/app/data
+    - ./config:/app/config
+    - ./exports:/app/exports
+  environment:
+    BOOKMEM_BOOKS_DIR: /app/data/books
+    BOOKMEM_DB_DIR: /app/data/lancedb
+    BOOKMEM_TABLE: book_chunks
+    BOOKMEM_EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+  restart: unless-stopped
+
   bookmem-mcp:
     build:
       context: .

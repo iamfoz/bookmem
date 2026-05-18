@@ -39,6 +39,7 @@ from .concepts import extract_concepts_from_book, extract_concepts_from_books, s
 from .index_versions import index_status, update_manifest_index_metadata
 from .embedding_management import current_embedding_info, embedding_profiles, profiles_as_dict, validate_embedding_models, benchmark_embeddings, reindex_with_embedding_model
 from .evaluation import evaluate_retrieval, load_eval_queries, eval_queries_as_dict
+from .web_ui import run_ui
 from .citation_exports import (
     export_references,
     format_reference,
@@ -2457,6 +2458,16 @@ def enrich_metadata_command(
         )
     console.print(table_out)
     console.print(f"[green]Wrote: {'yes' if write else 'no'}[/green]")
+
+
+@app.command("ui")
+def ui_command(
+    host: str = typer.Option("127.0.0.1", "--host", help="Host interface to bind"),
+    port: int = typer.Option(8787, "--port", "-p", help="Port to listen on"),
+    reload: bool = typer.Option(False, "--reload", help="Enable Uvicorn reload mode"),
+):
+    """Run the local BookMem web UI."""
+    run_ui(host=host, port=port, reload=reload)
 
 
 @app.command("backup")

@@ -858,3 +858,28 @@ bookmem eval retrieval --json
 
 Evaluation queries live in `eval/queries.yaml` and report Recall@K, MRR
 and failed queries. See `docs/EVALUATION.md`.
+
+
+## Web UI
+
+Run a small local web UI:
+
+```bash
+bookmem ui
+```
+
+Open:
+
+```text
+http://127.0.0.1:8787
+```
+
+Docker:
+
+```bash
+docker compose up -d bookmem-ui
+```
+
+The UI includes dashboard, books, classes, review queue, duplicates,
+search, topic maps, clean-check reports, system status and a small
+allowlisted control panel. See `docs/WEB_UI.md`.

@@ -1,0 +1,40 @@
+embedding_models:
+  default:
+    label: Fast local default
+    provider: sentence_transformers
+    model: sentence-transformers/all-MiniLM-L6-v2
+    dimensions: 384
+    normalised: true
+    notes: Small, fast default model suitable for local development and modest corpora.
+
+  bge-small:
+    label: BGE small English
+    provider: sentence_transformers
+    model: BAAI/bge-small-en-v1.5
+    dimensions: 384
+    normalised: true
+    notes: Stronger English retrieval model while still fairly lightweight.
+
+  bge-base:
+    label: BGE base English
+    provider: sentence_transformers
+    model: BAAI/bge-base-en-v1.5
+    dimensions: 768
+    normalised: true
+    notes: Higher quality than small models, heavier CPU/RAM use.
+
+  bge-m3:
+    label: BGE M3 multilingual
+    provider: sentence_transformers
+    model: BAAI/bge-m3
+    dimensions: 1024
+    normalised: true
+    notes: Larger multilingual model; useful for high-quality retrieval but heavier.
+
+  mpnet:
+    label: MPNet base
+    provider: sentence_transformers
+    model: sentence-transformers/all-mpnet-base-v2
+    dimensions: 768
+    normalised: true
+    notes: Good quality general-purpose sentence-transformer model.

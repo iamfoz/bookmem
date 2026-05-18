@@ -25,6 +25,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.38.0] - 2026-05-18
+
+### Added
+- Added embedding model management.
+- Added `config/embedding_models.yaml`.
+- Added `config/embedding_models.d/`.
+- Added `bookmem embeddings info`.
+- Added `bookmem embeddings models`.
+- Added `bookmem embeddings benchmark`.
+- Added `bookmem embeddings reindex`.
+- Added `bookmem/embedding_management.py`.
+- Added `docs/EMBEDDINGS.md`.
+- Added built-in embedding profiles for default MiniLM, BGE small/base/M3 and MPNet.
+- Added manifest `embedding` metadata for provider, model, dimensions, normalisation and profile.
+- Added `embedding_normalised` to the index fingerprint.
+
+### Behaviour
+- `bookmem embeddings reindex --model ...` sets the active embedding model, updates manifest metadata and runs ingest.
+- Raw Sentence Transformers model names can be passed directly when no named profile exists.
+
 ## [0.37.0] - 2026-05-18
 
 ### Added

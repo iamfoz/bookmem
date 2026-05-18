@@ -37,6 +37,7 @@ from .answer_pack import build_answer_pack
 from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
 from .concepts import extract_concepts_from_book, extract_concepts_from_books, search_concepts, list_concepts, rebuild_concept_index
 from .index_versions import index_status, update_manifest_index_metadata
+from .embedding_management import current_embedding_info, embedding_profiles, profiles_as_dict, validate_embedding_models, benchmark_embeddings, reindex_with_embedding_model
 from .citation_exports import (
     export_references,
     format_reference,
@@ -58,6 +59,7 @@ calibre_app = typer.Typer(help="Calibre metadata integration")
 grimmory_app = typer.Typer(help="Grimmory sidecar/export integration")
 prompts_app = typer.Typer(help="List and show reusable prompt pack assets")
 concepts_app = typer.Typer(help="Extract, list and search reusable book concepts")
+embeddings_app = typer.Typer(help="Manage embedding model profiles and reindexing")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -65,6 +67,7 @@ app.add_typer(calibre_app, name="calibre")
 app.add_typer(grimmory_app, name="grimmory")
 app.add_typer(prompts_app, name="prompts")
 app.add_typer(concepts_app, name="concepts")
+app.add_typer(embeddings_app, name="embeddings")
 console = Console()
 
 
@@ -1686,6 +1689,156 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@embeddings_app.command("info")
+def embeddings_info_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show current runtime and stored index embedding configuration."""
+    import json as json_lib
+
+    info = current_embedding_info()
+    if json_output:
+        console.print(json_lib.dumps(info, indent=2, ensure_ascii=False))
+        return
+
+    runtime = info["current_runtime"]
+    stored = info["stored_index"]
+    manifest_embedding = info.get("manifest_embedding") or {}
+
+    table_out = Table(title="Embedding info")
+    table_out.add_column("Field")
+    table_out.add_column("Runtime")
+    table_out.add_column("Stored index")
+    table_out.add_column("Manifest embedding")
+
+    for key in ("provider", "model", "dimensions", "normalised"):
+        table_out.add_row(
+            key,
+            str(runtime.get(key)),
+            str(stored.get(key)),
+            str(manifest_embedding.get(key)),
+        )
+
+    console.print(table_out)
+
+
+@embeddings_app.command("models")
+def embeddings_models_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+    validate: bool = typer.Option(False, "--validate", help="Validate configured embedding profiles."),
+):
+    """List configured embedding model profiles."""
+    import json as json_lib
+
+    if validate:
+        issues = validate_embedding_models()
+        if issues:
+            if json_output:
+                console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+            else:
+                table_out = Table(title="Embedding model validation issues")
+                table_out.add_column("Model")
+                table_out.add_column("Issue")
+                table_out.add_column("Message")
+                for issue in issues:
+                    table_out.add_row(str(issue.get("model", "")), str(issue.get("issue", "")), str(issue.get("message", "")))
+                console.print(table_out)
+            raise typer.Exit(code=1)
+        if not json_output:
+            console.print("[green]Embedding model profiles validated successfully[/green]")
+
+    profiles = embedding_profiles()
+    if json_output:
+        console.print(json_lib.dumps(profiles_as_dict(profiles), indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Embedding model profiles")
+    table_out.add_column("Name")
+    table_out.add_column("Provider")
+    table_out.add_column("Model")
+    table_out.add_column("Dimensions")
+    table_out.add_column("Normalised")
+    table_out.add_column("Notes")
+
+    for profile in profiles:
+        table_out.add_row(
+            profile.name,
+            profile.provider,
+            profile.model,
+            str(profile.dimensions or ""),
+            "yes" if profile.normalised else "no",
+            profile.notes or "",
+        )
+
+    console.print(table_out)
+
+
+@embeddings_app.command("benchmark")
+def embeddings_benchmark_command(
+    model: str | None = typer.Option(None, "--model", "-m", help="Profile name or raw sentence-transformers model name."),
+    runs: int = typer.Option(3, "--runs", "-r", help="Number of benchmark runs."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Benchmark embedding generation for a configured model."""
+    import json as json_lib
+
+    result = benchmark_embeddings(profile_name=model, runs=runs)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    profile = result["profile"]
+    console.print(
+        Panel(
+            f"Model: {profile['model']}\n"
+            f"Provider: {profile['provider']}\n"
+            f"Dimensions: {result['dimensions']}\n"
+            f"Runs: {result['runs']}\n"
+            f"Texts: {result['texts']}\n"
+            f"Mean seconds: {result['seconds_mean']}\n"
+            f"Texts/sec mean: {result['texts_per_second_mean']}",
+            title="Embedding benchmark",
+            expand=False,
+        )
+    )
+
+
+@embeddings_app.command("reindex")
+def embeddings_reindex_command(
+    model: str = typer.Option(..., "--model", "-m", help="Profile name or raw sentence-transformers model name."),
+    changed_only: bool = typer.Option(False, "--changed-only", help="Run changed-only ingest instead of reset."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show planned reindex without running."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Reindex using a selected embedding model."""
+    import json as json_lib
+
+    result = reindex_with_embedding_model(
+        profile_name=model,
+        reset=not changed_only,
+        changed_only=changed_only,
+        dry_run=dry_run,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    profile = result["profile"]
+    console.print(
+        Panel(
+            f"Model: {profile['model']}\n"
+            f"Provider: {profile['provider']}\n"
+            f"Dimensions: {profile.get('dimensions')}\n"
+            f"Normalised: {'yes' if profile.get('normalised') else 'no'}\n"
+            f"Dry run: {'yes' if dry_run else 'no'}\n"
+            f"Mode: {'changed-only' if changed_only else 'reset'}",
+            title="Embedding reindex",
+            expand=False,
+        )
+    )
 
 
 @app.command("index-status")

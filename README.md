@@ -829,3 +829,18 @@ bookmem index-status --json
 The manifest records index schema, chunker version, embedding model,
 embedding dimension, cleaner version and taxonomy fingerprint. See
 `docs/INDEX_VERSIONING.md`.
+
+
+## Embedding model management
+
+Manage embedding profiles, benchmark models and reindex safely:
+
+```bash
+bookmem embeddings info
+bookmem embeddings models
+bookmem embeddings benchmark --model bge-m3
+bookmem embeddings reindex --model bge-m3
+```
+
+Embedding metadata is stored in the manifest and index fingerprint. See
+`docs/EMBEDDINGS.md`.

@@ -12,8 +12,12 @@ import yaml
 from .chunking import slugify
 from .frontmatter import read_markdown_with_frontmatter, normalise_isbn
 
-CITATION_EXPORT_VERSION = "0.2.0"
+CITATION_EXPORT_VERSION = "0.3.0"
 CITATION_STYLE_SCHEMA_VERSION = 1
+REFERENCE_EXPORT_SCHEMA_VERSION = 1
+
+# Backwards-compatible constant. The live list is loaded from YAML by
+# supported_export_formats().
 SUPPORTED_FORMATS = {"bibtex", "ris", "csl-json", "endnote-xml"}
 
 
@@ -192,6 +196,14 @@ def _style_config_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "config" / "citation_styles.d"
 
 
+def _export_format_config_path() -> Path:
+    return Path(__file__).resolve().parents[1] / "config" / "reference_export_formats.yaml"
+
+
+def _export_format_config_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "config" / "reference_export_formats.d"
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -228,9 +240,41 @@ def supported_styles() -> set[str]:
     return {key for key in load_citation_styles().get("styles", {}).keys() if not str(key).startswith("_")}
 
 
-def _citation_context(reference: BookReference) -> dict[str, str]:
+def load_reference_export_formats() -> dict[str, Any]:
+    """Load built-in and user-supplied reference export format definitions.
+
+    Built-ins live in config/reference_export_formats.yaml. Extra export
+    formats can be added as YAML files under config/reference_export_formats.d/.
+    Later files override earlier definitions with the same format key.
+    """
+    merged: dict[str, Any] = {"formats": {}}
+
+    sources = [_export_format_config_path()]
+    if _export_format_config_dir().exists():
+        sources.extend(sorted(_export_format_config_dir().glob("*.yaml")))
+
+    for source in sources:
+        data = _load_yaml(source)
+        formats = data.get("formats", {})
+        if not isinstance(formats, dict):
+            raise ValueError(f"formats must be a mapping in {source}")
+        merged["formats"].update(formats)
+
+    return merged
+
+
+def supported_export_formats() -> set[str]:
+    return {
+        key
+        for key in load_reference_export_formats().get("formats", {}).keys()
+        if not str(key).startswith("_")
+    }
+
+
+def _citation_context(reference: BookReference) -> dict[str, Any]:
     year = reference.year or "n.d."
     family, given = _split_author_name(reference.author)
+    bibtex_key = _bibtex_key(reference)
     return {
         "author": reference.author or "Unknown author",
         "author_raw": reference.author or "Unknown author",
@@ -239,21 +283,36 @@ def _citation_context(reference: BookReference) -> dict[str, str]:
         "author_family": family or "Unknown author",
         "author_given": given,
         "year": year,
+        "year_raw": reference.year or "",
         "title": reference.display_title,
+        "title_raw": reference.title,
         "edition": reference.edition or "",
         "publisher": reference.publisher or "",
         "place": reference.place or "",
         "isbn": reference.isbn or "",
         "book_id": reference.book_id,
         "primary_class": reference.primary_class or "",
+        "primary_label": reference.primary_label or "",
+        "source_path": reference.path,
+        "bibtex_key": bibtex_key,
+        "title_bibtex": _bibtex_escape(reference.display_title),
+        "author_bibtex": _bibtex_escape(reference.author or ""),
+        "publisher_bibtex": _bibtex_escape(reference.publisher or ""),
+        "place_bibtex": _bibtex_escape(reference.place or ""),
+        "edition_bibtex": _bibtex_escape(reference.edition or ""),
+        "isbn_bibtex": _bibtex_escape(reference.isbn or ""),
+        "book_id_bibtex": _bibtex_escape(reference.book_id),
+        "author_csl": _csl_author(reference.author),
+        "issued_csl": {"date-parts": [[int(reference.year)]]} if reference.year and reference.year.isdigit() else None,
+        "categories_csl": [f"BMDC {reference.primary_class}"] if reference.primary_class else [],
     }
 
 
-def _field_present(context: dict[str, str], field: str) -> bool:
+def _field_present(context: dict[str, Any], field: str) -> bool:
     return bool(str(context.get(field, "")).strip())
 
 
-def _part_enabled(part: dict[str, Any], context: dict[str, str]) -> bool:
+def _part_enabled(part: dict[str, Any], context: dict[str, Any]) -> bool:
     when = part.get("when")
     all_when = part.get("all_when")
     any_when = part.get("any_when")
@@ -270,13 +329,15 @@ def _part_enabled(part: dict[str, Any], context: dict[str, str]) -> bool:
     return True
 
 
-def _render_template(template: str, context: dict[str, str]) -> str:
+def _render_template(template: str, context: dict[str, Any], collapse_whitespace: bool = True) -> str:
     class SafeDict(dict):
         def __missing__(self, key: str) -> str:
             return ""
 
     rendered = template.format_map(SafeDict(context))
-    return re.sub(r"\s+", " ", rendered).strip()
+    if collapse_whitespace:
+        return re.sub(r"\s+", " ", rendered).strip()
+    return rendered.strip()
 
 
 def format_reference(reference: BookReference, style: str = "apa") -> str:
@@ -462,14 +523,180 @@ def export_endnote_xml(references: list[BookReference]) -> str:
     return ET.tostring(root, encoding="unicode") + "\n"
 
 
+def _get_context_value(context: dict[str, Any], field_def: dict[str, Any]) -> Any:
+    if "literal" in field_def:
+        return field_def.get("literal")
+    template = field_def.get("template")
+    if template:
+        return _render_template(str(template), context, collapse_whitespace=False)
+    source = field_def.get("source")
+    if not source:
+        return None
+    return context.get(str(source))
+
+
+def _field_def_enabled(field_def: dict[str, Any], context: dict[str, Any]) -> bool:
+    return _part_enabled(field_def, context)
+
+
+def _render_text_records(references: list[BookReference], format_def: dict[str, Any]) -> str:
+    record_def = format_def.get("record", {})
+    if not isinstance(record_def, dict):
+        raise ValueError("text_records format requires a record mapping")
+
+    fields = record_def.get("fields", [])
+    if not isinstance(fields, list):
+        raise ValueError("text_records record.fields must be a list")
+
+    record_separator = str(format_def.get("record_separator", "\n\n"))
+    records: list[str] = []
+
+    for reference in references:
+        context = _citation_context(reference)
+        lines: list[str] = []
+
+        header = str(record_def.get("header", "")).strip()
+        if header:
+            lines.append(_render_template(header, context, collapse_whitespace=False))
+
+        for field_def in fields:
+            if not isinstance(field_def, dict):
+                continue
+            if not _field_def_enabled(field_def, context):
+                continue
+            template = str(field_def.get("template", "")).rstrip()
+            if not template:
+                continue
+            rendered = _render_template(template, context, collapse_whitespace=False)
+            if rendered:
+                lines.append(rendered)
+
+        footer = str(record_def.get("footer", "")).strip()
+        if footer:
+            lines.append(_render_template(footer, context, collapse_whitespace=False))
+
+        records.append("\n".join(lines))
+
+    return record_separator.join(records) + ("\n" if records else "")
+
+
+def _render_json_records(references: list[BookReference], format_def: dict[str, Any]) -> str:
+    fields = format_def.get("fields", [])
+    if not isinstance(fields, list):
+        raise ValueError("json_records fields must be a list")
+
+    items: list[dict[str, Any]] = []
+    for reference in references:
+        context = _citation_context(reference)
+        item: dict[str, Any] = {}
+        for field_def in fields:
+            if not isinstance(field_def, dict):
+                continue
+            if not _field_def_enabled(field_def, context):
+                continue
+            key = field_def.get("key")
+            if not key:
+                continue
+            value = _get_context_value(context, field_def)
+            if value in (None, "", [], {}):
+                continue
+            item[str(key)] = value
+        items.append(item)
+
+    indent = int(format_def.get("indent", 2))
+    return json.dumps(items, indent=indent, ensure_ascii=False) + "\n"
+
+
+def _ensure_xml_path(root: ET.Element, path: str) -> ET.Element:
+    current = root
+    for part in [p for p in path.split("/") if p]:
+        child = current.find(part)
+        if child is None:
+            child = ET.SubElement(current, part)
+        current = child
+    return current
+
+
+def _render_xml_records(references: list[BookReference], format_def: dict[str, Any]) -> str:
+    root_name = str(format_def.get("root", "xml"))
+    records_path = str(format_def.get("records_path", "records"))
+    record_element_name = str(format_def.get("record_element", "record"))
+    fields = format_def.get("fields", [])
+    if not isinstance(fields, list):
+        raise ValueError("xml_records fields must be a list")
+
+    root = ET.Element(root_name)
+    records_node = _ensure_xml_path(root, records_path)
+
+    for reference in references:
+        context = _citation_context(reference)
+        record_node = ET.SubElement(records_node, record_element_name)
+        for field_def in fields:
+            if not isinstance(field_def, dict):
+                continue
+            if not _field_def_enabled(field_def, context):
+                continue
+            path = field_def.get("path")
+            if not path:
+                continue
+            value = _get_context_value(context, field_def)
+            if value in (None, "", [], {}):
+                continue
+
+            node = _ensure_xml_path(record_node, str(path))
+            attributes = field_def.get("attributes", {})
+            if isinstance(attributes, dict):
+                for key, attr_value in attributes.items():
+                    node.set(str(key), str(attr_value))
+            node.text = str(value)
+
+    return ET.tostring(root, encoding="unicode") + "\n"
+
+
 def export_references(references: list[BookReference], export_format: str) -> str:
     export_format = export_format.lower().strip()
-    if export_format == "bibtex":
-        return export_bibtex(references)
-    if export_format == "ris":
-        return export_ris(references)
-    if export_format == "csl-json":
-        return export_csl_json(references)
-    if export_format == "endnote-xml":
-        return export_endnote_xml(references)
-    raise ValueError(f"Unsupported reference export format: {export_format}")
+    formats = load_reference_export_formats().get("formats", {})
+    format_def = formats.get(export_format)
+    if not isinstance(format_def, dict):
+        raise ValueError(f"Unsupported reference export format: {export_format}")
+
+    engine = str(format_def.get("engine", "")).strip().lower()
+    if engine == "text_records":
+        return _render_text_records(references, format_def)
+    if engine == "json_records":
+        return _render_json_records(references, format_def)
+    if engine == "xml_records":
+        return _render_xml_records(references, format_def)
+
+    raise ValueError(f"Unsupported reference export engine for {export_format}: {engine}")
+
+
+def validate_reference_export_formats() -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    formats = load_reference_export_formats().get("formats", {})
+    if not formats:
+        issues.append({"format": "", "issue": "no_formats_loaded", "message": "No export formats were loaded."})
+        return issues
+
+    test_ref = BookReference(
+        path="example.md",
+        book_id="example_book",
+        title="Example Book",
+        author="Jane Smith",
+        year="2026",
+        publisher="Example Press",
+        place="London",
+        edition="2nd ed.",
+        isbn="9780000000000",
+        primary_class="158",
+    )
+    for export_format in sorted(formats):
+        if str(export_format).startswith("_"):
+            continue
+        try:
+            exported = export_references([test_ref], str(export_format))
+            if not exported:
+                issues.append({"format": str(export_format), "issue": "empty_output", "message": "Format rendered no output."})
+        except Exception as exc:
+            issues.append({"format": str(export_format), "issue": "render_failed", "message": str(exc)})
+    return issues

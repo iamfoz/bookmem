@@ -1,0 +1,143 @@
+schema_version: 1
+
+formats:
+  bibtex:
+    label: BibTeX
+    description: Plain BibTeX @book records for LaTeX, Zotero and other reference tools.
+    extension: bib
+    media_type: application/x-bibtex
+    engine: text_records
+    record_separator: "\n\n"
+    record:
+      header: "@book{{{bibtex_key},"
+      fields:
+        - when: title
+          template: "  title = {{{title_bibtex}}},"
+        - when: author
+          template: "  author = {{{author_bibtex}}},"
+        - when: year_raw
+          template: "  year = {{{year_raw}}},"
+        - when: publisher
+          template: "  publisher = {{{publisher_bibtex}}},"
+        - when: place
+          template: "  address = {{{place_bibtex}}},"
+        - when: edition
+          template: "  edition = {{{edition_bibtex}}},"
+        - when: isbn
+          template: "  isbn = {{{isbn_bibtex}}},"
+        - when: primary_class
+          template: "  keywords = {{BMDC {primary_class}}},"
+        - template: "  note = {{BookMem ID: {book_id_bibtex}}}"
+      footer: "}}"
+
+  ris:
+    label: RIS
+    description: RIS records for Zotero, EndNote, Mendeley and other reference managers.
+    extension: ris
+    media_type: application/x-research-info-systems
+    engine: text_records
+    record_separator: "\n\n"
+    record:
+      header: "TY  - BOOK"
+      fields:
+        - when: title
+          template: "TI  - {title}"
+        - when: author
+          template: "AU  - {author_raw}"
+        - when: year_raw
+          template: "PY  - {year_raw}"
+        - when: publisher
+          template: "PB  - {publisher}"
+        - when: place
+          template: "CY  - {place}"
+        - when: edition
+          template: "ET  - {edition}"
+        - when: isbn
+          template: "SN  - {isbn}"
+        - when: primary_class
+          template: "KW  - BMDC {primary_class}"
+        - template: "N1  - BookMem ID: {book_id}"
+      footer: "ER  -"
+
+  csl-json:
+    label: CSL JSON
+    description: Citation Style Language JSON records for Zotero, Pandoc and citeproc tools.
+    extension: json
+    media_type: application/vnd.citationstyles.csl+json
+    engine: json_records
+    indent: 2
+    fields:
+      - key: id
+        source: book_id
+      - key: type
+        literal: book
+      - key: title
+        source: title
+      - key: author
+        source: author_csl
+        when: author
+      - key: issued
+        source: issued_csl
+        when: year_raw
+      - key: publisher
+        source: publisher
+        when: publisher
+      - key: publisher-place
+        source: place
+        when: place
+      - key: edition
+        source: edition
+        when: edition
+      - key: ISBN
+        source: isbn
+        when: isbn
+      - key: categories
+        source: categories_csl
+        when: primary_class
+
+  endnote-xml:
+    label: EndNote XML
+    description: Basic EndNote XML records.
+    extension: xml
+    media_type: application/xml
+    engine: xml_records
+    root: xml
+    records_path: records
+    record_element: record
+    fields:
+      - path: ref-type
+        literal: "6"
+        attributes:
+          name: Book
+      - path: contributors/authors/author
+        source: author_raw
+        when: author
+      - path: titles/title
+        source: title
+        when: title
+      - path: dates/year
+        source: year_raw
+        when: year_raw
+      - path: publisher
+        source: publisher
+        when: publisher
+      - path: pub-location
+        source: place
+        when: place
+      - path: edition
+        source: edition
+        when: edition
+      - path: isbn
+        source: isbn
+        when: isbn
+      - path: keywords/keyword
+        template: "BMDC {primary_class}"
+        source: primary_class
+        when: primary_class
+      - path: notes/style
+        template: "BookMem ID: {book_id}"
+        source: book_id
+        attributes:
+          face: normal
+          font: default
+          size: "100%"

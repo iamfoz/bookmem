@@ -5,6 +5,26 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+## [0.13.0] - 2026-05-18
+
+### Added
+
+- Added YAML-driven reference export format definitions.
+- Added built-in reference export format file at `config/reference_export_formats.yaml`.
+- Added local reference export format override directory at `config/reference_export_formats.d/`.
+- Added commands:
+  - `bookmem reference-formats`
+  - `bookmem validate-reference-formats`
+- Added `docs/PLUGGABLE_REFERENCE_FORMATS.md`.
+
+### Changed
+
+- `bookmem export-references` now loads BibTeX, RIS, CSL JSON and EndNote XML definitions from YAML rather than hard-coded Python branches.
+- Existing built-in formats remain available: `bibtex`, `ris`, `csl-json`, `endnote-xml`.
+
+### Notes
+
+- Export formats are data-driven serialisation rules. The underlying canonical metadata remains the YAML frontmatter inside each cleaned Markdown book.
 
 ## [0.12.0] - 2026-05-18
 
@@ -25,7 +45,7 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 ### Notes
 
-- Reference-manager exports remain code-backed because BibTeX, RIS, CSL JSON and EndNote XML are structured interchange formats rather than prose citation styles.
+- Reference-manager exports became YAML-driven in `0.13.0`.
 
 
 ## [0.11.0] - 2026-05-18

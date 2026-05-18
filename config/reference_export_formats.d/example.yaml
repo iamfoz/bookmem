@@ -1,0 +1,12 @@
+# Example local export format. Copy this file and change the key under `formats:`.
+formats:
+  simple-tsv:
+    label: Simple TSV
+    description: One tab-separated record per book.
+    extension: tsv
+    media_type: text/tab-separated-values
+    engine: text_records
+    record_separator: "\n"
+    record:
+      fields:
+        - template: "{author_raw}\t{year_raw}\t{title}\t{isbn}\t{book_id}"

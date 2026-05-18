@@ -18,14 +18,16 @@ from .summaries import search_summaries as search_summary_index, summarise_book 
 from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 from .citation_exports import (
-    SUPPORTED_FORMATS,
     export_references,
     format_reference,
     load_citation_styles,
+    load_reference_export_formats,
     reference_from_frontmatter,
     references_from_directory,
+    supported_export_formats,
     supported_styles,
     validate_citation_styles,
+    validate_reference_export_formats,
 )
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
@@ -922,13 +924,14 @@ def cite_books_command(
 @app.command("export-references")
 def export_references_command(
     books_dir: Path,
-    format: str = typer.Option("bibtex", "--format", help="Export format: bibtex, ris, csl-json, endnote-xml"),
+    format: str = typer.Option("bibtex", "--format", help="Reference export format, such as bibtex, ris, csl-json or endnote-xml"),
     output: Path | None = typer.Option(None, "--output", "-o", help="Output file. Prints to stdout when omitted."),
 ):
     """Export book references for Zotero, EndNote, Mendeley and other reference managers."""
     export_format = format.lower().strip()
-    if export_format not in SUPPORTED_FORMATS:
-        console.print(f"[red]Unsupported format: {export_format}. Supported: {', '.join(sorted(SUPPORTED_FORMATS))}[/red]")
+    formats = supported_export_formats()
+    if export_format not in formats:
+        console.print(f"[red]Unsupported format: {export_format}. Supported: {', '.join(sorted(formats))}[/red]")
         raise typer.Exit(code=1)
     references = references_from_directory(books_dir)
     if not references:
@@ -941,6 +944,56 @@ def export_references_command(
         console.print(f"[green]Exported {len(references)} references to {output}[/green]")
         return
     console.print(text)
+
+
+@app.command("reference-formats")
+def reference_formats_command():
+    """List available YAML-defined reference export formats."""
+    formats = load_reference_export_formats().get("formats", {})
+    if not formats:
+        console.print("[yellow]No reference export formats loaded[/yellow]")
+        return
+
+    table_out = Table(title="Reference export formats")
+    table_out.add_column("Format")
+    table_out.add_column("Label")
+    table_out.add_column("Engine")
+    table_out.add_column("Extension")
+    table_out.add_column("Description")
+
+    for key, format_def in sorted(formats.items()):
+        if str(key).startswith("_"):
+            continue
+        table_out.add_row(
+            str(key),
+            str(format_def.get("label", "")) if isinstance(format_def, dict) else "",
+            str(format_def.get("engine", "")) if isinstance(format_def, dict) else "",
+            str(format_def.get("extension", "")) if isinstance(format_def, dict) else "",
+            str(format_def.get("description", "")) if isinstance(format_def, dict) else "",
+        )
+    console.print(table_out)
+
+
+@app.command("validate-reference-formats")
+def validate_reference_formats_command():
+    """Validate YAML-defined reference export formats by rendering a sample reference."""
+    issues = validate_reference_export_formats()
+    if not issues:
+        console.print("[green]Reference export formats validated successfully[/green]")
+        return
+
+    table_out = Table(title="Reference export format validation issues")
+    table_out.add_column("Format")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(
+            str(issue.get("format", "")),
+            str(issue.get("issue", "")),
+            str(issue.get("message", "")),
+        )
+    console.print(table_out)
+    raise typer.Exit(code=1)
 
 
 @app.command("citation-styles")

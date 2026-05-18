@@ -1,6 +1,6 @@
 # BookMem
 
-Current package version: **0.11.0**
+Current package version: **0.13.0**
 
 
 BookMem is a local, agent-readable Markdown book corpus.
@@ -47,7 +47,7 @@ The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented 
 - BMDC class and routing alias filters
 - Context reading around a retrieved chunk
 - Review queue for metadata, classification, ISBN conflicts and low-confidence matches
-- Formatted citations and reference manager exports
+- Formatted citations and pluggable reference manager exports
 - CLI-first workflow suitable for agent tools
 
 ## Project layout
@@ -421,3 +421,16 @@ bookmem cite "data/books/Book.md" --style apa
 ```
 
 See `docs/PLUGGABLE_CITATIONS.md` for the template format.
+
+## Pluggable reference export formats
+
+BookMem reference export formats are YAML-defined.
+Built-in export formats live in `config/reference_export_formats.yaml`, and local formats can be added under `config/reference_export_formats.d/`.
+
+```bash
+bookmem reference-formats
+bookmem validate-reference-formats
+bookmem export-references data/books --format bibtex --output exports/references.bib
+```
+
+See `docs/PLUGGABLE_REFERENCE_FORMATS.md` for the export format schema.

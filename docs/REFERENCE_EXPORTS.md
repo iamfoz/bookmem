@@ -94,3 +94,28 @@ bookmem export-references data/books --format ris --output exports/references.ri
 - Passage citations still come from indexed chunk metadata and line ranges.
 - Reference-manager exports are useful for managing the books as sources.
 - Chunk citations are useful when an agent quotes or relies on a specific passage.
+
+## Pluggable formats
+
+Reference export formats are YAML-defined.
+
+Built-in formats live in:
+
+```text
+config/reference_export_formats.yaml
+```
+
+Local formats can be added under:
+
+```text
+config/reference_export_formats.d/
+```
+
+Use these commands to inspect and validate them:
+
+```bash
+bookmem reference-formats
+bookmem validate-reference-formats
+```
+
+See [`docs/PLUGGABLE_REFERENCE_FORMATS.md`](PLUGGABLE_REFERENCE_FORMATS.md) for the schema.

@@ -784,3 +784,18 @@ bookmem summarise-books data/books --provider local_ollama
 LLM-assisted summaries are always marked as `review_status:
 machine_draft` and record provider/model metadata. See
 `docs/SUMMARY_PROVIDERS.md`.
+
+
+## Prompt packs
+
+Reusable prompt assets live under `prompts/`:
+
+```bash
+bookmem prompts list
+bookmem prompts show summarise_book
+bookmem prompts show answer_from_corpus
+```
+
+Included prompts cover summary generation, implementation notes,
+classification, key model extraction and answering from corpus evidence.
+See `docs/PROMPT_PACKS.md`.

@@ -34,6 +34,7 @@ from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_boo
 from .editions import list_editions, group_editions, edition_records_as_dict, ensure_work_edition_frontmatter
 from .book_graph import build_book_graph, related_books
 from .answer_pack import build_answer_pack
+from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -53,11 +54,13 @@ notes_app = typer.Typer(help="Generate Obsidian-friendly book notes")
 import_app = typer.Typer(help="Import source book formats into raw Markdown")
 calibre_app = typer.Typer(help="Calibre metadata integration")
 grimmory_app = typer.Typer(help="Grimmory sidecar/export integration")
+prompts_app = typer.Typer(help="List and show reusable prompt pack assets")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
 app.add_typer(calibre_app, name="calibre")
 app.add_typer(grimmory_app, name="grimmory")
+app.add_typer(prompts_app, name="prompts")
 console = Console()
 
 
@@ -1679,6 +1682,38 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@prompts_app.command("list")
+def prompts_list_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List available prompt pack assets."""
+    import json as json_lib
+
+    prompts = list_prompts()
+    if json_output:
+        console.print(json_lib.dumps(prompt_assets_as_dict(prompts), indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Prompt packs")
+    table_out.add_column("Name")
+    table_out.add_column("Title")
+    table_out.add_column("Description")
+    table_out.add_column("Path")
+
+    for prompt in prompts:
+        table_out.add_row(prompt.name, prompt.title, prompt.description, prompt.path)
+
+    console.print(table_out)
+
+
+@prompts_app.command("show")
+def prompts_show_command(
+    name: str,
+):
+    """Show a prompt pack asset."""
+    console.print(show_prompt(name))
 
 
 @app.command("answer-pack")

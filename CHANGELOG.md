@@ -22,6 +22,24 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.35.0] - 2026-05-18
+
+### Added
+- Added first-class prompt pack assets under `prompts/`.
+- Added `prompts/summarise_book.md`.
+- Added `prompts/generate_implementation_notes.md`.
+- Added `prompts/classify_book.md`.
+- Added `prompts/extract_key_models.md`.
+- Added `prompts/answer_from_corpus.md`.
+- Added `bookmem prompts list`.
+- Added `bookmem prompts show`.
+- Added `bookmem/prompt_packs.py`.
+- Added `docs/PROMPT_PACKS.md`.
+
+### Notes
+- Prompts are now reusable, versioned project artefacts for Sandy, OpenClaw, Claude Code and other agents.
+
 ## [0.34.0] - 2026-05-18
 
 ### Added

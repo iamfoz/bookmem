@@ -573,3 +573,17 @@ bookmem prepare-books data/raw-books --profile epub_pandoc --changed-only
 
 Profiles live in `config/cleaning_profiles.yaml` and can be extended in
 `config/cleaning_profiles.d/`. See `docs/CLEANING_PROFILES.md`.
+
+
+## Testing
+
+Install development dependencies and run the test suite:
+
+```bash
+pip install -e ".[dev]"
+pytest
+pytest tests/test_cleaning.py
+```
+
+The suite uses a small fixture corpus under `tests/fixtures/`. See
+`docs/TESTING.md`.

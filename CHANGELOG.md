@@ -10,6 +10,23 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.23.0] - 2026-05-18
+
+### Added
+- Added pytest test suite.
+- Added fixture corpus under `tests/fixtures/`.
+- Added tests for cleaning, cleaning profiles and clean-check reports.
+- Added tests for frontmatter parsing/generation and ISBN detection.
+- Added tests for BMDC classification helpers.
+- Added tests for manifest records.
+- Added tests for duplicate detection.
+- Added tests for citation line ranges and citation formatting.
+- Added tests for citation/reference exports.
+- Added `docs/TESTING.md`.
+- Added `pytest` to the `dev` optional dependency group.
+- Added pytest configuration to `pyproject.toml`.
+
 ## [0.22.0] - 2026-05-18
 
 ### Added

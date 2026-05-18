@@ -896,3 +896,24 @@ bookmem tui
 The TUI includes dashboard, books, search, review, duplicates, system
 status and a safe control panel for long-running operations such as
 changed-only ingestion. See `docs/TUI.md`.
+
+
+## Setup wizard
+
+BookMem includes a first-run setup wizard with presets:
+
+```bash
+bookmem setup presets
+bookmem setup plan balanced
+bookmem setup run balanced --dry-run
+bookmem setup run balanced
+```
+
+The same setup flow is available in the TUI:
+
+```bash
+bookmem tui
+```
+
+Open the `Setup` tab to choose from `full_fat`, `balanced`, `minimal`,
+`import_ready` and `agent_ready`. See `docs/SETUP_WIZARD.md`.

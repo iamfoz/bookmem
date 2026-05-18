@@ -29,6 +29,31 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.42.0] - 2026-05-18
+
+### Added
+- Added first-run setup wizard.
+- Added setup presets:
+  - `full_fat`
+  - `balanced`
+  - `minimal`
+  - `import_ready`
+  - `agent_ready`
+- Added `config/setup_presets.yaml`.
+- Added `bookmem setup presets`.
+- Added `bookmem setup status`.
+- Added `bookmem setup plan`.
+- Added `bookmem setup run`.
+- Added `bookmem/setup_wizard.py`.
+- Added `docs/SETUP_WIZARD.md`.
+- Added TUI `Setup` tab with preset selection, setup plan preview, status information and streaming setup log.
+- CLI setup run now uses Rich progress display with spinner, progress bar, elapsed time and rolling status line.
+
+### Behaviour
+- Setup presets use existing BookMem commands and safe doctor fixes.
+- Setup does not delete books, overwrite reviewed metadata or run arbitrary shell commands.
+
 ## [0.41.0] - 2026-05-18
 
 ### Added

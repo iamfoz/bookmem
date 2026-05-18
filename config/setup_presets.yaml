@@ -1,0 +1,95 @@
+setup_presets:
+  full_fat:
+    label: Full fat everything
+    description: >
+      Best for a serious corpus where you want all derived artefacts,
+      agent integrations and quality checks.
+    actions:
+      create_dirs: true
+      validate_config: true
+      doctor_fix: true
+      prepare_changed_only: true
+      clean_check_samples: true
+      summarise: true
+      extract_concepts: true
+      build_graph: true
+      eval_retrieval: true
+      index_status: true
+    summary_provider: deterministic
+    embedding_profile: default
+
+  balanced:
+    label: Balanced
+    description: >
+      Recommended first run. Sets up folders, validates config, prepares
+      changed books, indexes, builds graph and checks status.
+    actions:
+      create_dirs: true
+      validate_config: true
+      doctor_fix: true
+      prepare_changed_only: true
+      clean_check_samples: false
+      summarise: true
+      extract_concepts: false
+      build_graph: true
+      eval_retrieval: false
+      index_status: true
+    summary_provider: deterministic
+    embedding_profile: default
+
+  minimal:
+    label: Minimal
+    description: >
+      Sets up the directory structure and validates the install without
+      generating heavy derived artefacts.
+    actions:
+      create_dirs: true
+      validate_config: true
+      doctor_fix: true
+      prepare_changed_only: false
+      clean_check_samples: false
+      summarise: false
+      extract_concepts: false
+      build_graph: false
+      eval_retrieval: false
+      index_status: true
+    summary_provider: deterministic
+    embedding_profile: default
+
+  import_ready:
+    label: Import-ready
+    description: >
+      Good when you are about to bring in EPUB/PDF/Calibre books. Focuses
+      on directories, config validation and raw-book workflow readiness.
+    actions:
+      create_dirs: true
+      validate_config: true
+      doctor_fix: true
+      prepare_changed_only: false
+      clean_check_samples: false
+      summarise: false
+      extract_concepts: false
+      build_graph: false
+      eval_retrieval: false
+      index_status: true
+    summary_provider: deterministic
+    embedding_profile: default
+
+  agent_ready:
+    label: Agent-ready
+    description: >
+      Builds the useful agent-facing artefacts: summaries, concepts, graph,
+      evaluation status and index status.
+    actions:
+      create_dirs: true
+      validate_config: true
+      doctor_fix: true
+      prepare_changed_only: true
+      clean_check_samples: false
+      summarise: true
+      extract_concepts: true
+      build_graph: true
+      eval_retrieval: true
+      index_status: true
+    summary_provider: deterministic
+    embedding_profile: default

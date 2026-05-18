@@ -41,6 +41,7 @@ from .embedding_management import current_embedding_info, embedding_profiles, pr
 from .evaluation import evaluate_retrieval, load_eval_queries, eval_queries_as_dict
 from .web_ui import run_ui
 from .tui import run_tui
+from .setup_wizard import load_setup_presets, presets_as_dict, setup_steps_for_preset, setup_status, run_setup_preset
 from .citation_exports import (
     export_references,
     format_reference,
@@ -64,6 +65,7 @@ prompts_app = typer.Typer(help="List and show reusable prompt pack assets")
 concepts_app = typer.Typer(help="Extract, list and search reusable book concepts")
 embeddings_app = typer.Typer(help="Manage embedding model profiles and reindexing")
 eval_app = typer.Typer(help="Run retrieval benchmark/evaluation sets")
+setup_app = typer.Typer(help="First-run setup wizard and presets")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -73,6 +75,7 @@ app.add_typer(prompts_app, name="prompts")
 app.add_typer(concepts_app, name="concepts")
 app.add_typer(embeddings_app, name="embeddings")
 app.add_typer(eval_app, name="eval")
+app.add_typer(setup_app, name="setup")
 console = Console()
 
 
@@ -1694,6 +1697,144 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@setup_app.command("presets")
+def setup_presets_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List first-run setup presets."""
+    import json as json_lib
+
+    presets = presets_as_dict()
+    if json_output:
+        console.print(json_lib.dumps(presets, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Setup presets")
+    table_out.add_column("Name")
+    table_out.add_column("Label")
+    table_out.add_column("Description")
+    for preset in presets:
+        table_out.add_row(preset["name"], preset["label"], preset["description"])
+    console.print(table_out)
+
+
+@setup_app.command("status")
+def setup_status_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show first-run setup status."""
+    import json as json_lib
+
+    status = setup_status()
+    if json_output:
+        console.print(json_lib.dumps(status, indent=2, ensure_ascii=False))
+        return
+
+    doctor = status["doctor"]
+    idx = status["index_status"]
+    console.print(
+        Panel(
+            f"Doctor: {doctor['status']}\n"
+            f"Index stale: {'yes' if idx['stale'] else 'no'}\n"
+            f"Books: {doctor['counts'].get('books', 0)}\n"
+            f"Chunks: {doctor['counts'].get('indexed_chunks', 0)}\n"
+            f"Review items: {doctor['counts'].get('review_items', 0)}",
+            title="Setup status",
+            expand=False,
+        )
+    )
+
+
+@setup_app.command("plan")
+def setup_plan_command(
+    preset: str = typer.Argument("balanced", help="Preset name."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show the setup steps for a preset."""
+    import json as json_lib
+
+    presets = load_setup_presets()
+    if preset not in presets:
+        console.print(f"[red]Unknown preset: {preset}[/red]")
+        raise typer.Exit(code=1)
+
+    steps = setup_steps_for_preset(presets[preset])
+    payload = [step.__dict__ for step in steps]
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title=f"Setup plan: {preset}")
+    table_out.add_column("Step")
+    table_out.add_column("Enabled")
+    table_out.add_column("Long")
+    table_out.add_column("Command")
+    table_out.add_column("Description")
+    for step in steps:
+        table_out.add_row(
+            step.label,
+            "yes" if step.enabled else "no",
+            "yes" if step.long_running else "no",
+            " ".join(step.command or []),
+            step.description or "",
+        )
+    console.print(table_out)
+
+
+@setup_app.command("run")
+def setup_run_command(
+    preset: str = typer.Argument("balanced", help="Preset name."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show planned work without running."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Run a setup preset from the command line."""
+    import json as json_lib
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
+
+    messages = []
+
+    def callback(step_id: str, message: str):
+        messages.append({"step": step_id, "message": message})
+
+    if json_output:
+        result = run_setup_preset(preset, dry_run=dry_run, status_callback=callback)
+        result["messages"] = messages
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    presets = load_setup_presets()
+    if preset not in presets:
+        console.print(f"[red]Unknown preset: {preset}[/red]")
+        raise typer.Exit(code=1)
+    steps = [s for s in setup_steps_for_preset(presets[preset]) if s.enabled]
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        overall = progress.add_task(f"Setup preset: {preset}", total=len(steps))
+
+        def rich_callback(step_id: str, message: str):
+            progress.update(overall, description=message)
+
+        result = run_setup_preset(preset, dry_run=dry_run, status_callback=rich_callback)
+        for _ in steps:
+            progress.advance(overall)
+
+    console.print(Panel(f"Preset: {preset}\nDry run: {'yes' if dry_run else 'no'}\nSteps: {len(result['steps'])}", title="Setup complete", expand=False))
+
+    failed = [step for step in result["steps"] if step["status"] == "failed"]
+    if failed:
+        console.print("[red]Some setup steps failed.[/red]")
+        for item in failed:
+            console.print(f"- {item['step']['label']}: {item['result']}")
+        raise typer.Exit(code=1)
 
 
 @eval_app.command("queries")

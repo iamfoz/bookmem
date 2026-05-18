@@ -44,6 +44,7 @@ from .router import route_query
 from .duplicates import load_book_identities, find_duplicate_groups
 from .review import review_file_path
 from .evaluation import evaluate_retrieval
+from .setup_wizard import load_setup_presets, setup_steps_for_preset, setup_status, run_setup_preset
 
 
 @dataclass
@@ -172,6 +173,17 @@ class BookMemTUI(App):
         yield Header(show_clock=True)
         with Container(id="root"):
             with TabbedContent(id="tabs"):
+                with TabPane("Setup", id="setup"):
+                    yield Label("First-run setup wizard. Choose a preset, inspect the plan, then run it.")
+                    yield DataTable(id="setup-presets-table")
+                    with Horizontal():
+                        yield Button("Use full_fat", id="setup-full_fat")
+                        yield Button("Use balanced", id="setup-balanced")
+                        yield Button("Use minimal", id="setup-minimal")
+                        yield Button("Use import_ready", id="setup-import_ready")
+                        yield Button("Use agent_ready", id="setup-agent_ready")
+                    yield TextArea("", id="setup-plan", read_only=True)
+                    yield Log(id="setup-log")
                 with TabPane("Dashboard", id="dashboard"):
                     with Horizontal(id="dashboard-grid"):
                         yield StatusCard("Books", id="books-card")
@@ -233,6 +245,44 @@ class BookMemTUI(App):
         self.load_review()
         self.load_duplicates()
         self.load_system()
+
+
+def load_setup(self) -> None:
+    table = self.query_one("#setup-presets-table", DataTable)
+    table.clear(columns=True)
+    table.add_columns("Preset", "Label", "Description")
+    presets = load_setup_presets()
+    for name, preset in presets.items():
+        table.add_row(name, preset.label, preset.description)
+    status = setup_status()
+    self.query_one("#setup-plan", TextArea).text = json.dumps(status, indent=2, ensure_ascii=False)
+
+def show_setup_plan(self, preset_name: str) -> None:
+    presets = load_setup_presets()
+    if preset_name not in presets:
+        self.query_one("#setup-plan", TextArea).text = f"Unknown preset: {preset_name}"
+        return
+    steps = setup_steps_for_preset(presets[preset_name])
+    payload = {
+        "preset": presets[preset_name].__dict__,
+        "steps": [step.__dict__ for step in steps],
+    }
+    self.query_one("#setup-plan", TextArea).text = json.dumps(payload, indent=2, ensure_ascii=False)
+
+async def run_setup_from_tui(self, preset_name: str) -> None:
+    log = self.query_one("#setup-log", Log)
+    log.write_line(f"Starting setup preset: {preset_name}")
+    self.show_setup_plan(preset_name)
+
+    def callback(step_id: str, message: str) -> None:
+        self.call_from_thread(log.write_line, f"[{step_id}] {message}")
+
+    result = await asyncio.to_thread(run_setup_preset, preset_name, False, callback)
+    log.write_line("Setup finished.")
+    for item in result.get("steps", []):
+        step = item.get("step", {})
+        log.write_line(f"{item.get('status').upper()}: {step.get('label')}")
+    self.refresh_all()
 
     def load_dashboard(self) -> None:
         doctor = run_doctor(fix=False)

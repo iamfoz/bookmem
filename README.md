@@ -1,6 +1,6 @@
 # BookMem
 
-Current package version: **0.9.0**
+Current package version: **0.9.1**
 
 
 BookMem is a local, agent-readable Markdown book corpus.
@@ -21,6 +21,13 @@ See [`docs/CLASSIFICATION_IP.md`](docs/CLASSIFICATION_IP.md) for the operating r
 ## Licence
 
 BookMem is licensed under **GPL-3.0-only**. See [`LICENSE`](LICENSE).
+
+## Author
+
+BookMem was created by **Martyn Forryan**.
+
+See [`AUTHORS.md`](AUTHORS.md) and [`NOTICE`](NOTICE).
+
 
 ## Classification note
 

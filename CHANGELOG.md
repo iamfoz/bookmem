@@ -4,6 +4,16 @@ All notable changes to BookMem are documented in this file.
 
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
+
+## [0.9.1] - 2026-05-18
+
+### Changed
+
+- Added explicit project authorship documentation.
+- Added `AUTHORS.md` and `NOTICE`.
+- Confirmed Martyn Forryan as the sole listed project author, creator and maintainer in package metadata and documentation.
+- Cleaned release bundle attribution so Git author and committer metadata use Martyn Forryan.
+
 ## [0.9.0] - 2026-05-18
 
 ### Added

@@ -1060,3 +1060,19 @@ bookmem brief generate systems-goals
 
 Saved queries live in `data/queries/`; generated briefs live in
 `data/briefs/`. See `docs/SAVED_QUERIES_AND_BRIEFS.md`.
+
+
+## Reading-list generation
+
+Generate ordered reading paths from summaries, concepts, topic maps,
+graph relationships and search:
+
+```bash
+bookmem reading-list "I want to understand habit design"
+bookmem reading-list --topic "personal finance for beginners"
+bookmem reading-list --goal "build an executive assistant agent"
+bookmem reading-list --topic "systems thinking" --save --name systems-thinking
+```
+
+Saved lists are written to `data/reading-lists/`. See
+`docs/READING_LISTS.md`.

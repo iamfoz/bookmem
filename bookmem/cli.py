@@ -50,6 +50,7 @@ from .restore_points import create_restore_point, list_restore_points, show_rest
 from .permissions import check_permission, list_agent_permissions, list_agents, validate_permissions, decision_as_dict
 from .workspaces import list_workspaces_as_dict, workspace_search, workspace_answer_pack, validate_workspaces
 from .saved_queries import save_query, list_saved_queries, run_saved_query, generate_brief
+from .reading_lists import generate_reading_list
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1880,6 +1881,60 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@app.command("reading-list")
+def reading_list_command(
+    query: str | None = typer.Argument(None, help="Reading-list query, e.g. 'I want to understand habit design'."),
+    topic: str | None = typer.Option(None, "--topic", help="Topic to build a reading list for."),
+    goal: str | None = typer.Option(None, "--goal", help="Goal to build a reading list for."),
+    limit: int = typer.Option(8, "--limit", "-n", help="Number of books to recommend."),
+    save: bool = typer.Option(False, "--save", help="Save JSON and Markdown outputs under data/reading-lists/."),
+    name: str | None = typer.Option(None, "--name", help="Name for saved output."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Generate an ordered reading list from summaries, concepts, topic maps, graph and search."""
+    import json as json_lib
+
+    result = generate_reading_list(
+        query=query,
+        topic=topic,
+        goal=goal,
+        limit=limit,
+        save=save,
+        name=name,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    console.print(
+        Panel(
+            f"Intent: {result['intent']}\n"
+            f"Items: {len(result.get('items', []))}\n"
+            f"Saved: {result.get('saved_path') or '(not saved)'}",
+            title="Reading list",
+            expand=False,
+        )
+    )
+
+    for item in result.get("items", []):
+        console.print(f"[bold]{item['rank']}. {item['suggested_posture']}: {item['title']}[/bold]")
+        if item.get("author"):
+            console.print(f"   Author: {item['author']}")
+        if item.get("primary_class"):
+            console.print(f"   Class: {item.get('primary_class')} {item.get('primary_label') or ''}")
+        console.print(f"   Why: {item['why']}")
+        evidence = item.get("evidence") or []
+        for ev in evidence[:3]:
+            console.print(f"   Evidence: {ev}")
+        console.print("")
+
+    if result.get("warnings"):
+        console.print("[yellow]Warnings[/yellow]")
+        for warning in result["warnings"]:
+            console.print(f"- {warning}")
 
 
 @query_app.command("save")

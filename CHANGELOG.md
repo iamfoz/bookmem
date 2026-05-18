@@ -40,6 +40,25 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.52.0] - 2026-05-18
+
+### Added
+- Added reading-list generation.
+- Added `bookmem reading-list`.
+- Added `bookmem reading-list --topic`.
+- Added `bookmem reading-list --goal`.
+- Added `bookmem reading-list --save`.
+- Added `bookmem/reading_lists.py`.
+- Added `data/reading-lists/`.
+- Added `docs/READING_LISTS.md`.
+
+### Behaviour
+- Reading lists combine routing, passage search, summaries, concepts, topic maps and graph relationships.
+- Reading-list items include why the book is recommended, evidence and suggested reading posture.
+- Saved reading lists are written as JSON and Markdown.
+- Reading-list generation writes audit records.
+
 ## [0.51.0] - 2026-05-18
 
 ### Added

@@ -7,6 +7,24 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.20.0] - 2026-05-18
+
+### Added
+- Added Obsidian-friendly note generation.
+- Added `bookmem/notes.py`.
+- Added `bookmem notes` command group.
+- Added `bookmem notes templates`.
+- Added `bookmem notes generate`.
+- Added `bookmem notes generate-books`.
+- Added built-in note types:
+  - `book-note`
+  - `summary`
+  - `implementation-notes`
+- Added `config/note_templates.yaml` and `config/note_templates.d/`.
+- Added `data/notes/` as the default human-facing note output directory.
+- Added `docs/OBSIDIAN_NOTES.md`.
+
 ## [0.19.0] - 2026-05-18
 
 ### Added

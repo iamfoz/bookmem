@@ -1,0 +1,53 @@
+templates:
+  summary:
+    label: Book summary note
+    description: Long-form Obsidian summary note for a book.
+    filename_suffix: "Summary"
+    note_type: summary
+    sections:
+      - title: Introduction
+        source: introduction
+      - title: Core Concepts / Ideas
+        source: core_concepts
+      - title: Interconnections
+        source: interconnections
+      - title: Practical Implications
+        source: practical_implications
+      - title: Integration Table
+        source: integration_table
+      - title: Bottom Line / Conclusion
+        source: conclusion
+
+  implementation-notes:
+    label: Book implementation notes
+    description: Action-oriented implementation note for applying a book.
+    filename_suffix: "Implementation Notes"
+    note_type: implementation-notes
+    sections:
+      - title: Implementation Posture
+        source: implementation_posture
+      - title: Tool-by-tool Setup
+        source: tool_setup
+      - title: Cadence / Review Rhythm
+        source: review_rhythm
+      - title: Guardrails and Failure Modes
+        source: guardrails
+      - title: Metrics and Validation Checks
+        source: metrics
+
+  book-note:
+    label: Compact book note
+    description: Compact human-facing book note.
+    filename_suffix: "Book Note"
+    note_type: book-note
+    sections:
+      - title: Core thesis
+        source: core_thesis
+      - title: Key ideas
+        source: key_ideas
+      - title: Useful passages
+        source: useful_passages
+      - title: Related books
+        source: related_books
+      - title: Questions this book can answer
+        source: questions

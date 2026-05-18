@@ -21,6 +21,7 @@ from .duplicates import find_duplicate_groups, load_book_identities, write_dupli
 from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts
 from .topic_maps import map_topic as build_topic_map, write_topic_map
 from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
+from .notes import generate_note, generate_notes_for_directory, load_note_templates
 from .citation_exports import (
     export_references,
     format_reference,
@@ -36,7 +37,9 @@ from .citation_exports import (
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
 review_app = typer.Typer(help="Generate, inspect and apply review queues")
+notes_app = typer.Typer(help="Generate Obsidian-friendly book notes")
 app.add_typer(review_app, name="review")
+app.add_typer(notes_app, name="notes")
 console = Console()
 
 
@@ -1351,6 +1354,80 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@notes_app.command("templates")
+def notes_templates():
+    """List available Obsidian note templates."""
+    templates = load_note_templates()
+    if not templates:
+        console.print("[yellow]No note templates found[/yellow]")
+        return
+
+    table_out = Table(title="Obsidian note templates")
+    table_out.add_column("Template")
+    table_out.add_column("Label")
+    table_out.add_column("Description")
+
+    for key, template in sorted(templates.items()):
+        table_out.add_row(
+            str(key),
+            str(template.get("label", "")) if isinstance(template, dict) else "",
+            str(template.get("description", "")) if isinstance(template, dict) else "",
+        )
+
+    console.print(table_out)
+
+
+@notes_app.command("generate")
+def notes_generate(
+    book: Path,
+    note_type: str = typer.Option("book-note", "--type", "-t", help="book-note, summary or implementation-notes"),
+    output_dir: Path = typer.Option(Path("data/notes"), "--output-dir", "-o"),
+    write: bool = typer.Option(False, "--write", help="Write the generated note to disk"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite an existing note"),
+):
+    """Generate an Obsidian-friendly note for one book."""
+    target, content = generate_note(
+        book_path=book,
+        note_type=note_type,
+        output_dir=output_dir,
+        write=write,
+        overwrite=overwrite,
+    )
+
+    if write:
+        console.print(f"[green]Wrote note:[/green] {target}")
+        return
+
+    console.print(f"[cyan]Target:[/cyan] {target}\n")
+    console.print(content)
+
+
+@notes_app.command("generate-books")
+def notes_generate_books(
+    books_dir: Path = typer.Argument(Path("data/books")),
+    note_type: str = typer.Option("book-note", "--type", "-t", help="book-note, summary or implementation-notes"),
+    output_dir: Path = typer.Option(Path("data/notes"), "--output-dir", "-o"),
+    write: bool = typer.Option(False, "--write", help="Write generated notes to disk"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing notes"),
+):
+    """Generate Obsidian-friendly notes for all books in a directory."""
+    generated = generate_notes_for_directory(
+        books_dir=books_dir,
+        note_type=note_type,
+        output_dir=output_dir,
+        write=write,
+        overwrite=overwrite,
+    )
+
+    table_out = Table(title="Generated Obsidian notes")
+    table_out.add_column("Book")
+    table_out.add_column("Note")
+    for source, target in generated:
+        table_out.add_row(str(source), str(target))
+    console.print(table_out)
+    console.print(f"[green]{len(generated)} note(s) generated[/green]")
 
 
 @app.command("serve-mcp")

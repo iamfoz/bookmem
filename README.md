@@ -530,3 +530,17 @@ http://127.0.0.1:8765
 
 Key endpoints include `/books`, `/search`, `/route`, `/chunks/{chunk_id}`,
 and `/books/{book_id}/chapters`. See `docs/LOCAL_API.md`.
+
+
+## Obsidian notes
+
+BookMem can generate human-facing Markdown notes for Obsidian:
+
+```bash
+bookmem notes generate "data/books/158.../Book.md" --write
+bookmem notes generate "data/books/158.../Book.md" --type summary --write
+bookmem notes generate "data/books/158.../Book.md" --type implementation-notes --write
+```
+
+Notes are written to `data/notes/` and include YAML frontmatter linking
+them back to the canonical BookMem source. See `docs/OBSIDIAN_NOTES.md`.

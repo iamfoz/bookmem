@@ -24,6 +24,7 @@ from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
 from .notes import generate_note, generate_notes_for_directory, load_note_templates
 from .clean_check import assess_cleanliness, summarise_clean_check
 from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleaning_profiles, report_as_dict
+from .doctor import run_doctor
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1360,6 +1361,61 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@app.command("doctor")
+def doctor_command(
+    fix: bool = typer.Option(False, "--fix", help="Apply safe automatic fixes for missing folders/placeholders."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Run a BookMem health check."""
+    import json as json_lib
+
+    report = run_doctor(fix=fix)
+
+    if json_output:
+        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        if report["status"] == "FAIL":
+            raise typer.Exit(code=1)
+        return
+
+    console.print(f"[bold]BookMem {report['bookmem_version']}[/bold]")
+    console.print(f"Python: {report['python_version']}\n")
+
+    table_out = Table(title="Doctor")
+    table_out.add_column("Check")
+    table_out.add_column("Status")
+    table_out.add_column("Message")
+    table_out.add_column("Fixed")
+
+    for check in report["checks"]:
+        table_out.add_row(
+            str(check["name"]),
+            str(check["status"]),
+            str(check["message"]),
+            "yes" if check.get("fixed") else "",
+        )
+
+    console.print(table_out)
+
+    counts = report["counts"]
+    console.print(
+        "\n"
+        f"Books: {counts['books']}\n"
+        f"Indexed chunks: {counts['indexed_chunks']}\n"
+        f"Needs review: {counts['review_items']}\n"
+        f"Unclassified: {counts['unclassified']}\n"
+        f"Books without author: {counts['books_without_author']}"
+    )
+
+    console.print(f"\n[bold]Status:[/bold] {report['status']}")
+    if report["reasons"]:
+        console.print("[bold]Reason:[/bold]")
+        for reason in report["reasons"]:
+            console.print(f"- {reason}")
+
+    if report["status"] == "FAIL":
+        raise typer.Exit(code=1)
 
 
 @app.command("clean")

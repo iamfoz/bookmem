@@ -11,6 +11,17 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.24.0] - 2026-05-18
+
+### Added
+- Added `bookmem doctor` health-check command.
+- Added `bookmem doctor --json` for machine-readable diagnostics.
+- Added `bookmem doctor --fix` for conservative automatic repairs.
+- Added `bookmem/doctor.py`.
+- Added `docs/DOCTOR.md`.
+- Doctor checks Python version, BookMem version, required dependencies, config files, data folders, LanceDB readability, taxonomy validity, cleaning profiles, citation styles, reference export formats, manifest readability, book counts, indexed chunks, unclassified books and review queue counts.
+
 ## [0.23.0] - 2026-05-18
 
 ### Added

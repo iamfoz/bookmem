@@ -587,3 +587,17 @@ pytest tests/test_cleaning.py
 
 The suite uses a small fixture corpus under `tests/fixtures/`. See
 `docs/TESTING.md`.
+
+
+## Doctor
+
+Run a health check after upgrades or before exposing BookMem to agents:
+
+```bash
+bookmem doctor
+bookmem doctor --fix
+bookmem doctor --json
+```
+
+`--fix` only applies safe repairs such as creating missing folders,
+`.gitkeep` placeholders or an empty manifest. See `docs/DOCTOR.md`.

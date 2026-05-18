@@ -23,6 +23,25 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.36.0] - 2026-05-18
+
+### Added
+- Added deterministic concept extraction.
+- Added `bookmem extract-concepts`.
+- Added `bookmem concepts extract-books`.
+- Added `bookmem concepts rebuild-index`.
+- Added `bookmem concepts search`.
+- Added `bookmem concepts list`.
+- Added `bookmem/concepts.py`.
+- Added `data/concepts/` as the derived concept output directory.
+- Added `docs/CONCEPTS.md`.
+- Concepts include name, type, aliases, description, useful-for tags, source chunks, citations, confidence and review status.
+
+### Notes
+- Concept extraction output is marked `review_status: machine_draft`.
+- Concepts are derived artefacts and can be rebuilt from canonical Markdown.
+
 ## [0.35.0] - 2026-05-18
 
 ### Added

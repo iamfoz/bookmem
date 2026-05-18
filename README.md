@@ -799,3 +799,18 @@ bookmem prompts show answer_from_corpus
 Included prompts cover summary generation, implementation notes,
 classification, key model extraction and answering from corpus evidence.
 See `docs/PROMPT_PACKS.md`.
+
+
+## Concept extraction
+
+Extract reusable concepts, models, frameworks and methods from books:
+
+```bash
+bookmem extract-concepts "data/books/.../Book.md"
+bookmem concepts extract-books data/books
+bookmem concepts search "circle of influence"
+bookmem concepts list --class 158
+```
+
+Concepts are derived artefacts under `data/concepts/` and include source
+chunks/citations. See `docs/CONCEPTS.md`.

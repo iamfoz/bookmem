@@ -35,6 +35,7 @@ from .editions import list_editions, group_editions, edition_records_as_dict, en
 from .book_graph import build_book_graph, related_books
 from .answer_pack import build_answer_pack
 from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
+from .concepts import extract_concepts_from_book, extract_concepts_from_books, search_concepts, list_concepts, rebuild_concept_index
 from .citation_exports import (
     export_references,
     format_reference,
@@ -55,12 +56,14 @@ import_app = typer.Typer(help="Import source book formats into raw Markdown")
 calibre_app = typer.Typer(help="Calibre metadata integration")
 grimmory_app = typer.Typer(help="Grimmory sidecar/export integration")
 prompts_app = typer.Typer(help="List and show reusable prompt pack assets")
+concepts_app = typer.Typer(help="Extract, list and search reusable book concepts")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
 app.add_typer(calibre_app, name="calibre")
 app.add_typer(grimmory_app, name="grimmory")
 app.add_typer(prompts_app, name="prompts")
+app.add_typer(concepts_app, name="concepts")
 console = Console()
 
 
@@ -1682,6 +1685,135 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("extract-concepts")
+def extract_concepts_command(
+    book: Path,
+    limit: int = typer.Option(30, "--limit", "-n", help="Maximum concepts to extract from the book."),
+    write: bool = typer.Option(True, "--write/--dry-run", help="Write concept files. Use --dry-run to preview only."),
+    overwrite: bool = typer.Option(True, "--overwrite/--no-overwrite"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Extract reusable models, frameworks and concepts from one book."""
+    import json as json_lib
+
+    result = extract_concepts_from_book(book, limit=limit, write=write, overwrite=overwrite)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title=f"Concepts extracted: {result['title']}")
+    table_out.add_column("Name")
+    table_out.add_column("Type")
+    table_out.add_column("Confidence", justify="right")
+    table_out.add_column("Source chunks", justify="right")
+    for concept in result.get("concepts", []):
+        table_out.add_row(
+            str(concept.get("name") or ""),
+            str(concept.get("type") or ""),
+            str(concept.get("confidence") or ""),
+            str(len(concept.get("source_chunks") or [])),
+        )
+    console.print(table_out)
+    console.print(f"[green]{len(result.get('concepts', []))} concept(s) extracted[/green]")
+
+
+@concepts_app.command("extract-books")
+def concepts_extract_books_command(
+    books_dir: Path = typer.Argument(Path("data/books")),
+    limit_per_book: int = typer.Option(30, "--limit-per-book", "-n"),
+    write: bool = typer.Option(True, "--write/--dry-run"),
+    overwrite: bool = typer.Option(True, "--overwrite/--no-overwrite"),
+):
+    """Extract concepts for all books under a directory."""
+    results = extract_concepts_from_books(
+        books_dir,
+        limit_per_book=limit_per_book,
+        write=write,
+        overwrite=overwrite,
+    )
+    console.print(f"[green]{len(results)} book(s) processed[/green]")
+
+
+@concepts_app.command("rebuild-index")
+def concepts_rebuild_index_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Rebuild the concept search index from concept YAML files."""
+    import json as json_lib
+
+    result = rebuild_concept_index()
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+    console.print(f"[green]{result['concept_count']} concept(s) indexed[/green]")
+
+
+@concepts_app.command("search")
+def concepts_search_command(
+    query: str,
+    class_code: str | None = typer.Option(None, "--class", "class_filter", help="Filter by BMDC class."),
+    limit: int = typer.Option(20, "--limit", "-n"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Search extracted concepts."""
+    import json as json_lib
+
+    results = search_concepts(query, class_code=class_filter, limit=limit)
+    if json_output:
+        console.print(json_lib.dumps(results, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title=f"Concept search: {query}")
+    table_out.add_column("Name")
+    table_out.add_column("Type")
+    table_out.add_column("Book")
+    table_out.add_column("Class")
+    table_out.add_column("Score", justify="right")
+    table_out.add_column("Description")
+    for concept in results:
+        table_out.add_row(
+            str(concept.get("name") or ""),
+            str(concept.get("type") or ""),
+            str(concept.get("title") or ""),
+            str(concept.get("primary_class") or ""),
+            str(concept.get("score") or ""),
+            str(concept.get("description") or "")[:120],
+        )
+    console.print(table_out)
+
+
+@concepts_app.command("list")
+def concepts_list_command(
+    class_code: str | None = typer.Option(None, "--class", "class_filter", help="Filter by BMDC class."),
+    concept_type: str | None = typer.Option(None, "--type", help="Filter by concept type."),
+    limit: int = typer.Option(100, "--limit", "-n"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List extracted concepts."""
+    import json as json_lib
+
+    results = list_concepts(class_code=class_filter, concept_type=concept_type, limit=limit)
+    if json_output:
+        console.print(json_lib.dumps(results, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Concepts")
+    table_out.add_column("Name")
+    table_out.add_column("Type")
+    table_out.add_column("Book")
+    table_out.add_column("Class")
+    table_out.add_column("Useful for")
+    for concept in results:
+        table_out.add_row(
+            str(concept.get("name") or ""),
+            str(concept.get("type") or ""),
+            str(concept.get("title") or ""),
+            str(concept.get("primary_class") or ""),
+            ", ".join(concept.get("useful_for") or [])[:80],
+        )
+    console.print(table_out)
 
 
 @prompts_app.command("list")

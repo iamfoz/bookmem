@@ -52,6 +52,7 @@ from .workspaces import list_workspaces_as_dict, workspace_search, workspace_ans
 from .saved_queries import save_query, list_saved_queries, run_saved_query, generate_brief
 from .reading_lists import generate_reading_list
 from .reading_metadata import infer_reading_metadata, result_as_dict as reading_metadata_result_as_dict
+from .passages import extract_passages, search_passages, favourite_passage, export_passages
 from .citation_exports import (
     export_references,
     format_reference,
@@ -84,6 +85,7 @@ workspace_app = typer.Typer(help="Use named workspace/project corpus views")
 query_app = typer.Typer(help="Save and run recurring research queries")
 brief_app = typer.Typer(help="Generate research briefs from saved queries")
 reading_metadata_app = typer.Typer(help="Infer and manage book reading metadata")
+passages_app = typer.Typer(help="Extract, search, favourite and export passages")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -102,6 +104,7 @@ app.add_typer(workspace_app, name="workspace")
 app.add_typer(query_app, name="query")
 app.add_typer(brief_app, name="brief")
 app.add_typer(reading_metadata_app, name="reading-metadata")
+app.add_typer(passages_app, name="passages")
 console = Console()
 
 
@@ -1931,6 +1934,109 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@passages_app.command("extract")
+def passages_extract_command(
+    book: Path,
+    limit: int = typer.Option(20, "--limit", "-n", help="Maximum candidate passages to extract."),
+    tag: list[str] | None = typer.Option(None, "--tag", help="Tag to apply. Can be used multiple times."),
+    no_write: bool = typer.Option(False, "--no-write", help="Preview extraction without writing data/passages/extracted.yaml."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Extract quote/passages from a Markdown book into the commonplace layer."""
+    import json as json_lib
+
+    result = extract_passages(book, limit=limit, tag=tag or [], write=not no_write)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    console.print(
+        Panel(
+            f"Book: {result['book']}\n"
+            f"Passages: {result['count']}\n"
+            f"Wrote: {'yes' if result['wrote'] else 'no'}",
+            title="Passages extracted",
+            expand=False,
+        )
+    )
+    for passage in result["passages"][:limit]:
+        console.print(f"[bold]{passage['passage_id']}[/bold]")
+        console.print(f"> {passage['quote'][:400]}")
+        console.print(f"[dim]{passage.get('citation') or ''}[/dim]\n")
+
+
+@passages_app.command("search")
+def passages_search_command(
+    query: str,
+    limit: int = typer.Option(20, "--limit", "-n"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Search curated passages, falling back to corpus chunks if needed."""
+    import json as json_lib
+
+    rows = search_passages(query, limit=limit)
+    if json_output:
+        console.print(json_lib.dumps(rows, indent=2, ensure_ascii=False, default=str))
+        return
+
+    table_out = Table(title=f"Passage search: {query}")
+    table_out.add_column("#", justify="right")
+    table_out.add_column("ID")
+    table_out.add_column("Book")
+    table_out.add_column("Quote")
+    table_out.add_column("Status")
+    for idx, row in enumerate(rows, start=1):
+        table_out.add_row(
+            str(idx),
+            str(row.get("passage_id") or ""),
+            str(row.get("title") or ""),
+            str(row.get("quote") or "")[:160],
+            str(row.get("review_status") or ""),
+        )
+    console.print(table_out)
+
+
+@passages_app.command("favourite")
+def passages_favourite_command(
+    chunk_id: str,
+    tag: list[str] | None = typer.Option(None, "--tag", help="Tag to apply. Can be used multiple times."),
+    note: str | None = typer.Option(None, "--note", help="Why this passage matters."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Favourite a passage or chunk into data/passages/favourites.yaml."""
+    import json as json_lib
+
+    passage = favourite_passage(chunk_id, tags=tag or [], note=note)
+    if json_output:
+        console.print(json_lib.dumps(passage, indent=2, ensure_ascii=False, default=str))
+        return
+
+    console.print(
+        Panel(
+            f"ID: {passage.get('passage_id')}\n"
+            f"Book: {passage.get('title') or ''}\n"
+            f"Source chunk: {passage.get('source_chunk') or ''}",
+            title="Passage favourited",
+            expand=False,
+        )
+    )
+    console.print(f"> {passage.get('quote') or ''}")
+
+
+@passages_app.command("export")
+def passages_export_command(
+    export_format: str = typer.Option("obsidian", "--format", "-f", help="obsidian, jsonl or yaml."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Optional output path."),
+    favourites_only: bool = typer.Option(False, "--favourites-only", help="Export favourites only."),
+):
+    """Export passages/commonplace book."""
+    text = export_passages(export_format=export_format, output=output, favourites_only=favourites_only)
+    if output:
+        console.print(f"[green]Exported passages to {output}[/green]")
+    else:
+        console.print(text)
 
 
 @reading_metadata_app.command("infer")

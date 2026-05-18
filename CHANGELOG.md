@@ -42,6 +42,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.54.0] - 2026-05-18
+
+### Added
+- Added quote/passages/commonplace-book layer.
+- Added `bookmem passages extract`.
+- Added `bookmem passages search`.
+- Added `bookmem passages favourite`.
+- Added `bookmem passages export`.
+- Added `bookmem/passages.py`.
+- Added `data/passages/`.
+- Added `docs/PASSAGES.md`.
+
+### Behaviour
+- Extracted passages are written to `data/passages/extracted.yaml`.
+- Favourited passages are written to `data/passages/favourites.yaml`.
+- Passage records include quote, summary, why-it-matters, source chunk, citation, tags and review status.
+- Passage export supports Obsidian Markdown, JSONL and YAML.
+- Passage operations write audit records.
+
 ## [0.53.0] - 2026-05-18
 
 ### Added

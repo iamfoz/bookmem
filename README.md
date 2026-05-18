@@ -1091,3 +1091,18 @@ bookmem stats --by-difficulty
 
 Reading metadata is stored under `reading:` in frontmatter and is used by
 reading-list generation. See `docs/READING_METADATA.md`.
+
+
+## Passages and commonplace book
+
+Extract, search, favourite and export useful passages:
+
+```bash
+bookmem passages extract "data/books/.../Book.md"
+bookmem passages search "energy management"
+bookmem passages favourite <chunk_id>
+bookmem passages export --format obsidian --output exports/commonplace.md
+```
+
+Passage data lives in `data/passages/extracted.yaml` and
+`data/passages/favourites.yaml`. See `docs/PASSAGES.md`.

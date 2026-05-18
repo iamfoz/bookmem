@@ -31,6 +31,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.44.0] - 2026-05-18
+
+### Added
+- Added explicit migration system.
+- Added `bookmem migrations status`.
+- Added `bookmem migrations apply`.
+- Added `bookmem migrations create`.
+- Added `bookmem/migrations.py`.
+- Added `migrations/`.
+- Added `migrations/0001_initial.py`.
+- Added `migrations/0002_add_index_metadata.py`.
+- Added `migrations/0003_add_edition_fields.py`.
+- Added migration state tracking in `data/manifests/migrations.json`.
+- Added `docs/MIGRATIONS.md`.
+
+### Behaviour
+- `doctor --fix` remains conservative and does not run migrations.
+- Migrations are explicit, trackable and reviewable.
+- Migration application supports `--dry-run`, `--target` and JSON output.
+
 ## [0.43.0] - 2026-05-18
 
 ### Added

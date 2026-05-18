@@ -99,3 +99,21 @@ Reason:
 
 `WARN` is intended to be visible but not fatal. Examples include review items
 or unclassified books.
+
+
+## Doctor and migrations
+
+Migrations are not run by doctor.
+
+`bookmem doctor --fix` is limited to conservative repairs such as
+creating missing folders, placeholder files or an empty manifest. It does
+not apply schema/data migrations.
+
+Use:
+
+```bash
+bookmem migrations status
+bookmem migrations apply
+```
+
+See `docs/MIGRATIONS.md`.

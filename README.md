@@ -930,3 +930,20 @@ bookmem setup run full_fat --mode safe --force
 
 Long-running setup steps use spinner/progress/status output in the CLI
 and a streaming log in the TUI.
+
+
+## Migrations
+
+BookMem has an explicit migration system for persisted schema/data
+upgrades:
+
+```bash
+bookmem migrations status
+bookmem migrations apply --dry-run
+bookmem migrations apply
+bookmem migrations create "add concept review status"
+```
+
+Applied migrations are tracked in `data/manifests/migrations.json`.
+Migrations are deliberately separate from `doctor --fix`. See
+`docs/MIGRATIONS.md`.

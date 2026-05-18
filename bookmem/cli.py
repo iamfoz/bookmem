@@ -42,6 +42,7 @@ from .evaluation import evaluate_retrieval, load_eval_queries, eval_queries_as_d
 from .web_ui import run_ui
 from .tui import run_tui
 from .setup_wizard import load_setup_presets, presets_as_dict, setup_steps_for_preset, setup_status, run_setup_preset
+from .migrations import migration_status, apply_migrations, create_migration
 from .citation_exports import (
     export_references,
     format_reference,
@@ -66,6 +67,7 @@ concepts_app = typer.Typer(help="Extract, list and search reusable book concepts
 embeddings_app = typer.Typer(help="Manage embedding model profiles and reindexing")
 eval_app = typer.Typer(help="Run retrieval benchmark/evaluation sets")
 setup_app = typer.Typer(help="First-run setup wizard and presets")
+migrations_app = typer.Typer(help="Explicit schema/data migrations")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -76,6 +78,7 @@ app.add_typer(concepts_app, name="concepts")
 app.add_typer(embeddings_app, name="embeddings")
 app.add_typer(eval_app, name="eval")
 app.add_typer(setup_app, name="setup")
+app.add_typer(migrations_app, name="migrations")
 console = Console()
 
 
@@ -1697,6 +1700,119 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@migrations_app.command("status")
+def migrations_status_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show migration status."""
+    import json as json_lib
+
+    status = migration_status()
+    if json_output:
+        console.print(json_lib.dumps(status, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Total: {status['total']}\n"
+            f"Applied: {status['applied']}\n"
+            f"Pending: {status['pending']}\n"
+            f"State: {status['state_path']}",
+            title="Migration status",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title="Migrations")
+    table_out.add_column("ID")
+    table_out.add_column("Applied")
+    table_out.add_column("Applied at")
+    table_out.add_column("Description")
+    table_out.add_column("Path")
+    for item in status["migrations"]:
+        table_out.add_row(
+            item["id"],
+            "yes" if item["applied"] else "no",
+            str(item.get("applied_at") or ""),
+            item.get("description") or "",
+            item.get("path") or "",
+        )
+    console.print(table_out)
+
+
+@migrations_app.command("apply")
+def migrations_apply_command(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show pending migrations without applying them."),
+    target: str | None = typer.Option(None, "--target", help="Apply migrations up to and including this migration ID."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Apply pending migrations."""
+    import json as json_lib
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
+
+    if json_output:
+        result = apply_migrations(dry_run=dry_run, target=target)
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    plan = apply_migrations(dry_run=True, target=target)
+    pending = plan.get("pending_to_apply", [])
+
+    if not pending:
+        console.print("[green]No pending migrations.[/green]")
+        return
+
+    if dry_run:
+        table_out = Table(title="Pending migrations")
+        table_out.add_column("ID")
+        table_out.add_column("Description")
+        table_out.add_column("Path")
+        for item in pending:
+            table_out.add_row(item["id"], item.get("description", ""), item.get("path", ""))
+        console.print(table_out)
+        return
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Applying migrations", total=len(pending))
+        result = apply_migrations(dry_run=False, target=target)
+        for item in result.get("applied", []):
+            progress.update(task, description=f"Applied {item['id']}")
+            progress.advance(task)
+
+    console.print(f"[green]Applied {len(result.get('applied', []))} migration(s).[/green]")
+
+
+@migrations_app.command("create")
+def migrations_create_command(
+    name: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Create a new migration file stub."""
+    import json as json_lib
+
+    result = create_migration(name)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"ID: {result['id']}\n"
+            f"Path: {result['path']}\n"
+            f"Description: {result['description']}",
+            title="Migration created",
+            expand=False,
+        )
+    )
 
 
 @setup_app.command("presets")

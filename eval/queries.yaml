@@ -1,0 +1,53 @@
+schema_version: 1
+description: >
+  Retrieval evaluation queries for BookMem. Replace or extend these with
+  queries that match your own corpus.
+
+queries:
+  - id: systems_vs_goals
+    query: systems versus goals
+    expected_books:
+      - How to Fail at Almost Everything and Still Win Big
+    expected_topics:
+      - systems
+      - goals
+    notes: >
+      Should retrieve books/passages about systems, goals, habit design and
+      repeatable behaviour.
+
+  - id: compound_interest
+    query: compound interest
+    expected_books: []
+    expected_topics:
+      - finance
+      - investing
+      - compounding
+    notes: >
+      Should retrieve finance/investing books or passages about compounding.
+
+  - id: circle_of_influence
+    query: circle of influence
+    expected_books: []
+    expected_topics:
+      - influence
+      - personal effectiveness
+      - planning
+    notes: >
+      Should retrieve concepts/models related to influence and control.
+
+  - id: habit_design
+    query: habit design
+    expected_books:
+      - Atomic Habits
+    expected_topics:
+      - habits
+      - behaviour
+      - productivity
+
+  - id: risk_and_return
+    query: risk and return
+    expected_books: []
+    expected_topics:
+      - finance
+      - investing
+      - risk

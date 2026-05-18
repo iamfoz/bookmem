@@ -38,6 +38,7 @@ from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
 from .concepts import extract_concepts_from_book, extract_concepts_from_books, search_concepts, list_concepts, rebuild_concept_index
 from .index_versions import index_status, update_manifest_index_metadata
 from .embedding_management import current_embedding_info, embedding_profiles, profiles_as_dict, validate_embedding_models, benchmark_embeddings, reindex_with_embedding_model
+from .evaluation import evaluate_retrieval, load_eval_queries, eval_queries_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -60,6 +61,7 @@ grimmory_app = typer.Typer(help="Grimmory sidecar/export integration")
 prompts_app = typer.Typer(help="List and show reusable prompt pack assets")
 concepts_app = typer.Typer(help="Extract, list and search reusable book concepts")
 embeddings_app = typer.Typer(help="Manage embedding model profiles and reindexing")
+eval_app = typer.Typer(help="Run retrieval benchmark/evaluation sets")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -68,6 +70,7 @@ app.add_typer(grimmory_app, name="grimmory")
 app.add_typer(prompts_app, name="prompts")
 app.add_typer(concepts_app, name="concepts")
 app.add_typer(embeddings_app, name="embeddings")
+app.add_typer(eval_app, name="eval")
 console = Console()
 
 
@@ -1689,6 +1692,94 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@eval_app.command("queries")
+def eval_queries_command(
+    query_file: Path = typer.Option(Path("eval/queries.yaml"), "--query-file", "-q"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List configured retrieval evaluation queries."""
+    import json as json_lib
+
+    queries = load_eval_queries(query_file)
+    if json_output:
+        console.print(json_lib.dumps(eval_queries_as_dict(queries), indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title=f"Evaluation queries: {query_file}")
+    table_out.add_column("ID")
+    table_out.add_column("Query")
+    table_out.add_column("Expected books")
+    table_out.add_column("Expected topics")
+    for item in queries:
+        table_out.add_row(
+            item.id,
+            item.query,
+            ", ".join(item.expected_books),
+            ", ".join(item.expected_topics),
+        )
+    console.print(table_out)
+
+
+@eval_app.command("retrieval")
+def eval_retrieval_command(
+    query_file: Path = typer.Option(Path("eval/queries.yaml"), "--query-file", "-q"),
+    k: int = typer.Option(5, "--k", help="Recall@K cutoff."),
+    limit: int | None = typer.Option(None, "--limit", help="Search result limit. Defaults to max(k, 10)."),
+    no_route: bool = typer.Option(False, "--no-route", help="Disable routed search during evaluation."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Evaluate retrieval quality against expected books/topics."""
+    import json as json_lib
+
+    report = evaluate_retrieval(
+        query_file=query_file,
+        k=k,
+        limit=limit,
+        use_route=not no_route,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Queries: {report['query_count']}\n"
+            f"Recall@{report['k']}: {report['recall_at_k']}\n"
+            f"MRR: {report['mrr']}\n"
+            f"Failed queries: {report['failed_count']}",
+            title="Retrieval evaluation",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title="Per-query retrieval results")
+    table_out.add_column("ID")
+    table_out.add_column("Query")
+    table_out.add_column(f"Recall@{report['k']}", justify="right")
+    table_out.add_column("RR", justify="right")
+    table_out.add_column("Top result")
+    table_out.add_column("Errors")
+
+    for item in report["results"]:
+        top = item.get("top_results", [{}])[0] if item.get("top_results") else {}
+        table_out.add_row(
+            str(item.get("id")),
+            str(item.get("query")),
+            str(item.get("recall_at_k")),
+            str(round(item.get("reciprocal_rank", 0), 4)),
+            str(top.get("title") or ""),
+            "; ".join(item.get("errors") or []),
+        )
+
+    console.print(table_out)
+
+    if report["failed_queries"]:
+        console.print("\n[bold]Failed queries[/bold]")
+        for failed in report["failed_queries"]:
+            console.print(f"- {failed['id']}: {failed['query']}")
 
 
 @embeddings_app.command("info")

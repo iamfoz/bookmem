@@ -844,3 +844,17 @@ bookmem embeddings reindex --model bge-m3
 
 Embedding metadata is stored in the manifest and index fingerprint. See
 `docs/EMBEDDINGS.md`.
+
+
+## Retrieval evaluation
+
+Measure retrieval quality with a small benchmark query set:
+
+```bash
+bookmem eval queries
+bookmem eval retrieval
+bookmem eval retrieval --json
+```
+
+Evaluation queries live in `eval/queries.yaml` and report Recall@K, MRR
+and failed queries. See `docs/EVALUATION.md`.

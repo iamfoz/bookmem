@@ -26,6 +26,22 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.39.0] - 2026-05-18
+
+### Added
+- Added retrieval benchmark/evaluation set.
+- Added `eval/queries.yaml`.
+- Added `bookmem eval queries`.
+- Added `bookmem eval retrieval`.
+- Added `bookmem/evaluation.py`.
+- Added `docs/EVALUATION.md`.
+- Retrieval evaluation now reports Recall@K, MRR and failed queries.
+- Evaluation supports custom query files, routed/non-routed search and JSON output.
+
+### Notes
+- The evaluation set is intended as a practical corpus-specific regression harness, not a formal academic IR benchmark.
+
 ## [0.38.0] - 2026-05-18
 
 ### Added

@@ -1016,3 +1016,19 @@ bookmem rollback --audit-id "metadata.enrich_metadata"
 Rollback is dry-run by default and blocks canonical book restoration
 unless `--include-canonical-books` is supplied. See
 `docs/RESTORE_POINTS.md`.
+
+
+## Agent permissions
+
+Define what agents are allowed to do in `config/agent_permissions.yaml`:
+
+```bash
+bookmem permissions check sandy enrich_metadata.write
+bookmem permissions list sandy
+bookmem permissions agents
+bookmem permissions validate
+```
+
+Decisions are `allow`, `require_confirmation`, `deny` or `unknown`.
+Deny wins; unknown should be treated as unsafe. See
+`docs/AGENT_PERMISSIONS.md`.

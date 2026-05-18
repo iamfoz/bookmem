@@ -47,6 +47,7 @@ from .clean_derived import clean_derived, clean_result_as_dict
 from .human_review import machine_drafts, drafts_as_dict, approve_summary, approve_concepts, reject_concept, mark_human_reviewed, set_summary_status, set_concepts_status
 from .audit import tail_audit, search_audit, export_audit, append_audit_record
 from .restore_points import create_restore_point, list_restore_points, show_restore_point, rollback_restore_point, restore_point_from_audit_id, restore_point_as_dict
+from .permissions import check_permission, list_agent_permissions, list_agents, validate_permissions, decision_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -74,6 +75,7 @@ setup_app = typer.Typer(help="First-run setup wizard and presets")
 migrations_app = typer.Typer(help="Explicit schema/data migrations")
 audit_app = typer.Typer(help="Inspect and export the durable audit log")
 restore_points_app = typer.Typer(help="Create, inspect and roll back restore points")
+permissions_app = typer.Typer(help="Check agent permissions and safety policy")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -87,6 +89,7 @@ app.add_typer(setup_app, name="setup")
 app.add_typer(migrations_app, name="migrations")
 app.add_typer(audit_app, name="audit")
 app.add_typer(restore_points_app, name="restore-points")
+app.add_typer(permissions_app, name="permissions")
 console = Console()
 
 
@@ -1869,6 +1872,135 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@permissions_app.command("check")
+def permissions_check_command(
+    agent: str,
+    action: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Check whether an agent may perform an action."""
+    import json as json_lib
+
+    decision = check_permission(agent, action)
+    payload = decision_as_dict(decision)
+
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    colour = {
+        "allow": "green",
+        "require_confirmation": "yellow",
+        "deny": "red",
+        "unknown": "red",
+    }.get(decision.decision, "white")
+
+    console.print(
+        Panel(
+            f"Agent: {decision.agent}\n"
+            f"Action: {decision.action}\n"
+            f"Decision: [{colour}]{decision.decision}[/{colour}]\n"
+            f"Matched rule: {decision.matched_rule or '(none)'}\n"
+            f"Reason: {decision.reason}",
+            title="Permission check",
+            expand=False,
+        )
+    )
+
+    if decision.decision in {"deny", "unknown"}:
+        raise typer.Exit(code=2)
+    if decision.decision == "require_confirmation":
+        raise typer.Exit(code=3)
+
+
+@permissions_app.command("list")
+def permissions_list_command(
+    agent: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List effective permissions for an agent."""
+    import json as json_lib
+
+    payload = list_agent_permissions(agent)
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Agent: {payload['agent']}\n"
+            f"Exists: {'yes' if payload['agent_exists'] else 'no'}\n"
+            f"Description: {payload.get('description') or ''}",
+            title="Agent permissions",
+            expand=False,
+        )
+    )
+
+    for section in ("allow", "require_confirmation", "deny"):
+        table_out = Table(title=section)
+        table_out.add_column("Rule")
+        for rule in payload[section]:
+            table_out.add_row(rule)
+        console.print(table_out)
+
+
+@permissions_app.command("agents")
+def permissions_agents_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List configured agent permission profiles."""
+    import json as json_lib
+
+    payload = list_agents()
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Permission agents")
+    table_out.add_column("Agent")
+    table_out.add_column("Description")
+    table_out.add_column("Allow")
+    table_out.add_column("Confirm")
+    table_out.add_column("Deny")
+    for item in payload:
+        table_out.add_row(
+            item["agent"],
+            item.get("description", ""),
+            str(item.get("allow_count", 0)),
+            str(item.get("require_confirmation_count", 0)),
+            str(item.get("deny_count", 0)),
+        )
+    console.print(table_out)
+
+
+@permissions_app.command("validate")
+def permissions_validate_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Validate agent permissions policy."""
+    import json as json_lib
+
+    issues = validate_permissions()
+    if json_output:
+        console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+        return
+
+    if not issues:
+        console.print("[green]Agent permissions policy is valid.[/green]")
+        return
+
+    table_out = Table(title="Permission policy issues")
+    table_out.add_column("Level")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(issue.get("level", ""), issue.get("issue", ""), issue.get("message", ""))
+    console.print(table_out)
+
+    if any(issue.get("level") == "error" for issue in issues):
+        raise typer.Exit(code=1)
 
 
 @restore_points_app.command("list")

@@ -1,0 +1,128 @@
+schema_version: 1
+
+defaults:
+  allow:
+    - search
+    - read
+    - route_query
+    - list_books
+    - search_summaries
+    - answer_pack
+    - related
+    - map_topic
+    - concepts.search
+    - concepts.list
+    - prompts.list
+    - prompts.show
+    - audit.tail
+    - audit.search
+    - restore_points.list
+    - restore_points.show
+  require_confirmation:
+    - enrich_metadata.write
+    - prepare_books
+    - ingest_changed_only
+    - summarise
+    - extract_concepts
+    - build_graph
+    - clean_derived.execute
+    - migrations.apply
+    - restore_points.create
+    - rollback.dry_run
+    - review.approve
+    - review.reject
+  deny:
+    - delete_canonical_books
+    - delete_raw_books
+    - overwrite_human_reviewed_metadata
+    - rollback.execute_without_confirmation
+    - restore.include_canonical_books_without_confirmation
+    - arbitrary_shell
+
+agents:
+  sandy:
+    description: Primary executive-assistant agent.
+    allow:
+      - search
+      - read
+      - route_query
+      - list_books
+      - search_summaries
+      - answer_pack
+      - related
+      - map_topic
+      - concepts.search
+      - concepts.list
+      - prompts.list
+      - prompts.show
+      - audit.tail
+      - audit.search
+      - restore_points.list
+      - restore_points.show
+    require_confirmation:
+      - enrich_metadata.write
+      - prepare_books
+      - ingest_changed_only
+      - summarise
+      - extract_concepts
+      - build_graph
+      - clean_derived.execute
+      - migrations.apply
+      - restore_points.create
+      - rollback.dry_run
+      - rollback.execute
+      - review.approve
+      - review.reject
+    deny:
+      - delete_canonical_books
+      - delete_raw_books
+      - overwrite_human_reviewed_metadata
+      - arbitrary_shell
+
+  readonly:
+    description: Read-only agent profile for search, summaries and evidence packs.
+    allow:
+      - search
+      - read
+      - route_query
+      - list_books
+      - search_summaries
+      - answer_pack
+      - related
+      - map_topic
+      - concepts.search
+      - concepts.list
+      - prompts.list
+      - prompts.show
+    require_confirmation: []
+    deny:
+      - enrich_metadata.write
+      - prepare_books
+      - ingest_changed_only
+      - ingest_reset
+      - summarise
+      - extract_concepts
+      - build_graph
+      - clean_derived.execute
+      - migrations.apply
+      - restore_points.create
+      - rollback.execute
+      - review.approve
+      - review.reject
+      - delete_canonical_books
+      - delete_raw_books
+      - overwrite_human_reviewed_metadata
+      - arbitrary_shell
+
+  admin:
+    description: Human/admin profile. Still denies arbitrary destructive actions unless explicit bespoke tooling exists.
+    allow:
+      - "*"
+    require_confirmation:
+      - delete_canonical_books
+      - delete_raw_books
+      - overwrite_human_reviewed_metadata
+      - rollback.execute
+      - restore.include_canonical_books
+    deny:
+      - arbitrary_shell

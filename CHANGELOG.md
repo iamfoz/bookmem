@@ -36,6 +36,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.49.0] - 2026-05-18
+
+### Added
+- Added agent permissions and safety policy.
+- Added `config/agent_permissions.yaml`.
+- Added `bookmem permissions check`.
+- Added `bookmem permissions list`.
+- Added `bookmem permissions agents`.
+- Added `bookmem permissions validate`.
+- Added `bookmem/permissions.py`.
+- Added `docs/AGENT_PERMISSIONS.md`.
+- Added built-in profiles for `sandy`, `readonly` and `admin`.
+
+### Behaviour
+- Permission decisions are `allow`, `require_confirmation`, `deny` or `unknown`.
+- Deny rules take precedence over confirmation and allow rules.
+- Unknown actions should be treated as unsafe until explicitly configured.
+- `bookmem permissions check` uses script-friendly exit codes: 0 allowed, 2 denied/unknown, 3 confirmation required.
+
 ## [0.48.0] - 2026-05-18
 
 ### Added

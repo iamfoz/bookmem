@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+.env
+
+# Generated data
+/data/lancedb/*
+!/data/lancedb/.gitkeep
+/data/manifests/*
+!/data/manifests/.gitkeep
+
+# Local book corpus: uncomment if you do not want source markdown in git
+# /data/books/**/*.md
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/

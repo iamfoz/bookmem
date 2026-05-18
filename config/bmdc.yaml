@@ -1,0 +1,168 @@
+classification_scheme: bmdc
+scheme_name: BookMem Decimal Classification
+short_name: BMDC
+version: 1
+numbering_policy: interoperable_decimal_numbers_original_wording
+external_text_policy: do_not_copy_proprietary_editorial_text
+notes: >
+  BookMem Decimal Classification (BMDC) is a pragmatic decimal subject map for
+  routing a personal Markdown book corpus. Its class numbers are intended to be
+  interoperable with established decimal library classification numbering habits
+  where useful, but the labels, aliases and notes in this file are BookMem's own
+  working descriptions. Do not copy proprietary editorial descriptions, captions,
+  schedules, hierarchy text or manual notes from external classification products
+  into this file. BMDC is not named as, affiliated with, endorsed by, or a
+  substitute for any third-party classification product.
+
+classes:
+  "000": {label: "General knowledge, information and reference", aliases: [general, reference, knowledge]}
+  "010": {label: "Bibliography and catalogues", aliases: [bibliography, catalogues, reading_lists]}
+  "020": {label: "Libraries, archives and information work", aliases: [libraries, archives, information_management]}
+  "030": {label: "Encyclopaedias and general reference works", aliases: [encyclopaedias, reference_works]}
+  "040": {label: "General collected works", aliases: [collected_works, anthologies]}
+  "050": {label: "General serials and periodicals", aliases: [magazines, journals, periodicals]}
+  "060": {label: "General organisations and institutions", aliases: [organisations, institutions, associations]}
+  "070": {label: "News, journalism and publishing", aliases: [journalism, publishing, media]}
+  "080": {label: "General miscellany", aliases: [miscellany, general_collections]}
+  "090": {label: "Manuscripts, rare books and book history", aliases: [manuscripts, rare_books, book_history]}
+
+  "100": {label: "Philosophy and psychology", aliases: [philosophy, psychology]}
+  "110": {label: "Metaphysics", aliases: [metaphysics, reality, ontology]}
+  "120": {label: "Epistemology, causation and human existence", aliases: [epistemology, knowledge, causation]}
+  "130": {label: "Paranormal and esoteric subjects", aliases: [paranormal, esoteric]}
+  "140": {label: "Specific philosophical schools", aliases: [philosophical_schools]}
+  "150": {label: "Psychology", aliases: [psychology, behaviour, cognition]}
+  "153": {label: "Mental processes, intelligence and decision-making", aliases: [thinking, attention, decision_making, focus, cognition]}
+  "155": {label: "Developmental, differential and individual psychology", aliases: [personality, development, neurodiversity, child_development]}
+  "158": {label: "Applied psychology and self-improvement", aliases: [personal_development, self_improvement, productivity, habits, mindset]}
+  "160": {label: "Logic", aliases: [logic, reasoning]}
+  "170": {label: "Ethics", aliases: [ethics, morality, values]}
+  "180": {label: "Ancient and medieval philosophy", aliases: [ancient_philosophy, medieval_philosophy]}
+  "190": {label: "Modern western philosophy", aliases: [modern_philosophy, western_philosophy]}
+
+  "200": {label: "Religion", aliases: [religion, faith]}
+  "210": {label: "Philosophy and theory of religion", aliases: [religious_philosophy, theology]}
+  "220": {label: "Bible and biblical studies", aliases: [bible, biblical_studies]}
+  "230": {label: "Christianity and Christian theology", aliases: [christianity, christian_theology]}
+  "240": {label: "Christian practice and devotional life", aliases: [devotional, christian_living]}
+  "250": {label: "Christian ministry and pastoral practice", aliases: [ministry, pastoral]}
+  "260": {label: "Christian institutions and social theology", aliases: [church, christian_institutions]}
+  "270": {label: "History of Christianity", aliases: [church_history, christian_history]}
+  "280": {label: "Christian denominations", aliases: [denominations]}
+  "290": {label: "Other religions", aliases: [world_religions, comparative_religion]}
+
+  "300": {label: "Social sciences", aliases: [society, social_systems, policy]}
+  "310": {label: "Statistics and data about society", aliases: [statistics, social_data]}
+  "320": {label: "Politics and government", aliases: [politics, government, public_policy]}
+  "330": {label: "Economics", aliases: [economics, money]}
+  "332": {label: "Finance, investing and financial markets", aliases: [finance, investing, markets, banking, personal_finance, wealth]}
+  "338": {label: "Production, enterprise and industry", aliases: [business, entrepreneurship, industry, startups]}
+  "340": {label: "Law", aliases: [law, legal, compliance]}
+  "350": {label: "Public administration and public services", aliases: [public_administration, public_services]}
+  "360": {label: "Social problems, services and welfare", aliases: [welfare, social_services, safeguarding]}
+  "370": {label: "Education", aliases: [education, teaching, learning, schools]}
+  "371": {label: "Schools, teaching practice and educational support", aliases: [school, teaching_practice, send, ehcp, learning_support]}
+  "380": {label: "Commerce, communications and transport", aliases: [commerce, communications, transport]}
+  "390": {label: "Customs, etiquette and folklore", aliases: [customs, etiquette, folklore]}
+
+  "400": {label: "Language", aliases: [language, linguistics]}
+  "410": {label: "Linguistics", aliases: [linguistics]}
+  "420": {label: "English language", aliases: [english_language, english]}
+  "430": {label: "Germanic languages", aliases: [germanic_languages]}
+  "440": {label: "Romance languages: French", aliases: [french, romance_languages]}
+  "450": {label: "Italian and related Romance languages", aliases: [italian]}
+  "460": {label: "Spanish, Portuguese and related languages", aliases: [spanish, portuguese]}
+  "470": {label: "Latin and Italic languages", aliases: [latin]}
+  "480": {label: "Classical and modern Greek", aliases: [greek]}
+  "490": {label: "Other languages", aliases: [other_languages]}
+
+  "500": {label: "Science", aliases: [science, natural_science]}
+  "510": {label: "Mathematics", aliases: [mathematics, maths]}
+  "520": {label: "Astronomy", aliases: [astronomy, space]}
+  "530": {label: "Physics", aliases: [physics]}
+  "540": {label: "Chemistry", aliases: [chemistry]}
+  "550": {label: "Earth sciences", aliases: [earth_science, geology]}
+  "560": {label: "Fossils and prehistoric life", aliases: [fossils, palaeontology]}
+  "570": {label: "Biology", aliases: [biology, life_science]}
+  "580": {label: "Plants", aliases: [plants, botany]}
+  "590": {label: "Animals", aliases: [animals, zoology]}
+
+  "600": {label: "Applied science and technology", aliases: [technology, applied_science]}
+  "610": {label: "Medicine and health", aliases: [medicine, health]}
+  "613": {label: "Personal health, wellbeing and safety", aliases: [sleep, nutrition, exercise, wellbeing, supplements, personal_health]}
+  "620": {label: "Engineering", aliases: [engineering]}
+  "630": {label: "Agriculture and food production", aliases: [agriculture, food_production]}
+  "640": {label: "Home, family and personal living", aliases: [home, family_life, domestic_life]}
+  "650": {label: "Management, work and business skills", aliases: [work, productivity_at_work, business_skills, office_work]}
+  "658": {label: "General management, leadership and operations", aliases: [management, leadership, operations, strategy]}
+  "660": {label: "Chemical engineering and industrial chemistry", aliases: [chemical_engineering]}
+  "670": {label: "Manufacturing", aliases: [manufacturing]}
+  "680": {label: "Manufacture for specific uses", aliases: [special_manufacturing]}
+  "690": {label: "Buildings and construction", aliases: [construction, buildings]}
+
+  "700": {label: "Arts, recreation and creativity", aliases: [arts, creativity, recreation]}
+  "710": {label: "Landscape and civic art", aliases: [landscape, civic_art]}
+  "720": {label: "Architecture", aliases: [architecture]}
+  "730": {label: "Sculpture and related arts", aliases: [sculpture]}
+  "740": {label: "Drawing, design and decorative arts", aliases: [design, drawing, decorative_arts]}
+  "750": {label: "Painting", aliases: [painting]}
+  "760": {label: "Graphic arts and printmaking", aliases: [graphic_arts, printmaking]}
+  "770": {label: "Photography and imaging", aliases: [photography, imaging]}
+  "780": {label: "Music", aliases: [music, songwriting, music_production]}
+  "790": {label: "Sport, games and entertainment", aliases: [sport, games, entertainment]}
+
+  "800": {label: "Literature, rhetoric and writing", aliases: [literature, writing]}
+  "810": {label: "American literature", aliases: [american_literature]}
+  "820": {label: "English literature", aliases: [english_literature]}
+  "830": {label: "German literature", aliases: [german_literature]}
+  "840": {label: "French literature", aliases: [french_literature]}
+  "850": {label: "Italian literature", aliases: [italian_literature]}
+  "860": {label: "Spanish and Portuguese literature", aliases: [spanish_literature, portuguese_literature]}
+  "870": {label: "Latin literature", aliases: [latin_literature]}
+  "880": {label: "Greek literature", aliases: [greek_literature]}
+  "890": {label: "Other literatures", aliases: [other_literature]}
+  "808": {label: "Writing craft, rhetoric and storytelling", aliases: [writing_craft, storytelling, composition, rhetoric]}
+
+  "900": {label: "History, geography and biography", aliases: [history, geography, biography]}
+  "910": {label: "Geography and travel", aliases: [geography, travel]}
+  "920": {label: "Biography and memoir", aliases: [biography, memoir]}
+  "930": {label: "Ancient history", aliases: [ancient_history]}
+  "940": {label: "European history", aliases: [european_history]}
+  "950": {label: "Asian history", aliases: [asian_history]}
+  "960": {label: "African history", aliases: [african_history]}
+  "970": {label: "North American history", aliases: [north_american_history]}
+  "980": {label: "South American history", aliases: [south_american_history]}
+  "990": {label: "History of other areas", aliases: [world_history, other_regions]}
+  "999": {label: "Unclassified or holding area", aliases: [unclassified, holding, inbox]}
+
+routing_aliases:
+  finance:
+    primary_class: ["330", "332"]
+    secondary_class: ["338", "658"]
+  investing:
+    primary_class: ["332"]
+    secondary_class: ["330"]
+  personal_development:
+    primary_class: ["158"]
+    secondary_class: ["153", "155", "613", "650"]
+  productivity:
+    primary_class: ["158", "650"]
+    secondary_class: ["153", "658"]
+  business:
+    primary_class: ["338", "650", "658"]
+    secondary_class: ["330", "332"]
+  psychology:
+    primary_class: ["150", "153", "155", "158"]
+    secondary_class: []
+  health:
+    primary_class: ["610", "613"]
+    secondary_class: ["158"]
+  technology:
+    primary_class: ["000", "003", "004", "005", "006"]
+    secondary_class: []
+  creativity:
+    primary_class: ["700", "780", "800", "808"]
+    secondary_class: []
+  education:
+    primary_class: ["370", "371"]
+    secondary_class: ["155"]

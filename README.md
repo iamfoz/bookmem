@@ -1,5 +1,8 @@
 # BookMem
 
+Current package version: **0.9.0**
+
+
 BookMem is a local, agent-readable Markdown book corpus.
 
 It ingests Markdown books, classifies them with **BookMem Decimal Classification (BMDC)**, chunks them by Markdown structure, embeds them, stores them in LanceDB, and exposes a CLI that agents can use for targeted retrieval.
@@ -341,3 +344,7 @@ See `docs/READING_TOOLS.md` for the agent guidance and metadata details.
 BookMem stores source-location metadata on every indexed chunk, including `source_path`, `heading_path`, `chapter_id`, `section_id`, `start_line`, `end_line` and a generated citation string. Search, routed search and reading commands now display line ranges and reusable citations for agent answers.
 
 See [`docs/CITATIONS.md`](docs/CITATIONS.md).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.

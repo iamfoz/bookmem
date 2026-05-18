@@ -51,6 +51,13 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.2] - 2026-05-18
+
+### Fixed
+- Fixed missing `jobs_app` and `profile_app` Typer declarations after the lazy CLI import refactor.
+- Added a CLI wiring sanity check during patching to catch command groups used before declaration.
+
 ## [0.61.1] - 2026-05-18
 
 ### Fixed

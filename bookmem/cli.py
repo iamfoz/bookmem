@@ -245,6 +245,8 @@ passages_app = typer.Typer(help="Extract, search, favourite and export passages"
 claims_app = typer.Typer(help="Extract, search and compare assertion claims")
 graph_app = typer.Typer(help="Build and export graph visualisations")
 plugins_app = typer.Typer(help="Discover and validate BookMem plugins")
+profile_app = typer.Typer(help="Manage BookMem config profiles/environments")
+jobs_app = typer.Typer(help="Inspect long-running job status and logs")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -267,6 +269,8 @@ app.add_typer(passages_app, name="passages")
 app.add_typer(claims_app, name="claims")
 app.add_typer(graph_app, name="graph")
 app.add_typer(plugins_app, name="plugins")
+app.add_typer(profile_app, name="profile")
+app.add_typer(jobs_app, name="jobs")
 console = Console()
 
 

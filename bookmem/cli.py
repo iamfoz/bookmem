@@ -19,11 +19,13 @@ from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 from .citation_exports import (
     SUPPORTED_FORMATS,
-    SUPPORTED_STYLES,
     export_references,
     format_reference,
+    load_citation_styles,
     reference_from_frontmatter,
     references_from_directory,
+    supported_styles,
+    validate_citation_styles,
 )
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
@@ -883,8 +885,9 @@ def cite_command(
 ):
     """Generate a formatted citation for one canonical Markdown book."""
     style = style.lower().strip()
-    if style not in SUPPORTED_STYLES:
-        console.print(f"[red]Unsupported style: {style}. Supported: {', '.join(sorted(SUPPORTED_STYLES))}[/red]")
+    styles = supported_styles()
+    if style not in styles:
+        console.print(f"[red]Unsupported style: {style}. Supported: {', '.join(sorted(styles))}[/red]")
         raise typer.Exit(code=1)
     reference = reference_from_frontmatter(path)
     console.print(format_reference(reference, style=style))
@@ -898,8 +901,9 @@ def cite_books_command(
 ):
     """Generate formatted citations for all canonical Markdown books in a directory."""
     style = style.lower().strip()
-    if style not in SUPPORTED_STYLES:
-        console.print(f"[red]Unsupported style: {style}. Supported: {', '.join(sorted(SUPPORTED_STYLES))}[/red]")
+    styles = supported_styles()
+    if style not in styles:
+        console.print(f"[red]Unsupported style: {style}. Supported: {', '.join(sorted(styles))}[/red]")
         raise typer.Exit(code=1)
     references = references_from_directory(books_dir)
     if not references:
@@ -937,6 +941,52 @@ def export_references_command(
         console.print(f"[green]Exported {len(references)} references to {output}[/green]")
         return
     console.print(text)
+
+
+@app.command("citation-styles")
+def citation_styles_command():
+    """List available YAML-defined citation styles."""
+    styles = load_citation_styles().get("styles", {})
+    if not styles:
+        console.print("[yellow]No citation styles loaded[/yellow]")
+        return
+
+    table_out = Table(title="Citation styles")
+    table_out.add_column("Style")
+    table_out.add_column("Label")
+    table_out.add_column("Description")
+
+    for key, style_def in sorted(styles.items()):
+        if key.startswith("_"):
+            continue
+        table_out.add_row(
+            str(key),
+            str(style_def.get("label", "")) if isinstance(style_def, dict) else "",
+            str(style_def.get("description", "")) if isinstance(style_def, dict) else "",
+        )
+    console.print(table_out)
+
+
+@app.command("validate-citation-styles")
+def validate_citation_styles_command():
+    """Validate YAML-defined citation styles by rendering a sample reference."""
+    issues = validate_citation_styles()
+    if not issues:
+        console.print("[green]Citation styles validated successfully[/green]")
+        return
+
+    table_out = Table(title="Citation style validation issues")
+    table_out.add_column("Style")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(
+            str(issue.get("style", "")),
+            str(issue.get("issue", "")),
+            str(issue.get("message", "")),
+        )
+    console.print(table_out)
+    raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

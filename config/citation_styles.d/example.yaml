@@ -1,0 +1,9 @@
+# Disabled example. Copy this file, remove the leading underscore from the style
+# key, and adjust the templates to create a local style.
+styles:
+  _example_short:
+    label: Example short reference
+    description: Author, year and title only.
+    parts:
+      - template: "{author_display} ({year})."
+      - template: "*{title}*."

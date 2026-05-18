@@ -7,12 +7,13 @@ import re
 from typing import Any
 import xml.etree.ElementTree as ET
 
+import yaml
+
 from .chunking import slugify
 from .frontmatter import read_markdown_with_frontmatter, normalise_isbn
 
-CITATION_EXPORT_VERSION = "0.1.0"
-
-SUPPORTED_STYLES = {"apa", "harvard", "mla", "chicago"}
+CITATION_EXPORT_VERSION = "0.2.0"
+CITATION_STYLE_SCHEMA_VERSION = 1
 SUPPORTED_FORMATS = {"bibtex", "ris", "csl-json", "endnote-xml"}
 
 
@@ -183,69 +184,155 @@ def _sentence(parts: list[str]) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _style_config_path() -> Path:
+    return Path(__file__).resolve().parents[1] / "config" / "citation_styles.yaml"
+
+
+def _style_config_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "config" / "citation_styles.d"
+
+
+def _load_yaml(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(data, dict):
+        raise ValueError(f"Citation style file must contain a YAML mapping: {path}")
+    return data
+
+
+def load_citation_styles() -> dict[str, Any]:
+    """Load built-in and user-supplied citation style definitions.
+
+    Built-ins live in config/citation_styles.yaml. Extra styles can be added as
+    YAML files under config/citation_styles.d/. Later files override earlier
+    definitions with the same style key.
+    """
+    merged: dict[str, Any] = {"styles": {}}
+
+    sources = [_style_config_path()]
+    if _style_config_dir().exists():
+        sources.extend(sorted(_style_config_dir().glob("*.yaml")))
+
+    for source in sources:
+        data = _load_yaml(source)
+        styles = data.get("styles", {})
+        if not isinstance(styles, dict):
+            raise ValueError(f"styles must be a mapping in {source}")
+        merged["styles"].update(styles)
+
+    return merged
+
+
+def supported_styles() -> set[str]:
+    return {key for key in load_citation_styles().get("styles", {}).keys() if not str(key).startswith("_")}
+
+
+def _citation_context(reference: BookReference) -> dict[str, str]:
+    year = reference.year or "n.d."
+    family, given = _split_author_name(reference.author)
+    return {
+        "author": reference.author or "Unknown author",
+        "author_raw": reference.author or "Unknown author",
+        "author_apa": _author_apa(reference.author),
+        "author_display": _author_display(reference.author),
+        "author_family": family or "Unknown author",
+        "author_given": given,
+        "year": year,
+        "title": reference.display_title,
+        "edition": reference.edition or "",
+        "publisher": reference.publisher or "",
+        "place": reference.place or "",
+        "isbn": reference.isbn or "",
+        "book_id": reference.book_id,
+        "primary_class": reference.primary_class or "",
+    }
+
+
+def _field_present(context: dict[str, str], field: str) -> bool:
+    return bool(str(context.get(field, "")).strip())
+
+
+def _part_enabled(part: dict[str, Any], context: dict[str, str]) -> bool:
+    when = part.get("when")
+    all_when = part.get("all_when")
+    any_when = part.get("any_when")
+    none_when = part.get("none_when")
+
+    if when and not _field_present(context, str(when)):
+        return False
+    if all_when and not all(_field_present(context, str(field)) for field in all_when):
+        return False
+    if any_when and not any(_field_present(context, str(field)) for field in any_when):
+        return False
+    if none_when and any(_field_present(context, str(field)) for field in none_when):
+        return False
+    return True
+
+
+def _render_template(template: str, context: dict[str, str]) -> str:
+    class SafeDict(dict):
+        def __missing__(self, key: str) -> str:
+            return ""
+
+    rendered = template.format_map(SafeDict(context))
+    return re.sub(r"\s+", " ", rendered).strip()
+
+
 def format_reference(reference: BookReference, style: str = "apa") -> str:
-    style = style.lower().strip()
-    if style not in SUPPORTED_STYLES:
+    style_key = style.lower().strip()
+    styles = load_citation_styles().get("styles", {})
+    style_def = styles.get(style_key)
+    if not isinstance(style_def, dict):
         raise ValueError(f"Unsupported citation style: {style}")
 
-    year = reference.year or "n.d."
-    title = reference.display_title
-    edition = reference.edition
-    publisher = reference.publisher
-    place = reference.place
-    isbn = reference.isbn
+    parts = style_def.get("parts", [])
+    if not isinstance(parts, list):
+        raise ValueError(f"Citation style has invalid parts list: {style}")
 
-    if style == "apa":
-        bits = [f"{_author_apa(reference.author)} ({year}).", f"*{title}*."]
-        if edition:
-            bits.append(f"({edition}).")
-        if publisher:
-            bits.append(f"{publisher}.")
-        if isbn:
-            bits.append(f"ISBN {isbn}.")
-        return _sentence(bits)
+    context = _citation_context(reference)
+    rendered_parts: list[str] = []
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+        if not _part_enabled(part, context):
+            continue
+        template = str(part.get("template", "")).strip()
+        if not template:
+            continue
+        rendered = _render_template(template, context)
+        if rendered:
+            rendered_parts.append(rendered)
 
-    if style == "harvard":
-        bits = [f"{_author_apa(reference.author)} ({year})", f"*{title}*."]
-        if edition:
-            bits.append(f"{edition}.")
-        if place and publisher:
-            bits.append(f"{place}: {publisher}.")
-        elif publisher:
-            bits.append(f"{publisher}.")
-        if isbn:
-            bits.append(f"ISBN {isbn}.")
-        return _sentence(bits)
+    return _sentence(rendered_parts)
 
-    if style == "mla":
-        bits = [f"{_author_display(reference.author)}.", f"*{title}*."]
-        if edition:
-            bits.append(f"{edition},")
-        if publisher and year:
-            bits.append(f"{publisher}, {year}.")
-        elif publisher:
-            bits.append(f"{publisher}.")
-        elif year:
-            bits.append(f"{year}.")
-        if isbn:
-            bits.append(f"ISBN {isbn}.")
-        return _sentence(bits)
 
-    # chicago
-    bits = [f"{_author_display(reference.author)}.", f"*{title}*."]
-    if edition:
-        bits.append(f"{edition}.")
-    if place and publisher and year:
-        bits.append(f"{place}: {publisher}, {year}.")
-    elif publisher and year:
-        bits.append(f"{publisher}, {year}.")
-    elif publisher:
-        bits.append(f"{publisher}.")
-    elif year:
-        bits.append(f"{year}.")
-    if isbn:
-        bits.append(f"ISBN {isbn}.")
-    return _sentence(bits)
+def validate_citation_styles() -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    styles = load_citation_styles().get("styles", {})
+    if not styles:
+        issues.append({"style": "", "issue": "no_styles_loaded", "message": "No citation styles were loaded."})
+        return issues
+
+    test_ref = BookReference(
+        path="example.md",
+        book_id="example_book",
+        title="Example Book",
+        author="Jane Smith",
+        year="2026",
+        publisher="Example Press",
+        place="London",
+        edition="2nd ed.",
+        isbn="9780000000000",
+    )
+    for style in sorted(styles):
+        try:
+            formatted = format_reference(test_ref, style)
+            if not formatted:
+                issues.append({"style": style, "issue": "empty_output", "message": "Style rendered no output."})
+        except Exception as exc:
+            issues.append({"style": style, "issue": "render_failed", "message": str(exc)})
+    return issues
 
 
 def _bibtex_escape(value: str) -> str:

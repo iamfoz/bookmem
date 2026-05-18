@@ -408,3 +408,16 @@ Review application updates Markdown frontmatter only. It does not silently delet
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+
+## Pluggable citation styles
+
+BookMem citation styles are YAML-defined. Built-in styles live in `config/citation_styles.yaml`, and local styles can be added under `config/citation_styles.d/`.
+
+```bash
+bookmem citation-styles
+bookmem validate-citation-styles
+bookmem cite "data/books/Book.md" --style apa
+```
+
+See `docs/PLUGGABLE_CITATIONS.md` for the template format.

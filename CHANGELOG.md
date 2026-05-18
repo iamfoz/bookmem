@@ -6,6 +6,28 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+## [0.12.0] - 2026-05-18
+
+### Added
+
+- Added YAML-driven citation style definitions.
+- Added built-in citation style file at `config/citation_styles.yaml`.
+- Added local citation style override directory at `config/citation_styles.d/`.
+- Added commands:
+  - `bookmem citation-styles`
+  - `bookmem validate-citation-styles`
+- Added `docs/PLUGGABLE_CITATIONS.md`.
+
+### Changed
+
+- `bookmem cite` and `bookmem cite-books` now load styles from YAML rather than hard-coded Python branches.
+- Existing built-in styles remain available: `apa`, `harvard`, `mla`, `chicago`.
+
+### Notes
+
+- Reference-manager exports remain code-backed because BibTeX, RIS, CSL JSON and EndNote XML are structured interchange formats rather than prose citation styles.
+
+
 ## [0.11.0] - 2026-05-18
 
 ### Added

@@ -1,0 +1,88 @@
+schema_version: 1
+
+# BookMem citation styles are deliberately small, editable templates for
+# practical book references generated from Markdown frontmatter. They are not
+# a replacement for full CSL processors, but they are easy to inspect, version
+# and customise.
+#
+# Available placeholders:
+#   {author} {author_raw} {author_apa} {author_display}
+#   {author_family} {author_given} {year} {title} {edition}
+#   {publisher} {place} {isbn} {book_id} {primary_class}
+#
+# Conditional keys:
+#   when: field_name
+#   all_when: [field_a, field_b]
+#   any_when: [field_a, field_b]
+#   none_when: [field_a, field_b]
+
+styles:
+  apa:
+    label: APA-style book reference
+    description: Practical APA-like reference for books.
+    parts:
+      - template: "{author_apa} ({year})."
+      - template: "*{title}*."
+      - template: "({edition})."
+        when: edition
+      - template: "{publisher}."
+        when: publisher
+      - template: "ISBN {isbn}."
+        when: isbn
+
+  harvard:
+    label: Harvard-style book reference
+    description: Practical Harvard-like reference for books.
+    parts:
+      - template: "{author_apa} ({year})"
+      - template: "*{title}*."
+      - template: "{edition}."
+        when: edition
+      - template: "{place}: {publisher}."
+        all_when: [place, publisher]
+      - template: "{publisher}."
+        all_when: [publisher]
+        none_when: [place]
+      - template: "ISBN {isbn}."
+        when: isbn
+
+  mla:
+    label: MLA-style book reference
+    description: Practical MLA-like reference for books.
+    parts:
+      - template: "{author_display}."
+      - template: "*{title}*."
+      - template: "{edition},"
+        when: edition
+      - template: "{publisher}, {year}."
+        all_when: [publisher, year]
+      - template: "{publisher}."
+        all_when: [publisher]
+        none_when: [year]
+      - template: "{year}."
+        all_when: [year]
+        none_when: [publisher]
+      - template: "ISBN {isbn}."
+        when: isbn
+
+  chicago:
+    label: Chicago-style book reference
+    description: Practical Chicago-like reference for books.
+    parts:
+      - template: "{author_display}."
+      - template: "*{title}*."
+      - template: "{edition}."
+        when: edition
+      - template: "{place}: {publisher}, {year}."
+        all_when: [place, publisher, year]
+      - template: "{publisher}, {year}."
+        all_when: [publisher, year]
+        none_when: [place]
+      - template: "{publisher}."
+        all_when: [publisher]
+        none_when: [place, year]
+      - template: "{year}."
+        all_when: [year]
+        none_when: [publisher]
+      - template: "ISBN {isbn}."
+        when: isbn

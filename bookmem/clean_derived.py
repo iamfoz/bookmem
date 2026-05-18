@@ -11,6 +11,8 @@ from pathlib import Path
 import shutil
 from typing import Any
 
+from .audit import append_audit_record
+
 
 CLEAN_DERIVED_VERSION = "0.1.0"
 

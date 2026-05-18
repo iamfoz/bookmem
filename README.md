@@ -981,3 +981,19 @@ bookmem review mark-human-reviewed <path>
 Supported review statuses are `machine_draft`, `needs_human_review`,
 `human_reviewed`, `rejected` and `superseded`. See
 `docs/HUMAN_REVIEW.md`.
+
+
+## Audit log
+
+BookMem writes a durable JSONL audit trail for important agent-facing
+actions:
+
+```bash
+bookmem audit tail
+bookmem audit search "enrich"
+bookmem audit export --format jsonl
+```
+
+The log lives at `data/audit/bookmem.log.jsonl` and records command,
+action, status, changed files, provider and details. See
+`docs/AUDIT.md`.

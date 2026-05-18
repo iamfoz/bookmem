@@ -15,6 +15,7 @@ import yaml
 from .doctor import run_doctor
 from .config import get_settings
 from .index_versions import index_status
+from .audit import append_audit_record
 
 
 SETUP_WIZARD_VERSION = "0.1.0"
@@ -359,7 +360,7 @@ def run_setup_preset(
         if status_callback:
             status_callback(step.id, f"Finished: {step.label}")
 
-    return {
+    payload = {
         "preset": asdict(preset),
         "rerun_mode": rerun_mode,
         "force": force,
@@ -368,6 +369,23 @@ def run_setup_preset(
         "steps": results,
         "final_status": setup_status() if not dry_run else None,
     }
+
+    if not dry_run:
+        failed = [item for item in results if item.get("status") == "failed"]
+        append_audit_record(
+            action="setup.run",
+            status="error" if failed else "ok",
+            changed_files=[],
+            target=preset_name,
+            message=f"Setup preset {preset_name} completed in {rerun_mode} mode",
+            details={
+                "rerun_mode": rerun_mode,
+                "force": force,
+                "step_statuses": {item["step"]["id"]: item["status"] for item in results},
+            },
+        )
+
+    return payload
 
 
 

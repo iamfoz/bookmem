@@ -14,6 +14,8 @@ import json
 import re
 from typing import Any
 
+from .audit import append_audit_record
+
 
 MIGRATION_SYSTEM_VERSION = "0.1.0"
 MIGRATIONS_DIR = Path("migrations")
@@ -224,6 +226,13 @@ def create_migration(name: str) -> dict[str, Any]:
         '    return {"changed": False, "note": "Migration stub created; implement apply()."}\\n'
     )
     path.write_text(template, encoding="utf-8")
+    append_audit_record(
+        action="migrations.create",
+        status="ok",
+        changed_files=[path],
+        target=migration_id,
+        message=f"Created migration {migration_id}",
+    )
 
     return {
         "id": migration_id,

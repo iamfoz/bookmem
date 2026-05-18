@@ -45,6 +45,7 @@ from .setup_wizard import load_setup_presets, presets_as_dict, setup_steps_for_p
 from .migrations import migration_status, apply_migrations, create_migration
 from .clean_derived import clean_derived, clean_result_as_dict
 from .human_review import machine_drafts, drafts_as_dict, approve_summary, approve_concepts, reject_concept, mark_human_reviewed, set_summary_status, set_concepts_status
+from .audit import tail_audit, search_audit, export_audit, append_audit_record
 from .citation_exports import (
     export_references,
     format_reference,
@@ -70,6 +71,7 @@ embeddings_app = typer.Typer(help="Manage embedding model profiles and reindexin
 eval_app = typer.Typer(help="Run retrieval benchmark/evaluation sets")
 setup_app = typer.Typer(help="First-run setup wizard and presets")
 migrations_app = typer.Typer(help="Explicit schema/data migrations")
+audit_app = typer.Typer(help="Inspect and export the durable audit log")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -81,6 +83,7 @@ app.add_typer(embeddings_app, name="embeddings")
 app.add_typer(eval_app, name="eval")
 app.add_typer(setup_app, name="setup")
 app.add_typer(migrations_app, name="migrations")
+app.add_typer(audit_app, name="audit")
 console = Console()
 
 
@@ -1840,6 +1843,75 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+def _print_audit_table(records, title: str = "Audit log"):
+    table_out = Table(title=title)
+    table_out.add_column("Timestamp")
+    table_out.add_column("Action")
+    table_out.add_column("Status")
+    table_out.add_column("Provider")
+    table_out.add_column("Target")
+    table_out.add_column("Changed")
+    table_out.add_column("Command")
+    for record in records:
+        changed = record.get("changed_files") or []
+        table_out.add_row(
+            str(record.get("timestamp") or ""),
+            str(record.get("action") or ""),
+            str(record.get("status") or ""),
+            str(record.get("provider") or ""),
+            str(record.get("target") or ""),
+            str(len(changed)),
+            str(record.get("command") or "")[:80],
+        )
+    console.print(table_out)
+
+
+@audit_app.command("tail")
+def audit_tail_command(
+    limit: int = typer.Option(50, "--limit", "-n", help="Number of records to show."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show recent audit log entries."""
+    import json as json_lib
+
+    records = tail_audit(limit=limit)
+    if json_output:
+        console.print(json_lib.dumps(records, indent=2, ensure_ascii=False))
+        return
+    _print_audit_table(records, title=f"Last {len(records)} audit record(s)")
+
+
+@audit_app.command("search")
+def audit_search_command(
+    query: str,
+    limit: int = typer.Option(100, "--limit", "-n", help="Maximum records to show."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Search audit log entries."""
+    import json as json_lib
+
+    records = search_audit(query, limit=limit)
+    if json_output:
+        console.print(json_lib.dumps(records, indent=2, ensure_ascii=False))
+        return
+    _print_audit_table(records, title=f"Audit search: {query}")
+
+
+@audit_app.command("export")
+def audit_export_command(
+    format: str = typer.Option("jsonl", "--format", "-f", help="Export format: jsonl or json."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Optional output file."),
+):
+    """Export the audit log."""
+    text = export_audit(format=format)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+        console.print(f"[green]Exported audit log:[/green] {output}")
+        return
+    console.print(text)
 
 
 @app.command("clean-derived")

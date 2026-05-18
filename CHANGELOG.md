@@ -34,6 +34,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.47.0] - 2026-05-18
+
+### Added
+- Added durable JSONL audit log.
+- Added `data/audit/bookmem.log.jsonl` as the central audit trail.
+- Added `bookmem audit tail`.
+- Added `bookmem audit search`.
+- Added `bookmem audit export --format jsonl`.
+- Added `bookmem audit export --format json`.
+- Added `bookmem/audit.py`.
+- Added `docs/AUDIT.md`.
+- Added audit instrumentation for migrations, derived artefact cleaning, human review, setup runs and metadata enrichment.
+
+### Behaviour
+- Human review actions now write both the specialised human review log and the central audit log.
+- Metadata enrichment writes provider and changed-file details when run with `--write`.
+- Setup runs write a summary audit record with preset, mode and step statuses.
+- Derived artefact cleaning writes deleted target information when run with `--execute`.
+
 ## [0.46.0] - 2026-05-18
 
 ### Added

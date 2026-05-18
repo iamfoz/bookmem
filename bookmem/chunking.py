@@ -41,6 +41,9 @@ class Chunk:
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+CHUNKER_VERSION = "0.4.0"
+INDEX_SCHEMA_VERSION = 3
+
 CHAPTER_RE = re.compile(r"^(chapter\s+\d+|chapter\s+[ivxlcdm]+|preface|introduction|prologue|epilogue|conclusion|afterword|appendix\b.*)$", re.IGNORECASE)
 
 

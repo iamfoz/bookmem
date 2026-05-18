@@ -10,6 +10,7 @@ from .chunking import chunk_markdown_file
 from .config import get_settings
 from .embeddings import embed_texts
 from .manifest import mark_indexed, status_for_book
+from .index_versions import update_manifest_index_metadata
 
 console = Console()
 
@@ -123,5 +124,7 @@ def ingest_books(reset: bool = False, changed_only: bool = False) -> None:
             chunk_count=chunk_count,
             classification_source=classification_source,
         )
+
+    update_manifest_index_metadata(chunk_count=len(all_rows), book_count=len(chunk_counts))
 
     console.print("[bold green]Ingest complete[/bold green]")

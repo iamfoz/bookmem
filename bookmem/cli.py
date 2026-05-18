@@ -36,6 +36,7 @@ from .book_graph import build_book_graph, related_books
 from .answer_pack import build_answer_pack
 from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
 from .concepts import extract_concepts_from_book, extract_concepts_from_books, search_concepts, list_concepts, rebuild_concept_index
+from .index_versions import index_status, update_manifest_index_metadata
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1685,6 +1686,64 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("index-status")
+def index_status_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+    update_manifest: bool = typer.Option(False, "--update-manifest", help="Record the current index fingerprint in the manifest."),
+):
+    """Check whether the LanceDB index is stale compared with current code/config."""
+    import json as json_lib
+
+    if update_manifest:
+        update_manifest_index_metadata()
+
+    report = index_status()
+
+    if json_output:
+        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Index stale: {'yes' if report['stale'] else 'no'}\n"
+            f"Rows: {report['table'].get('row_count', 0)}\n"
+            f"LanceDB readable: {'yes' if report['table'].get('lancedb_readable') else 'no'}\n"
+            f"Table exists: {'yes' if report['table'].get('table_exists') else 'no'}",
+            title="Index status",
+            expand=False,
+        )
+    )
+
+    current = report.get("current", {})
+    stored = report.get("stored", {})
+
+    table_out = Table(title="Index fingerprint")
+    table_out.add_column("Field")
+    table_out.add_column("Stored")
+    table_out.add_column("Current")
+
+    for key in (
+        "index_schema_version",
+        "chunker_version",
+        "embedding_provider",
+        "embedding_model",
+        "embedding_dimension",
+        "cleaner_version",
+        "cleaning_profile",
+        "taxonomy_version",
+    ):
+        table_out.add_row(key, str(stored.get(key)), str(current.get(key)))
+
+    console.print(table_out)
+
+    if report.get("reasons"):
+        console.print("\n[bold]Reason[/bold]")
+        for reason in report["reasons"]:
+            console.print(f"- {reason}")
+    else:
+        console.print("\n[green]Index fingerprint matches current code/config.[/green]")
 
 
 @app.command("extract-concepts")

@@ -24,6 +24,25 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.37.0] - 2026-05-18
+
+### Added
+- Added index/model versioning.
+- Added `bookmem index-status`.
+- Added `bookmem index-status --json`.
+- Added `bookmem index-status --update-manifest`.
+- Added `bookmem/index_versions.py`.
+- Added `docs/INDEX_VERSIONING.md`.
+- Added `CHUNKER_VERSION` and `INDEX_SCHEMA_VERSION`.
+- Added embedding provider/model/dimension metadata helpers.
+- Added manifest `index_metadata` with index schema, chunker version, embedding provider/model/dimension, cleaner version, cleaning profile, taxonomy fingerprint and BookMem version.
+- Indexed book records now include the current index fingerprint.
+
+### Behaviour
+- `bookmem ingest` records the current index fingerprint after a successful ingest.
+- `bookmem index-status` reports stale reasons such as changed chunker, cleaner, taxonomy or embedding model.
+
 ## [0.36.0] - 2026-05-18
 
 ### Added

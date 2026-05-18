@@ -814,3 +814,18 @@ bookmem concepts list --class 158
 
 Concepts are derived artefacts under `data/concepts/` and include source
 chunks/citations. See `docs/CONCEPTS.md`.
+
+
+## Index versioning
+
+Check whether the retrieval index is stale compared with current
+chunking, embedding, cleaning and taxonomy settings:
+
+```bash
+bookmem index-status
+bookmem index-status --json
+```
+
+The manifest records index schema, chunker version, embedding model,
+embedding dimension, cleaner version and taxonomy fingerprint. See
+`docs/INDEX_VERSIONING.md`.

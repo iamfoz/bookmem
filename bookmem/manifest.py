@@ -185,6 +185,12 @@ def mark_indexed(
 ) -> dict[str, Any]:
     content_hash, frontmatter_hash, full_hash = markdown_hashes(canonical_path)
     existing = get_record_for_path(canonical_path, path) or {}
+    try:
+        from .index_versions import current_index_fingerprint
+        index_fingerprint = current_index_fingerprint()
+    except Exception:
+        index_fingerprint = {}
+
     record = {
         **existing,
         "book_id": book_id,
@@ -195,6 +201,7 @@ def mark_indexed(
         "last_indexed": utc_now_iso(),
         "chunk_count": chunk_count,
         "classification_source": classification_source or existing.get("classification_source"),
+        **index_fingerprint,
     }
     return upsert_book_record(record, path)
 

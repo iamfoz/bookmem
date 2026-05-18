@@ -19,7 +19,7 @@ from .summary_providers import load_summary_providers, validate_summary_provider
 from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
-from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts
+from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts, difficulty_counts, density_counts, best_read_as_counts
 from .topic_maps import map_topic as build_topic_map, write_topic_map
 from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
 from .notes import generate_note, generate_notes_for_directory, load_note_templates
@@ -51,6 +51,7 @@ from .permissions import check_permission, list_agent_permissions, list_agents, 
 from .workspaces import list_workspaces_as_dict, workspace_search, workspace_answer_pack, validate_workspaces
 from .saved_queries import save_query, list_saved_queries, run_saved_query, generate_brief
 from .reading_lists import generate_reading_list
+from .reading_metadata import infer_reading_metadata, result_as_dict as reading_metadata_result_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -82,6 +83,7 @@ permissions_app = typer.Typer(help="Check agent permissions and safety policy")
 workspace_app = typer.Typer(help="Use named workspace/project corpus views")
 query_app = typer.Typer(help="Save and run recurring research queries")
 brief_app = typer.Typer(help="Generate research briefs from saved queries")
+reading_metadata_app = typer.Typer(help="Infer and manage book reading metadata")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -99,6 +101,7 @@ app.add_typer(permissions_app, name="permissions")
 app.add_typer(workspace_app, name="workspace")
 app.add_typer(query_app, name="query")
 app.add_typer(brief_app, name="brief")
+app.add_typer(reading_metadata_app, name="reading-metadata")
 console = Console()
 
 
@@ -1359,6 +1362,7 @@ def stats_command(
     by_class: bool = typer.Option(False, "--by-class", help="Show class distribution."),
     by_author: bool = typer.Option(False, "--by-author", help="Show author distribution."),
     by_topic: bool = typer.Option(False, "--by-topic", help="Show topic distribution."),
+    by_difficulty: bool = typer.Option(False, "--by-difficulty", help="Show reading difficulty distribution."),
     books_dir: Path | None = typer.Option(None, "--books-dir", help="Canonical books directory. Defaults to BOOKMEM_BOOKS_DIR."),
     limit: int = typer.Option(20, "--limit", "-n", help="Maximum rows to display in each breakdown."),
     json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
@@ -1386,13 +1390,16 @@ def stats_command(
             f"Unclassified books: {totals['unclassified_books']}\n"
             f"Books without author: {totals['books_without_author']}\n"
             f"Books without topics: {totals['books_without_topics']}\n"
-            f"Books with ISBN: {totals['books_with_isbn']}",
+            f"Books with ISBN: {totals['books_with_isbn']}\n"
+            f"Books with reading metadata: {totals['books_with_reading_metadata']}\n"
+            f"Estimated pages: {totals['estimated_pages']}\n"
+            f"Estimated reading hours: {totals['estimated_reading_hours']}",
             title="Collection statistics",
             expand=False,
         )
     )
 
-    show_all = not (by_class or by_author or by_topic)
+    show_all = not (by_class or by_author or by_topic or by_difficulty)
 
     if show_all or by_class:
         table_out = Table(title="Books by BMDC class")
@@ -1445,6 +1452,49 @@ def stats_command(
             )
         console.print(table_out)
 
+
+    if show_all or by_difficulty:
+        table_out = Table(title="Books by reading difficulty")
+        table_out.add_column("Difficulty")
+        table_out.add_column("Books", justify="right")
+        table_out.add_column("Pages", justify="right")
+        table_out.add_column("Hours", justify="right")
+        for row in difficulty_counts(stats)[:limit]:
+            table_out.add_row(
+                str(row["difficulty"]),
+                str(row["books"]),
+                str(row["pages"]),
+                str(row["hours"]),
+            )
+        console.print(table_out)
+
+        density_table = Table(title="Books by density")
+        density_table.add_column("Density")
+        density_table.add_column("Books", justify="right")
+        density_table.add_column("Pages", justify="right")
+        density_table.add_column("Hours", justify="right")
+        for row in density_counts(stats)[:limit]:
+            density_table.add_row(
+                str(row["density"]),
+                str(row["books"]),
+                str(row["pages"]),
+                str(row["hours"]),
+            )
+        console.print(density_table)
+
+        best_table = Table(title="Books by best-read-as")
+        best_table.add_column("Best read as")
+        best_table.add_column("Books", justify="right")
+        best_table.add_column("Pages", justify="right")
+        best_table.add_column("Hours", justify="right")
+        for row in best_read_as_counts(stats)[:limit]:
+            best_table.add_row(
+                str(row["best_read_as"]),
+                str(row["books"]),
+                str(row["pages"]),
+                str(row["hours"]),
+            )
+        console.print(best_table)
 
 @app.command("duplicates")
 def duplicates_command(
@@ -1881,6 +1931,38 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@reading_metadata_app.command("infer")
+def reading_metadata_infer_command(
+    book: Path,
+    write: bool = typer.Option(False, "--write", help="Write inferred reading metadata to frontmatter."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing non-human-reviewed reading metadata."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Infer difficulty, length, density and best reading posture for a Markdown book."""
+    import json as json_lib
+
+    result = infer_reading_metadata(book, write=write, overwrite=overwrite)
+    payload = reading_metadata_result_as_dict(result)
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Book: {result.path}\n"
+            f"Difficulty: {result.difficulty}\n"
+            f"Estimated pages: {result.estimated_pages}\n"
+            f"Estimated reading hours: {result.estimated_reading_hours}\n"
+            f"Density: {result.density}\n"
+            f"Best read as: {result.best_read_as}\n"
+            f"Confidence: {result.confidence}\n"
+            f"Wrote file: {'yes' if result.wrote_file else 'no'}",
+            title="Reading metadata inference",
+            expand=False,
+        )
+    )
 
 
 @app.command("reading-list")

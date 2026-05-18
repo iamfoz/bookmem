@@ -32,6 +32,11 @@ class BookStat:
     content_changed: bool
     frontmatter_changed: bool
     classification_source: str
+    reading_difficulty: str | None
+    reading_density: str | None
+    best_read_as: str | None
+    estimated_pages: int | None
+    estimated_reading_hours: float | None
 
 
 def _as_list(value: Any) -> list[str]:
@@ -73,6 +78,7 @@ def load_book_stats(books_dir: Path | None = None) -> list[BookStat]:
         metadata = metadata_from_frontmatter(path, root, frontmatter)
         classification = frontmatter.get("classification") if isinstance(frontmatter.get("classification"), dict) else {}
         meta_block = frontmatter.get("metadata") if isinstance(frontmatter.get("metadata"), dict) else {}
+        reading_block = frontmatter.get("reading") if isinstance(frontmatter.get("reading"), dict) else {}
 
         title = str(metadata.get("title") or frontmatter.get("title") or path.stem).strip()
         author_value = metadata.get("author") or frontmatter.get("author")
@@ -111,6 +117,11 @@ def load_book_stats(books_dir: Path | None = None) -> list[BookStat]:
                 content_changed=content_changed,
                 frontmatter_changed=frontmatter_changed,
                 classification_source=classification_source,
+                reading_difficulty=str(reading_block.get("difficulty")) if reading_block.get("difficulty") else None,
+                reading_density=str(reading_block.get("density")) if reading_block.get("density") else None,
+                best_read_as=str(reading_block.get("best_read_as")) if reading_block.get("best_read_as") else None,
+                estimated_pages=int(reading_block.get("estimated_pages")) if reading_block.get("estimated_pages") else None,
+                estimated_reading_hours=float(reading_block.get("estimated_reading_hours")) if reading_block.get("estimated_reading_hours") else None,
             )
         )
 
@@ -127,6 +138,9 @@ def collection_totals(stats: list[BookStat]) -> dict[str, Any]:
         "books_without_author": sum(1 for book in stats if not book.author),
         "books_without_topics": sum(1 for book in stats if not book.topics),
         "books_with_isbn": sum(1 for book in stats if book.isbns),
+        "books_with_reading_metadata": sum(1 for book in stats if book.reading_difficulty or book.estimated_pages),
+        "estimated_pages": sum(book.estimated_pages or 0 for book in stats),
+        "estimated_reading_hours": round(sum(book.estimated_reading_hours or 0 for book in stats), 1),
     }
 
 
@@ -184,6 +198,50 @@ def topic_counts(stats: list[BookStat]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: (-row["books"], row["topic"]))
 
 
+
+def difficulty_counts(stats: list[BookStat]) -> list[dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+    for book in stats:
+        difficulty = book.reading_difficulty or "unknown"
+        item = grouped.setdefault(difficulty, {"difficulty": difficulty, "books": 0, "pages": 0, "hours": 0.0})
+        item["books"] += 1
+        item["pages"] += book.estimated_pages or 0
+        item["hours"] += book.estimated_reading_hours or 0
+    rows = []
+    for item in grouped.values():
+        rows.append({**item, "hours": round(item["hours"], 1)})
+    order = {"beginner": 0, "intermediate": 1, "advanced": 2, "unknown": 3}
+    return sorted(rows, key=lambda row: (order.get(row["difficulty"], 99), -row["books"]))
+
+
+def density_counts(stats: list[BookStat]) -> list[dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+    for book in stats:
+        density = book.reading_density or "unknown"
+        item = grouped.setdefault(density, {"density": density, "books": 0, "pages": 0, "hours": 0.0})
+        item["books"] += 1
+        item["pages"] += book.estimated_pages or 0
+        item["hours"] += book.estimated_reading_hours or 0
+    rows = []
+    for item in grouped.values():
+        rows.append({**item, "hours": round(item["hours"], 1)})
+    order = {"light": 0, "medium": 1, "dense": 2, "unknown": 3}
+    return sorted(rows, key=lambda row: (order.get(row["density"], 99), -row["books"]))
+
+
+def best_read_as_counts(stats: list[BookStat]) -> list[dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+    for book in stats:
+        value = book.best_read_as or "unknown"
+        item = grouped.setdefault(value, {"best_read_as": value, "books": 0, "pages": 0, "hours": 0.0})
+        item["books"] += 1
+        item["pages"] += book.estimated_pages or 0
+        item["hours"] += book.estimated_reading_hours or 0
+    rows = []
+    for item in grouped.values():
+        rows.append({**item, "hours": round(item["hours"], 1)})
+    return sorted(rows, key=lambda row: (-row["books"], row["best_read_as"]))
+
 def stats_payload(stats: list[BookStat], limit: int = 20) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -192,4 +250,7 @@ def stats_payload(stats: list[BookStat], limit: int = 20) -> dict[str, Any]:
         "top_classes": class_counts(stats)[:limit],
         "top_authors": author_counts(stats)[:limit],
         "top_topics": topic_counts(stats)[:limit],
+        "by_difficulty": difficulty_counts(stats),
+        "by_density": density_counts(stats),
+        "by_best_read_as": best_read_as_counts(stats),
     }

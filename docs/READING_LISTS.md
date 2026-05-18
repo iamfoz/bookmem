@@ -134,3 +134,20 @@ estimated length
 density
 best read as cover-to-cover/reference/skim
 ```
+
+
+## Reading metadata integration
+
+When available, reading lists use frontmatter reading metadata:
+
+```yaml
+reading:
+  difficulty: beginner
+  estimated_pages: 312
+  estimated_reading_hours: 8
+  density: medium
+  best_read_as: cover_to_cover
+```
+
+This improves suggested reading posture and adds length/difficulty context
+to saved Markdown lists.

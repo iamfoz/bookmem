@@ -17,6 +17,7 @@ from .concepts import search_concepts
 from .topic_map import map_topic
 from .book_graph import related_books
 from .audit import append_audit_record
+from .frontmatter import read_markdown_with_frontmatter
 
 
 READING_LIST_VERSION = "0.1.0"
@@ -34,6 +35,11 @@ class ReadingListItem:
     why: str
     evidence: list[str]
     suggested_posture: str
+    reading_difficulty: str | None = None
+    reading_density: str | None = None
+    estimated_pages: int | None = None
+    estimated_reading_hours: float | None = None
+    best_read_as: str | None = None
     source_path: str | None = None
 
 
@@ -82,10 +88,41 @@ def _add_score(scores: dict[str, dict[str, Any]], row: dict[str, Any], amount: f
         scores[key]["evidence"].append(str(citation))
 
 
-def _difficulty_posture(rank: int, title: str, reasons: list[str]) -> str:
-    text = normalise(" ".join([title] + reasons))
+
+def _reading_metadata_for_record(record: dict[str, Any]) -> dict[str, Any]:
+    source = record.get("source_path")
+    if not source:
+        return {}
+    path = Path(str(source))
+    if not path.exists():
+        return {}
+    try:
+        frontmatter, _body, _had = read_markdown_with_frontmatter(path)
+        reading = frontmatter.get("reading") if isinstance(frontmatter.get("reading"), dict) else {}
+        return reading
+    except Exception:
+        return {}
+
+
+
+def _difficulty_posture(rank: int, title: str, reasons: list[str], reading: dict[str, Any] | None = None) -> str:
+    reading = reading or {}
+    best_read_as = reading.get("best_read_as")
+    difficulty = reading.get("difficulty")
+    density = reading.get("density")
+
     if rank == 1:
         return "Start here"
+    if best_read_as == "reference":
+        return "Use as a reference"
+    if best_read_as == "skim_then_search":
+        return "Skim, then search"
+    if difficulty == "beginner":
+        return "Read early"
+    if difficulty == "advanced" or density == "dense":
+        return "Read after the foundations"
+
+    text = normalise(" ".join([title] + reasons))
     if any(term in text for term in ["beginner", "basics", "introduction", "simple"]):
         return "Read early"
     if any(term in text for term in ["advanced", "dense", "technical", "systems"]):
@@ -223,6 +260,7 @@ def generate_reading_list(
     ranked = sorted(scores.values(), key=lambda item: (-item.get("score", 0), normalise(item.get("title"))))
     items = []
     for rank, record in enumerate(ranked[:limit], start=1):
+        reading = _reading_metadata_for_record(record)
         items.append(
             ReadingListItem(
                 rank=rank,
@@ -233,7 +271,12 @@ def generate_reading_list(
                 primary_label=record.get("primary_label"),
                 why=_why_for(record, intent),
                 evidence=record.get("evidence", [])[:5],
-                suggested_posture=_difficulty_posture(rank, str(record.get("title") or ""), record.get("reasons", [])),
+                suggested_posture=_difficulty_posture(rank, str(record.get("title") or ""), record.get("reasons", []), reading),
+                reading_difficulty=reading.get("difficulty"),
+                reading_density=reading.get("density"),
+                estimated_pages=reading.get("estimated_pages"),
+                estimated_reading_hours=reading.get("estimated_reading_hours"),
+                best_read_as=reading.get("best_read_as"),
                 source_path=record.get("source_path"),
             )
         )

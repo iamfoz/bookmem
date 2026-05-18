@@ -1076,3 +1076,18 @@ bookmem reading-list --topic "systems thinking" --save --name systems-thinking
 
 Saved lists are written to `data/reading-lists/`. See
 `docs/READING_LISTS.md`.
+
+
+## Reading metadata
+
+Infer reading difficulty, estimated length, density and best reading
+posture:
+
+```bash
+bookmem reading-metadata infer "data/books/.../Book.md"
+bookmem reading-metadata infer "data/books/.../Book.md" --write
+bookmem stats --by-difficulty
+```
+
+Reading metadata is stored under `reading:` in frontmatter and is used by
+reading-list generation. See `docs/READING_METADATA.md`.

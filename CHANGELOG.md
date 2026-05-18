@@ -41,6 +41,24 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.53.0] - 2026-05-18
+
+### Added
+- Added reading metadata inference.
+- Added `bookmem reading-metadata infer`.
+- Added `bookmem stats --by-difficulty`.
+- Added `bookmem/reading_metadata.py`.
+- Added `docs/READING_METADATA.md`.
+- Added reading metadata fields: difficulty, estimated pages, estimated reading hours, density and best-read-as.
+- Added reading metadata integration into reading-list generation.
+- Added reading difficulty/density/best-read-as collection statistics.
+
+### Behaviour
+- Inferred reading metadata is marked `review_status: machine_draft`.
+- Existing human-reviewed reading metadata is not overwritten by default.
+- Writing inferred reading metadata records an audit entry.
+
 ## [0.52.0] - 2026-05-18
 
 ### Added

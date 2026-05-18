@@ -54,6 +54,7 @@ from .reading_lists import generate_reading_list
 from .reading_metadata import infer_reading_metadata, result_as_dict as reading_metadata_result_as_dict
 from .passages import extract_passages, search_passages, favourite_passage, export_passages
 from .topic_compare import compare_topic, render_compare_markdown
+from .claims import extract_claims, search_claims, compare_claims, render_claims_compare_markdown
 from .citation_exports import (
     export_references,
     format_reference,
@@ -87,6 +88,7 @@ query_app = typer.Typer(help="Save and run recurring research queries")
 brief_app = typer.Typer(help="Generate research briefs from saved queries")
 reading_metadata_app = typer.Typer(help="Infer and manage book reading metadata")
 passages_app = typer.Typer(help="Extract, search, favourite and export passages")
+claims_app = typer.Typer(help="Extract, search and compare assertion claims")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -106,6 +108,7 @@ app.add_typer(query_app, name="query")
 app.add_typer(brief_app, name="brief")
 app.add_typer(reading_metadata_app, name="reading-metadata")
 app.add_typer(passages_app, name="passages")
+app.add_typer(claims_app, name="claims")
 console = Console()
 
 
@@ -1935,6 +1938,132 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@app.command("extract-claims")
+def extract_claims_command(
+    book: Path,
+    limit: int = typer.Option(40, "--limit", "-n", help="Maximum claims to extract."),
+    tag: list[str] | None = typer.Option(None, "--tag", help="Tag to apply. Can be used multiple times."),
+    no_write: bool = typer.Option(False, "--no-write", help="Preview extraction without writing data/claims/claims.yaml."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Extract assertion claims from a Markdown book."""
+    import json as json_lib
+
+    result = extract_claims(book, limit=limit, write=not no_write, tag=tag or [])
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    console.print(
+        Panel(
+            f"Book: {result['book']}\n"
+            f"Claims: {result['count']}\n"
+            f"Added: {result['added']}\n"
+            f"Wrote: {'yes' if result['wrote'] else 'no'}",
+            title="Claims extracted",
+            expand=False,
+        )
+    )
+    for claim in result["claims"][:limit]:
+        console.print(f"[bold]{claim['claim_id']}[/bold]")
+        console.print(f"{claim['stance']} / {claim['confidence']}: {claim['claim']}")
+        console.print(f"[dim]{claim.get('citation') or ''}[/dim]\n")
+
+
+@claims_app.command("search")
+def claims_search_command(
+    query: str,
+    stance: str | None = typer.Option(None, "--stance", help="Filter by supports, challenges, qualifies or neutral."),
+    limit: int = typer.Option(20, "--limit", "-n"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Search extracted claims."""
+    import json as json_lib
+
+    rows = search_claims(query, limit=limit, stance=stance)
+    if json_output:
+        console.print(json_lib.dumps(rows, indent=2, ensure_ascii=False, default=str))
+        return
+
+    table_out = Table(title=f"Claims search: {query}")
+    table_out.add_column("#", justify="right")
+    table_out.add_column("Stance")
+    table_out.add_column("Confidence")
+    table_out.add_column("Claim")
+    table_out.add_column("Source")
+    for idx, row in enumerate(rows, start=1):
+        table_out.add_row(
+            str(idx),
+            str(row.get("stance") or ""),
+            str(row.get("confidence") or ""),
+            str(row.get("claim") or "")[:180],
+            str(row.get("title") or ""),
+        )
+    console.print(table_out)
+
+
+@claims_app.command("compare")
+def claims_compare_command(
+    topic: str,
+    limit: int = typer.Option(20, "--limit", "-n"),
+    markdown: bool = typer.Option(False, "--markdown", help="Render Markdown output."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Optional output path."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Compare supporting/challenging/qualifying claims around a topic."""
+    import json as json_lib
+
+    result = compare_claims(topic, limit=limit)
+
+    if markdown:
+        text = render_claims_compare_markdown(result)
+        if output:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(text, encoding="utf-8")
+            console.print(f"[green]Wrote claims comparison:[/green] {output}")
+        else:
+            console.print(text)
+        return
+
+    if json_output or output:
+        text = json_lib.dumps(result, indent=2, ensure_ascii=False, default=str)
+        if output:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(text + "\n", encoding="utf-8")
+            console.print(f"[green]Wrote claims comparison:[/green] {output}")
+        else:
+            console.print(text)
+        return
+
+    console.print(
+        Panel(
+            f"Topic: {result['topic']}\n"
+            f"Supports: {len(result['supports'])}\n"
+            f"Challenges: {len(result['challenges'])}\n"
+            f"Qualifies: {len(result['qualifies'])}\n"
+            f"Neutral: {len(result['neutral'])}\n"
+            f"Review status: {result['review_status']}",
+            title="Claims comparison",
+            expand=False,
+        )
+    )
+
+    for label, key in (("Supporting claims", "supports"), ("Challenging claims", "challenges"), ("Qualifying claims", "qualifies")):
+        console.print(f"\n[bold]{label}[/bold]")
+        rows = result.get(key, [])
+        if not rows:
+            console.print("[dim]None found.[/dim]")
+            continue
+        for row in rows[:limit]:
+            console.print(f"- {row.get('claim')}")
+            console.print(f"  Source: {row.get('title') or 'Untitled'} — {row.get('author') or 'Unknown author'}")
+            if row.get("citation"):
+                console.print(f"  Citation: {row.get('citation')}")
+    console.print("\n[bold]Tensions[/bold]")
+    for tension in result.get("tensions", []):
+        console.print(f"- {tension}")
 
 
 @app.command("compare-topic")

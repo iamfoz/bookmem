@@ -44,6 +44,26 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.56.0] - 2026-05-18
+
+### Added
+- Added claims extraction.
+- Added `bookmem extract-claims`.
+- Added `bookmem claims search`.
+- Added `bookmem claims compare`.
+- Added `bookmem claims compare --markdown`.
+- Added `bookmem/claims.py`.
+- Added `data/claims/`.
+- Added `docs/CLAIMS.md`.
+
+### Behaviour
+- Claims are stored in `data/claims/claims.yaml`.
+- Claims include claim text, stance, confidence, source chunks, citation, tags and review status.
+- Claim comparison groups claims into supports, challenges, qualifies and neutral.
+- Claims are marked `review_status: machine_draft`.
+- Claim extraction and comparison write audit records.
+
 ## [0.55.0] - 2026-05-18
 
 ### Added

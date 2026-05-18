@@ -1120,3 +1120,18 @@ bookmem compare-topic "goals" --markdown --output exports/goals-comparison.md
 
 Comparisons use passages, summaries and chunk search, and are marked
 `review_status: machine_draft`. See `docs/TOPIC_COMPARISON.md`.
+
+
+## Claims
+
+Extract, search and compare assertion claims:
+
+```bash
+bookmem extract-claims "data/books/.../Book.md"
+bookmem claims search "goals"
+bookmem claims compare "compound interest"
+bookmem claims compare "goals" --markdown --output exports/goals-claims.md
+```
+
+Claims are stored in `data/claims/claims.yaml` and marked
+`review_status: machine_draft`. See `docs/CLAIMS.md`.

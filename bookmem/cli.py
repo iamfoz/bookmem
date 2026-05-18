@@ -43,6 +43,7 @@ from .web_ui import run_ui
 from .tui import run_tui
 from .setup_wizard import load_setup_presets, presets_as_dict, setup_steps_for_preset, setup_status, run_setup_preset
 from .migrations import migration_status, apply_migrations, create_migration
+from .clean_derived import clean_derived, clean_result_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1700,6 +1701,81 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("clean-derived")
+def clean_derived_command(
+    summaries: bool = typer.Option(False, "--summaries", help="Clean generated book/chapter summaries."),
+    concepts: bool = typer.Option(False, "--concepts", help="Clean generated concept files and concept index."),
+    graphs: bool = typer.Option(False, "--graphs", help="Clean generated graph files."),
+    index: bool = typer.Option(False, "--index", help="Clean generated LanceDB index."),
+    notes: bool = typer.Option(False, "--notes", help="Clean generated Obsidian-friendly notes."),
+    exports: bool = typer.Option(False, "--exports", help="Clean generated exports."),
+    review: bool = typer.Option(False, "--review", help="Also clean review queues. Never included by --all."),
+    all_targets: bool = typer.Option(False, "--all", help="Clean all generated artefacts except review queues unless --review is also supplied."),
+    dry_run: bool = typer.Option(True, "--dry-run/--execute", help="Preview by default. Use --execute to delete selected derived artefacts."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Safely clean generated/derived BookMem artefacts."""
+    import json as json_lib
+
+    result = clean_derived(
+        summaries=summaries,
+        concepts=concepts,
+        graphs=graphs,
+        index=index,
+        notes=notes,
+        exports=exports,
+        review=review,
+        all_targets=all_targets,
+        dry_run=dry_run,
+    )
+    payload = clean_result_as_dict(result)
+
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    mode = "DRY RUN" if result.dry_run else "EXECUTE"
+    console.print(
+        Panel(
+            f"Mode: {mode}\n"
+            f"Candidates: {len(result.candidates)}\n"
+            f"Deleted: {len(result.deleted)}\n"
+            f"Skipped: {len(result.skipped)}",
+            title="Clean derived artefacts",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title="Derived clean candidates")
+    table_out.add_column("Target")
+    table_out.add_column("Path")
+    table_out.add_column("Exists")
+    table_out.add_column("Protected")
+    table_out.add_column("Type")
+    table_out.add_column("Size")
+
+    for candidate in result.candidates:
+        table_out.add_row(
+            candidate.target,
+            candidate.path,
+            "yes" if candidate.exists else "no",
+            "yes" if candidate.protected else "no",
+            candidate.type,
+            str(candidate.size_bytes),
+        )
+    console.print(table_out)
+
+    if result.warnings:
+        console.print("\n[yellow]Warnings[/yellow]")
+        for warning in result.warnings:
+            console.print(f"- {warning}")
+
+    if result.dry_run:
+        console.print("\n[yellow]Dry run only. Re-run with --execute to delete selected derived artefacts.[/yellow]")
+    elif result.deleted:
+        console.print("\n[green]Deleted derived artefacts.[/green]")
 
 
 @migrations_app.command("status")

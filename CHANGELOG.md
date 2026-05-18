@@ -32,6 +32,29 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.45.0] - 2026-05-18
+
+### Added
+- Added generated artefact cleaner.
+- Added `bookmem clean-derived`.
+- Added `bookmem clean-derived --summaries`.
+- Added `bookmem clean-derived --concepts`.
+- Added `bookmem clean-derived --graphs`.
+- Added `bookmem clean-derived --index`.
+- Added `bookmem clean-derived --notes`.
+- Added `bookmem clean-derived --exports`.
+- Added `bookmem clean-derived --review`.
+- Added `bookmem clean-derived --all --dry-run`.
+- Added `bookmem/clean_derived.py`.
+- Added `docs/CLEAN_DERIVED.md`.
+
+### Behaviour
+- Dry-run is the default; deletion requires `--execute`.
+- `data/books/`, `data/raw-books/` and `config/` are protected and never deleted by the cleaner.
+- Review queues are not included in `--all`; they require explicit `--review`.
+- Derived directories are recreated with `.gitkeep` placeholders where useful.
+
 ## [0.44.0] - 2026-05-18
 
 ### Added

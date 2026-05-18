@@ -947,3 +947,20 @@ bookmem migrations create "add concept review status"
 Applied migrations are tracked in `data/manifests/migrations.json`.
 Migrations are deliberately separate from `doctor --fix`. See
 `docs/MIGRATIONS.md`.
+
+
+## Generated artefact cleaner
+
+Safely clean generated/derived state before rebuilding:
+
+```bash
+bookmem clean-derived --all --dry-run
+bookmem clean-derived --summaries --execute
+bookmem clean-derived --concepts --execute
+bookmem clean-derived --graphs --execute
+bookmem clean-derived --index --execute
+```
+
+The cleaner never deletes `data/books/`, `data/raw-books/` or `config/`.
+Review queues are cleaned only with explicit `--review`. See
+`docs/CLEAN_DERIVED.md`.

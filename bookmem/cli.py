@@ -49,6 +49,7 @@ from .audit import tail_audit, search_audit, export_audit, append_audit_record
 from .restore_points import create_restore_point, list_restore_points, show_restore_point, rollback_restore_point, restore_point_from_audit_id, restore_point_as_dict
 from .permissions import check_permission, list_agent_permissions, list_agents, validate_permissions, decision_as_dict
 from .workspaces import list_workspaces_as_dict, workspace_search, workspace_answer_pack, validate_workspaces
+from .saved_queries import save_query, list_saved_queries, run_saved_query, generate_brief
 from .citation_exports import (
     export_references,
     format_reference,
@@ -78,6 +79,8 @@ audit_app = typer.Typer(help="Inspect and export the durable audit log")
 restore_points_app = typer.Typer(help="Create, inspect and roll back restore points")
 permissions_app = typer.Typer(help="Check agent permissions and safety policy")
 workspace_app = typer.Typer(help="Use named workspace/project corpus views")
+query_app = typer.Typer(help="Save and run recurring research queries")
+brief_app = typer.Typer(help="Generate research briefs from saved queries")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -93,6 +96,8 @@ app.add_typer(audit_app, name="audit")
 app.add_typer(restore_points_app, name="restore-points")
 app.add_typer(permissions_app, name="permissions")
 app.add_typer(workspace_app, name="workspace")
+app.add_typer(query_app, name="query")
+app.add_typer(brief_app, name="brief")
 console = Console()
 
 
@@ -1875,6 +1880,157 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("command") or "")[:80],
         )
     console.print(table_out)
+
+
+@query_app.command("save")
+def query_save_command(
+    query: str,
+    name: str | None = typer.Option(None, "--name", "-n", help="Saved query name."),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Optional workspace scope."),
+    description: str | None = typer.Option(None, "--description", "-d"),
+    tag: list[str] | None = typer.Option(None, "--tag", help="Tag. Can be used multiple times."),
+    limit: int = typer.Option(8, "--limit"),
+    context: int = typer.Option(1, "--context"),
+    overwrite: bool = typer.Option(False, "--overwrite"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Save a reusable research query."""
+    import json as json_lib
+
+    result = save_query(
+        query=query,
+        name=name,
+        workspace=workspace,
+        description=description,
+        tags=tag or [],
+        limit=limit,
+        context=context,
+        overwrite=overwrite,
+    )
+    payload = result.__dict__
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+    console.print(
+        Panel(
+            f"Name: {result.name}\n"
+            f"Query: {result.query}\n"
+            f"Workspace: {result.workspace or '(none)'}\n"
+            f"Tags: {', '.join(result.tags)}",
+            title="Saved query",
+            expand=False,
+        )
+    )
+
+
+@query_app.command("list")
+def query_list_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List saved queries."""
+    import json as json_lib
+
+    queries = list_saved_queries()
+    if json_output:
+        console.print(json_lib.dumps(queries, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Saved queries")
+    table_out.add_column("Name")
+    table_out.add_column("Query")
+    table_out.add_column("Workspace")
+    table_out.add_column("Last run")
+    table_out.add_column("Path")
+    for item in queries:
+        table_out.add_row(
+            str(item.get("name") or ""),
+            str(item.get("query") or ""),
+            str(item.get("workspace") or ""),
+            str(item.get("last_run_at") or ""),
+            str(item.get("path") or ""),
+        )
+    console.print(table_out)
+
+
+@query_app.command("run")
+def query_run_command(
+    name: str,
+    update_last_run: bool = typer.Option(False, "--update-last-run", help="Update the saved query last_run_at timestamp."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Run a saved query and return its answer pack."""
+    import json as json_lib
+
+    result = run_saved_query(name, update_last_run=update_last_run)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    sq = result["saved_query"]
+    pack = result["answer_pack"]
+    console.print(
+        Panel(
+            f"Name: {sq['name']}\n"
+            f"Query: {sq['query']}\n"
+            f"Workspace: {sq.get('workspace') or '(none)'}\n"
+            f"Relevant books: {len(pack.get('relevant_books', []))}\n"
+            f"Top passages: {len(pack.get('top_passages', []))}",
+            title="Saved query run",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title="Relevant books")
+    table_out.add_column("#", justify="right")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("Class")
+    for index, book in enumerate(pack.get("relevant_books", []), start=1):
+        table_out.add_row(
+            str(index),
+            str(book.get("title") or ""),
+            str(book.get("author") or ""),
+            str(book.get("primary_class") or ""),
+        )
+    console.print(table_out)
+
+
+@brief_app.command("generate")
+def brief_generate_command(
+    name: str,
+    no_update_last_run: bool = typer.Option(False, "--no-update-last-run", help="Do not update saved query last_run_at."),
+    no_markdown: bool = typer.Option(False, "--no-markdown", help="Only generate JSON brief."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Generate a research brief from a saved query."""
+    import json as json_lib
+
+    result = generate_brief(
+        name,
+        update_last_run=not no_update_last_run,
+        markdown=not no_markdown,
+    )
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    brief = result["brief"]
+    sq = brief["saved_query"]
+    console.print(
+        Panel(
+            f"Name: {sq['name']}\n"
+            f"Query: {sq['query']}\n"
+            f"Workspace: {sq.get('workspace') or '(none)'}\n"
+            f"JSON: {result['json_path']}\n"
+            f"Markdown: {result.get('markdown_path') or '(not generated)'}\n"
+            f"Best books: {len(brief.get('best_books', []))}\n"
+            f"Top passages: {len(brief.get('top_passages', []))}\n"
+            f"Concepts: {len(brief.get('related_concepts', []))}\n"
+            f"Citations: {len(brief.get('citations', []))}",
+            title="Research brief generated",
+            expand=False,
+        )
+    )
 
 
 @workspace_app.command("list")

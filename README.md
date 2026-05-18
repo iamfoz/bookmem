@@ -1046,3 +1046,17 @@ bookmem workspace answer-pack finance "risk and return"
 
 Workspaces are configured in `config/workspaces.yaml` using BMDC
 classes, topics and aliases. See `docs/WORKSPACES.md`.
+
+
+## Saved queries and research briefs
+
+Save recurring research questions and generate evidence briefs:
+
+```bash
+bookmem query save "systems versus goals" --name systems-goals --workspace productivity
+bookmem query run systems-goals
+bookmem brief generate systems-goals
+```
+
+Saved queries live in `data/queries/`; generated briefs live in
+`data/briefs/`. See `docs/SAVED_QUERIES_AND_BRIEFS.md`.

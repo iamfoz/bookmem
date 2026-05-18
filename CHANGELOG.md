@@ -39,6 +39,28 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.51.0] - 2026-05-18
+
+### Added
+- Added saved queries.
+- Added recurring research briefs.
+- Added `data/queries/`.
+- Added `data/briefs/`.
+- Added example saved queries `systems-thinking.yaml` and `personal-finance.yaml`.
+- Added `bookmem query save`.
+- Added `bookmem query list`.
+- Added `bookmem query run`.
+- Added `bookmem brief generate`.
+- Added `bookmem/saved_queries.py`.
+- Added `docs/SAVED_QUERIES_AND_BRIEFS.md`.
+
+### Behaviour
+- Saved queries can optionally target a workspace.
+- Briefs include best books, top passages, related concepts, topic maps, changed books/summaries since last run, suggested synthesis and citations.
+- Briefs are written as JSON and Markdown by default.
+- Saving queries and generating briefs write audit records.
+
 ## [0.50.0] - 2026-05-18
 
 ### Added

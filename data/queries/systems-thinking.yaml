@@ -1,0 +1,16 @@
+schema_version: 1
+name: systems-thinking
+query: systems versus goals
+workspace: productivity
+description: Systems thinking, systems versus goals and repeatable behaviour.
+tags:
+  - systems
+  - goals
+  - productivity
+limit: 8
+context: 1
+include_concepts: true
+include_topic_map: true
+include_changed_since_last_run: true
+created_at:
+last_run_at:

@@ -111,6 +111,7 @@ def prepare_book(
     delete_source: bool = False,
     timeout: int = 20,
     changed_only: bool = False,
+    cleaning_profile: str = "epub_pandoc",
 ) -> PrepareResult:
     """Prepare one Markdown book for the canonical BookMem library.
 
@@ -148,7 +149,7 @@ def prepare_book(
         staging_dir = output_root / ".staging"
         staging_dir.mkdir(parents=True, exist_ok=True)
         staging_path = unique_path(staging_dir / source_path.name, overwrite=False)
-        clean_markdown_file(source_path, output_path=staging_path)
+        clean_markdown_file(source_path, output_path=staging_path, profile=cleaning_profile)
         working_path = staging_path
         cleaned = True
     else:
@@ -212,7 +213,7 @@ def prepare_book(
             canonical_path=final_path,
             book_id=book_id,
             classification_source=classification_source,
-            cleaner_version="0.1.0" if cleaned else None,
+            cleaner_version=f"0.2.0:{cleaning_profile}" if cleaned else None,
         )
     )
 

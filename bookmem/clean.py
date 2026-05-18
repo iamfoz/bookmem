@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
+from typing import Any
 import re
+
+import yaml
+
+
+CLEANER_VERSION = "0.2.0"
 
 
 @dataclass
@@ -19,6 +25,7 @@ class CleanReport:
     removed_span_attributes: int
     normalised_headings: int
     dropped_front_matter: bool
+    profile: str = "epub_pandoc"
 
 
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -34,16 +41,121 @@ SVG_BLOCK_RE = re.compile(r":::.*?\n\s*<svg\b.*?</svg>\s*\n:::\s*", re.DOTALL | 
 HTML_BLOCK_RE = re.compile(r"<svg\b.*?</svg>", re.DOTALL | re.IGNORECASE)
 FOOTNOTE_LINK_RE = re.compile(r"\[+([*†‡§¶#0-9,\- ]+)\]+\([^\)]*footnote[^\)]*\)(?:\{[^}]*\})?")
 MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^\)]*)\)")
+BLOCKQUOTE_RE = re.compile(r"^\s*>.*$", re.MULTILINE)
 MULTI_BLANK_RE = re.compile(r"\n{3,}")
 
-# Chapter headings commonly produced by EPUB-to-Markdown conversion.
 CHAPTER_NUM_RE = re.compile(r"^Chapter\s+(\d+|[IVXLCDM]+)\s*$", re.IGNORECASE)
-
-# Common front-matter headings that are worth keeping as content.
 CONTENT_START_RE = re.compile(
     r"^(?:Preface(?:\s+to\s+the\s+.+)?|Introduction|Prologue|Chapter\s+\d+|Chapter\s+[IVXLCDM]+)\s*$",
     re.IGNORECASE,
 )
+
+
+DEFAULT_PROFILE_NAME = "epub_pandoc"
+
+
+DEFAULT_PROFILE: dict[str, Any] = {
+    "drop_pre_content_matter": True,
+    "remove_images": True,
+    "remove_html": True,
+    "remove_raw_html_blocks": True,
+    "remove_empty_anchors": True,
+    "remove_div_fences": True,
+    "strip_spans": True,
+    "strip_pandoc_attributes": True,
+    "remove_footnote_links": True,
+    "strip_link_targets": True,
+    "remove_horizontal_rules": True,
+    "remove_idgen_lines": True,
+    "normalise_inline_noise": True,
+    "join_wrapped_lines": True,
+    "normalise_headings": True,
+    "remove_blockquotes": False,
+    "preserve_lists": True,
+}
+
+
+def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in (overlay or {}).items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def load_cleaning_profiles() -> dict[str, dict[str, Any]]:
+    """Load built-in and user-defined cleaning profiles from config YAML."""
+    profiles: dict[str, dict[str, Any]] = {}
+
+    base_path = Path("config/cleaning_profiles.yaml")
+    if base_path.exists():
+        loaded = yaml.safe_load(base_path.read_text(encoding="utf-8")) or {}
+        profiles.update(loaded.get("cleaning_profiles", {}))
+
+    profiles_dir = Path("config/cleaning_profiles.d")
+    if profiles_dir.exists():
+        for path in sorted(profiles_dir.glob("*.y*ml")):
+            loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            profiles.update(loaded.get("cleaning_profiles", {}))
+
+    if DEFAULT_PROFILE_NAME not in profiles:
+        profiles[DEFAULT_PROFILE_NAME] = dict(DEFAULT_PROFILE)
+
+    return profiles
+
+
+def resolve_cleaning_profile(profile: str | dict[str, Any] | None = None) -> tuple[str, dict[str, Any]]:
+    profiles = load_cleaning_profiles()
+
+    if profile is None:
+        name = DEFAULT_PROFILE_NAME
+        raw = profiles.get(name, {})
+    elif isinstance(profile, dict):
+        name = str(profile.get("name") or "custom")
+        raw = profile
+    else:
+        name = profile
+        if name not in profiles:
+            raise KeyError(f"Unknown cleaning profile: {name}")
+        raw = profiles[name]
+
+    # Support inheritance.
+    parent_name = raw.get("extends")
+    if parent_name:
+        if parent_name not in profiles:
+            raise KeyError(f"Cleaning profile {name} extends unknown profile {parent_name}")
+        parent = resolve_cleaning_profile(parent_name)[1]
+        merged = _deep_merge(parent, raw)
+    else:
+        merged = _deep_merge(DEFAULT_PROFILE, raw)
+
+    merged["name"] = name
+    return name, merged
+
+
+def validate_cleaning_profiles() -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    profiles = load_cleaning_profiles()
+
+    bool_keys = set(DEFAULT_PROFILE.keys())
+
+    for name, profile in sorted(profiles.items()):
+        if not isinstance(profile, dict):
+            issues.append({"profile": name, "issue": "invalid_profile", "message": "Profile must be a mapping."})
+            continue
+        try:
+            _resolved_name, resolved = resolve_cleaning_profile(name)
+        except Exception as exc:
+            issues.append({"profile": name, "issue": "resolve_failed", "message": str(exc)})
+            continue
+
+        for key in bool_keys:
+            if key in resolved and not isinstance(resolved[key], bool):
+                issues.append({"profile": name, "issue": "invalid_value", "message": f"{key} must be true or false."})
+
+    return issues
 
 
 def _strip_yaml_frontmatter(text: str) -> tuple[str | None, str]:
@@ -60,7 +172,6 @@ def _restore_yaml_frontmatter(frontmatter: str | None, body: str) -> str:
 
 
 def _drop_pre_content_matter(text: str) -> tuple[str, bool]:
-    """Drop cover/copyright/catalogue/promotional material before real reading content."""
     lines = text.splitlines()
     for idx, line in enumerate(lines):
         candidate = line.strip()
@@ -89,7 +200,7 @@ def _remove_raw_blocks(text: str) -> tuple[str, int]:
     return text, n1 + n2
 
 
-def _remove_visual_noise(text: str) -> tuple[str, dict[str, int]]:
+def _remove_visual_noise(text: str, profile: dict[str, Any]) -> tuple[str, dict[str, int]]:
     stats = {
         "removed_raw_html_blocks": 0,
         "removed_images": 0,
@@ -98,44 +209,59 @@ def _remove_visual_noise(text: str) -> tuple[str, dict[str, int]]:
         "removed_span_attributes": 0,
     }
 
-    text, stats["removed_raw_html_blocks"] = _remove_raw_blocks(text)
-    text, stats["removed_images"] = IMAGE_RE.subn("", text)
-    text, stats["removed_anchors"] = EMPTY_ANCHOR_RE.subn("", text)
-    text, stats["removed_div_fences"] = DIV_FENCE_LINE_RE.subn("", text)
-    text, n = _normalise_pandoc_spans(text)
-    stats["removed_span_attributes"] = n
+    if profile.get("remove_raw_html_blocks", True):
+        text, stats["removed_raw_html_blocks"] = _remove_raw_blocks(text)
 
-    # Footnote backlinks generated by EPUB conversion are retrieval noise.
-    text = FOOTNOTE_LINK_RE.sub(lambda m: m.group(1).strip(), text)
+    if profile.get("remove_images", True):
+        text, stats["removed_images"] = IMAGE_RE.subn("", text)
 
-    # Keep ordinary link text but remove link targets. Book content usually matters more than EPUB hrefs.
-    text = MARKDOWN_LINK_RE.sub(lambda m: m.group(1), text)
+    if profile.get("remove_empty_anchors", True):
+        text, stats["removed_anchors"] = EMPTY_ANCHOR_RE.subn("", text)
 
-    text = RAW_ATTR_RE.sub("", text)
-    text = HTML_TAG_RE.sub("", text)
-    text = HR_RE.sub("", text)
-    text = IDGEN_LINE_RE.sub("", text)
+    if profile.get("remove_div_fences", True):
+        text, stats["removed_div_fences"] = DIV_FENCE_LINE_RE.subn("", text)
+
+    if profile.get("strip_spans", True):
+        text, n = _normalise_pandoc_spans(text)
+        stats["removed_span_attributes"] += n
+
+    if profile.get("remove_footnote_links", True):
+        text = FOOTNOTE_LINK_RE.sub(lambda m: m.group(1).strip(), text)
+
+    if profile.get("strip_link_targets", True):
+        text = MARKDOWN_LINK_RE.sub(lambda m: m.group(1), text)
+
+    if profile.get("strip_pandoc_attributes", True):
+        text = RAW_ATTR_RE.sub("", text)
+        text = re.sub(r"\{\.[^}]+\}", "", text)
+        text = re.sub(r"\{#[^}]+\}", "", text)
+
+    if profile.get("remove_html", True):
+        text = HTML_TAG_RE.sub("", text)
+
+    if profile.get("remove_horizontal_rules", True):
+        text = HR_RE.sub("", text)
+
+    if profile.get("remove_idgen_lines", True):
+        text = IDGEN_LINE_RE.sub("", text)
+
+    if profile.get("remove_blockquotes", False):
+        text = BLOCKQUOTE_RE.sub("", text)
+
     return text, stats
 
 
 def _strip_inline_markdown_noise(text: str) -> str:
-    # Remove common EPUB/Pandoc escaped clutter while preserving useful punctuation.
     text = text.replace("\u00a0", " ")
     text = text.replace("\\|", "|")
     text = text.replace("\\$", "$")
     text = text.replace("\\@", "@")
     text = text.replace("\\--", "--")
     text = text.replace("---", "—")
-    text = re.sub(r"\{\.[^}]+\}", "", text)
-    text = re.sub(r"\{#[^}]+\}", "", text)
     return text
 
 
-def _join_wrapped_lines(text: str) -> str:
-    """Convert hard-wrapped ebook paragraphs into normal paragraphs.
-
-    Blank lines and headings/lists remain as structural boundaries.
-    """
+def _join_wrapped_lines(text: str, profile: dict[str, Any]) -> str:
     out: list[str] = []
     para: list[str] = []
 
@@ -151,7 +277,7 @@ def _join_wrapped_lines(text: str) -> str:
             flush()
             continue
 
-        if _is_structural_line(line):
+        if _is_structural_line(line, profile):
             flush()
             out.append(line)
             continue
@@ -162,12 +288,16 @@ def _join_wrapped_lines(text: str) -> str:
     return "\n\n".join(out)
 
 
-def _is_structural_line(line: str) -> bool:
+def _is_structural_line(line: str, profile: dict[str, Any] | None = None) -> bool:
+    profile = profile or DEFAULT_PROFILE
     if line.startswith("#"):
         return True
-    if re.match(r"^[-*+]\s+", line):
-        return True
-    if re.match(r"^\d+[.)]\s+", line):
+    if profile.get("preserve_lists", True):
+        if re.match(r"^[-*+]\s+", line):
+            return True
+        if re.match(r"^\d+[.)]\s+", line):
+            return True
+    if not profile.get("remove_blockquotes", False) and line.startswith(">"):
         return True
     if CHAPTER_NUM_RE.match(line):
         return True
@@ -182,14 +312,11 @@ def _join_paragraph_lines(lines: list[str]) -> str:
         if not text:
             text = line
             continue
-        # EPUB conversions usually hard-wrap ordinary prose. Use spaces between
-        # lines; most true mid-word splits have already been repaired when inline
-        # span attributes were removed.
         text += " " + line
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _normalise_headings(text: str) -> tuple[str, int]:
+def _normalise_headings(text: str, profile: dict[str, Any]) -> tuple[str, int]:
     lines = text.splitlines()
     out: list[str] = []
     changed = 0
@@ -200,7 +327,7 @@ def _normalise_headings(text: str) -> tuple[str, int]:
 
         chapter_match = CHAPTER_NUM_RE.match(line)
         if chapter_match:
-            if next_line and not _is_structural_line(next_line):
+            if next_line and not _is_structural_line(next_line, profile):
                 out.append(f"## Chapter {chapter_match.group(1)}: {next_line}")
                 changed += 1
                 i += 2
@@ -236,21 +363,36 @@ def _final_tidy(text: str) -> str:
     return text.strip() + "\n"
 
 
-def clean_markdown_text(text: str, drop_front_matter: bool = True) -> tuple[str, dict[str, int | bool]]:
+def clean_markdown_text(
+    text: str,
+    drop_front_matter: bool = True,
+    profile: str | dict[str, Any] | None = None,
+) -> tuple[str, dict[str, int | bool | str]]:
     original_len = len(text)
+    profile_name, resolved_profile = resolve_cleaning_profile(profile)
+
+    # CLI compatibility: explicit drop_front_matter=False always wins.
+    if not drop_front_matter:
+        resolved_profile["drop_pre_content_matter"] = False
+
     frontmatter, body = _strip_yaml_frontmatter(text)
 
-    body, raw_block_count = _remove_raw_blocks(body)
-    body, stats = _remove_visual_noise(body)
-    stats["removed_raw_html_blocks"] += raw_block_count
-    body = _strip_inline_markdown_noise(body)
+    body, stats = _remove_visual_noise(body, resolved_profile)
+
+    if resolved_profile.get("normalise_inline_noise", True):
+        body = _strip_inline_markdown_noise(body)
 
     dropped = False
-    if drop_front_matter:
+    if resolved_profile.get("drop_pre_content_matter", True):
         body, dropped = _drop_pre_content_matter(body)
 
-    body = _join_wrapped_lines(body)
-    body, heading_count = _normalise_headings(body)
+    if resolved_profile.get("join_wrapped_lines", True):
+        body = _join_wrapped_lines(body, resolved_profile)
+
+    heading_count = 0
+    if resolved_profile.get("normalise_headings", True):
+        body, heading_count = _normalise_headings(body, resolved_profile)
+
     body = _final_tidy(body)
     cleaned = _restore_yaml_frontmatter(frontmatter, body)
 
@@ -259,6 +401,7 @@ def clean_markdown_text(text: str, drop_front_matter: bool = True) -> tuple[str,
     stats["original_chars"] = original_len
     stats["cleaned_chars"] = len(cleaned)
     stats["removed_chars"] = max(0, original_len - len(cleaned))
+    stats["profile"] = profile_name
     return cleaned, stats
 
 
@@ -267,12 +410,17 @@ def clean_markdown_file(
     output_path: Path | None = None,
     in_place: bool = False,
     drop_front_matter: bool = True,
+    profile: str | dict[str, Any] | None = None,
 ) -> CleanReport:
     if in_place and output_path is not None:
         raise ValueError("Use either output_path or in_place, not both")
 
     original = source_path.read_text(encoding="utf-8", errors="replace")
-    cleaned, stats = clean_markdown_text(original, drop_front_matter=drop_front_matter)
+    cleaned, stats = clean_markdown_text(
+        original,
+        drop_front_matter=drop_front_matter,
+        profile=profile,
+    )
 
     destination: Path | None = None
     if in_place:
@@ -297,6 +445,7 @@ def clean_markdown_file(
         removed_span_attributes=int(stats["removed_span_attributes"]),
         normalised_headings=int(stats["normalised_headings"]),
         dropped_front_matter=bool(stats["dropped_front_matter"]),
+        profile=str(stats.get("profile") or DEFAULT_PROFILE_NAME),
     )
 
 

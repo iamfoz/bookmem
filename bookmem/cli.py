@@ -23,6 +23,7 @@ from .topic_maps import map_topic as build_topic_map, write_topic_map
 from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
 from .notes import generate_note, generate_notes_for_directory, load_note_templates
 from .clean_check import assess_cleanliness, summarise_clean_check
+from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleaning_profiles, report_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -646,6 +647,7 @@ def prepare_book_command(
     delete_source: bool = typer.Option(False, "--delete-source", help="Delete the raw source after successful preparation."),
     timeout: int = typer.Option(20, "--timeout"),
     changed_only: bool = typer.Option(False, "--changed-only", help="Skip if the raw source has already been prepared unchanged."),
+    profile: str = typer.Option("epub_pandoc", "--profile", help="Cleaning profile to use when cleaning."),
 ):
     """Clean, frontmatter, classify, rename and place one Markdown book."""
     result = prepare_one_book(
@@ -658,6 +660,7 @@ def prepare_book_command(
         delete_source=delete_source,
         timeout=timeout,
         changed_only=changed_only,
+        cleaning_profile=profile,
     )
 
     if result.skipped:
@@ -691,6 +694,7 @@ def prepare_books_command(
     delete_source: bool = typer.Option(False, "--delete-source"),
     timeout: int = typer.Option(20, "--timeout"),
     changed_only: bool = typer.Option(False, "--changed-only", help="Skip raw sources already prepared unchanged."),
+    profile: str = typer.Option("epub_pandoc", "--profile", help="Cleaning profile to use when cleaning."),
 ):
     """Bulk prepare Markdown books into the canonical class folder structure."""
     files = sorted(source_dir.glob("**/*.md"))
@@ -716,6 +720,7 @@ def prepare_books_command(
                 delete_source=delete_source,
                 timeout=timeout,
                 changed_only=changed_only,
+                cleaning_profile=profile,
             )
             if result.skipped:
                 class_text = "SKIP"
@@ -1355,6 +1360,119 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@app.command("clean")
+def clean_command(
+    source_path: Path,
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output path for cleaned Markdown."),
+    in_place: bool = typer.Option(False, "--in-place", help="Overwrite the source file."),
+    profile: str = typer.Option("epub_pandoc", "--profile", help="Cleaning profile to use."),
+    keep_pre_content: bool = typer.Option(False, "--keep-pre-content", help="Do not drop cover/copyright/catalogue material before the first real content heading."),
+):
+    """Clean one Markdown book using a named cleaning profile."""
+    report = clean_markdown_file(
+        source_path=source_path,
+        output_path=output,
+        in_place=in_place,
+        drop_front_matter=not keep_pre_content,
+        profile=profile,
+    )
+
+    console.print(
+        Panel(
+            f"Profile: {report.profile}\n"
+            f"Source: {report.source_path}\n"
+            f"Output: {report.output_path or '(preview only)'}\n\n"
+            f"Original chars: {report.original_chars}\n"
+            f"Cleaned chars: {report.cleaned_chars}\n"
+            f"Removed chars: {report.removed_chars}\n\n"
+            f"Images removed: {report.removed_images}\n"
+            f"Anchors removed: {report.removed_anchors}\n"
+            f"Div fences removed: {report.removed_div_fences}\n"
+            f"Raw HTML blocks removed: {report.removed_raw_html_blocks}\n"
+            f"Span attributes removed: {report.removed_span_attributes}\n"
+            f"Headings normalised: {report.normalised_headings}\n"
+            f"Dropped pre-content matter: {'yes' if report.dropped_front_matter else 'no'}",
+            title="Clean report",
+            expand=False,
+        )
+    )
+
+
+@app.command("clean-books")
+def clean_books_command(
+    source_dir: Path,
+    output_dir: Path,
+    profile: str = typer.Option("epub_pandoc", "--profile", help="Cleaning profile to use."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing files in the output directory."),
+    keep_pre_content: bool = typer.Option(False, "--keep-pre-content", help="Do not drop cover/copyright/catalogue material before the first real content heading."),
+):
+    """Clean all Markdown books from one directory into another."""
+    files = sorted(source_dir.glob("**/*.md"))
+    if not files:
+        console.print(f"[yellow]No Markdown files found under {source_dir}[/yellow]")
+        return
+
+    table_out = Table(title="Cleaned books")
+    table_out.add_column("Source")
+    table_out.add_column("Output")
+    table_out.add_column("Profile")
+    table_out.add_column("Removed chars", justify="right")
+
+    for source in files:
+        rel = source.relative_to(source_dir)
+        target = output_dir / rel
+        if target.exists() and not overwrite:
+            table_out.add_row(str(rel), "SKIP exists", profile, "")
+            continue
+
+        report = clean_markdown_file(
+            source_path=source,
+            output_path=target,
+            profile=profile,
+            drop_front_matter=not keep_pre_content,
+        )
+        table_out.add_row(str(rel), str(target), report.profile, str(report.removed_chars))
+
+    console.print(table_out)
+
+
+@app.command("cleaning-profiles")
+def cleaning_profiles_command():
+    """List configured cleaning profiles."""
+    profiles = load_cleaning_profiles()
+    table_out = Table(title="Cleaning profiles")
+    table_out.add_column("Profile")
+    table_out.add_column("Label")
+    table_out.add_column("Description")
+
+    for name, profile_def in sorted(profiles.items()):
+        table_out.add_row(
+            str(name),
+            str(profile_def.get("label", "")) if isinstance(profile_def, dict) else "",
+            str(profile_def.get("description", "")) if isinstance(profile_def, dict) else "",
+        )
+
+    console.print(table_out)
+
+
+@app.command("validate-cleaning-profiles")
+def validate_cleaning_profiles_command():
+    """Validate configured cleaning profile YAML."""
+    issues = validate_cleaning_profiles()
+    if not issues:
+        console.print("[green]Cleaning profiles validated successfully[/green]")
+        return
+
+    table_out = Table(title="Cleaning profile validation issues")
+    table_out.add_column("Profile")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(str(issue.get("profile", "")), str(issue.get("issue", "")), str(issue.get("message", "")))
+    console.print(table_out)
+    raise typer.Exit(code=1)
 
 
 @app.command("clean-check")

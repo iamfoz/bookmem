@@ -9,6 +9,25 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.22.0] - 2026-05-18
+
+### Added
+- Added configurable Markdown cleaning profiles.
+- Added `config/cleaning_profiles.yaml`.
+- Added `config/cleaning_profiles.d/` for local profile extensions.
+- Added `bookmem cleaning-profiles`.
+- Added `bookmem validate-cleaning-profiles`.
+- Added `--profile` support to `bookmem clean`.
+- Added `--profile` support to `bookmem clean-books`.
+- Added `--profile` support to `bookmem prepare-book`.
+- Added `--profile` support to `bookmem prepare-books`.
+- Added `docs/CLEANING_PROFILES.md`.
+
+### Changed
+- Updated Markdown cleaner to use profile-controlled cleanup options.
+- Updated cleaner version to `0.2.0`.
+
 ## [0.21.0] - 2026-05-18
 
 ### Added

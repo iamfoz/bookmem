@@ -1,0 +1,65 @@
+cleaning_profiles:
+  epub_pandoc:
+    label: EPUB/Pandoc conversion cleanup
+    description: Aggressive cleanup for EPUB-to-Markdown/Pandoc exports with spans, anchors, images and raw HTML.
+    drop_pre_content_matter: true
+    remove_images: true
+    remove_html: true
+    remove_raw_html_blocks: true
+    remove_empty_anchors: true
+    remove_div_fences: true
+    strip_spans: true
+    strip_pandoc_attributes: true
+    remove_footnote_links: true
+    strip_link_targets: true
+    remove_horizontal_rules: true
+    remove_idgen_lines: true
+    normalise_inline_noise: true
+    join_wrapped_lines: true
+    normalise_headings: true
+    remove_blockquotes: false
+    preserve_lists: true
+
+  light_markdown:
+    label: Light Markdown cleanup
+    description: Light cleanup for mostly clean Markdown where images may still be useful.
+    extends: epub_pandoc
+    drop_pre_content_matter: false
+    remove_images: false
+    remove_raw_html_blocks: false
+    remove_empty_anchors: true
+    remove_div_fences: true
+    strip_spans: true
+    strip_pandoc_attributes: true
+    remove_html: true
+    join_wrapped_lines: false
+    normalise_headings: false
+
+  preserve_quotes:
+    label: Preserve quotes and lists
+    description: Cleanup profile for books where blockquotes and list structure should be preserved carefully.
+    extends: epub_pandoc
+    remove_blockquotes: false
+    preserve_lists: true
+    strip_link_targets: false
+
+  minimal:
+    label: Minimal cleanup
+    description: Minimal safe cleanup for hand-authored Markdown.
+    drop_pre_content_matter: false
+    remove_images: false
+    remove_html: false
+    remove_raw_html_blocks: false
+    remove_empty_anchors: true
+    remove_div_fences: false
+    strip_spans: true
+    strip_pandoc_attributes: true
+    remove_footnote_links: false
+    strip_link_targets: false
+    remove_horizontal_rules: false
+    remove_idgen_lines: false
+    normalise_inline_noise: true
+    join_wrapped_lines: false
+    normalise_headings: false
+    remove_blockquotes: false
+    preserve_lists: true

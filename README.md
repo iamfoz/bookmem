@@ -558,3 +558,18 @@ bookmem clean-check "data/books/158.../Book.md" --json
 This reports remaining images, HTML, Pandoc spans, empty anchors, heading
 quality, paragraph quality, ISBNs and frontmatter state. See
 `docs/CLEAN_CHECK.md`.
+
+
+## Cleaning profiles
+
+Markdown cleanup is profile-driven:
+
+```bash
+bookmem cleaning-profiles
+bookmem clean "Book.md" --profile epub_pandoc --output "Book.cleaned.md"
+bookmem clean-books data/raw-books data/books --profile epub_pandoc
+bookmem prepare-books data/raw-books --profile epub_pandoc --changed-only
+```
+
+Profiles live in `config/cleaning_profiles.yaml` and can be extended in
+`config/cleaning_profiles.d/`. See `docs/CLEANING_PROFILES.md`.

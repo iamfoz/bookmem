@@ -1135,3 +1135,18 @@ bookmem claims compare "goals" --markdown --output exports/goals-claims.md
 
 Claims are stored in `data/claims/claims.yaml` and marked
 `review_status: machine_draft`. See `docs/CLAIMS.md`.
+
+
+## Graph visualisation exports
+
+Export the derived book graph for visualisation tools:
+
+```bash
+bookmem graph export --format graphml
+bookmem graph export --format cytoscape
+bookmem graph export --format mermaid
+bookmem graph export --format obsidian-canvas
+bookmem graph export --format all
+```
+
+Outputs are written to `exports/graphs/`. See `docs/GRAPH_EXPORTS.md`.

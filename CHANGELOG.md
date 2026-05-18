@@ -45,6 +45,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.57.0] - 2026-05-18
+
+### Added
+- Added graph visualisation exports.
+- Added `bookmem graph export --format graphml`.
+- Added `bookmem graph export --format cytoscape`.
+- Added `bookmem graph export --format mermaid`.
+- Added `bookmem graph export --format obsidian-canvas`.
+- Added `bookmem graph export --format all`.
+- Added `bookmem graph formats`.
+- Added `bookmem/graph_exports.py`.
+- Added `docs/GRAPH_EXPORTS.md`.
+
+### Behaviour
+- GraphML exports to `exports/graphs/book_graph.graphml`.
+- Cytoscape JSON exports to `exports/graphs/book_graph.cyjs`.
+- Mermaid exports to `exports/graphs/book_graph.mmd`.
+- Obsidian Canvas exports to `exports/graphs/book_graph.canvas`.
+- Graph export writes audit records.
+
 ## [0.56.0] - 2026-05-18
 
 ### Added

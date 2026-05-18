@@ -33,6 +33,7 @@ from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as
 from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_books, enrich_metadata
 from .editions import list_editions, group_editions, edition_records_as_dict, ensure_work_edition_frontmatter
 from .book_graph import build_book_graph, related_books
+from .graph_exports import export_graph, export_all_graph_formats, SUPPORTED_GRAPH_EXPORT_FORMATS
 from .answer_pack import build_answer_pack
 from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
 from .concepts import extract_concepts_from_book, extract_concepts_from_books, search_concepts, list_concepts, rebuild_concept_index
@@ -89,6 +90,7 @@ brief_app = typer.Typer(help="Generate research briefs from saved queries")
 reading_metadata_app = typer.Typer(help="Infer and manage book reading metadata")
 passages_app = typer.Typer(help="Extract, search, favourite and export passages")
 claims_app = typer.Typer(help="Extract, search and compare assertion claims")
+graph_app = typer.Typer(help="Build and export graph visualisations")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -109,6 +111,7 @@ app.add_typer(brief_app, name="brief")
 app.add_typer(reading_metadata_app, name="reading-metadata")
 app.add_typer(passages_app, name="passages")
 app.add_typer(claims_app, name="claims")
+app.add_typer(graph_app, name="graph")
 console = Console()
 
 
@@ -3811,6 +3814,85 @@ def answer_pack_command(
         console.print("\n[yellow]Warnings[/yellow]")
         for error in pack["errors"]:
             console.print(f"- {error}")
+
+
+@graph_app.command("export")
+def graph_export_command(
+    format: str = typer.Option("graphml", "--format", "-f", help="Format: graphml, cytoscape, mermaid, obsidian-canvas or all."),
+    graph_path: Path = typer.Option(Path("data/graphs/book_graph.json"), "--graph", help="Source book graph JSON."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output file. Defaults to exports/graphs/book_graph.*"),
+    output_dir: Path = typer.Option(Path("exports/graphs"), "--output-dir", help="Output directory when --format all is used."),
+    rebuild: bool = typer.Option(False, "--rebuild", help="Rebuild graph before exporting."),
+    max_edges: int | None = typer.Option(None, "--max-edges", help="Limit Mermaid edges for readability."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Export the book graph for visualisation tools."""
+    import json as json_lib
+
+    if format.lower() == "all":
+        result = export_all_graph_formats(
+            graph_path=graph_path,
+            output_dir=output_dir,
+            rebuild=rebuild,
+            max_edges=max_edges,
+        )
+    else:
+        result = export_graph(
+            format=format,
+            graph_path=graph_path,
+            output=output,
+            rebuild=rebuild,
+            max_edges=max_edges,
+        )
+
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    if isinstance(result, list):
+        table_out = Table(title="Graph exports")
+        table_out.add_column("Format")
+        table_out.add_column("Output")
+        table_out.add_column("Nodes", justify="right")
+        table_out.add_column("Edges", justify="right")
+        for item in result:
+            table_out.add_row(
+                item["format"],
+                item["output"],
+                str(item["node_count"]),
+                str(item["edge_count"]),
+            )
+        console.print(table_out)
+    else:
+        console.print(
+            Panel(
+                f"Format: {result['format']}\n"
+                f"Output: {result['output']}\n"
+                f"Graph: {result['graph_path']}\n"
+                f"Nodes: {result['node_count']}\n"
+                f"Edges: {result['edge_count']}",
+                title="Graph exported",
+                expand=False,
+            )
+        )
+
+
+@graph_app.command("formats")
+def graph_formats_command():
+    """List supported graph export formats."""
+    table_out = Table(title="Graph export formats")
+    table_out.add_column("Format")
+    table_out.add_column("Default output")
+    defaults = {
+        "graphml": "exports/graphs/book_graph.graphml",
+        "cytoscape": "exports/graphs/book_graph.cyjs",
+        "mermaid": "exports/graphs/book_graph.mmd",
+        "obsidian-canvas": "exports/graphs/book_graph.canvas",
+        "all": "exports/graphs/book_graph.*",
+    }
+    for fmt in ["graphml", "cytoscape", "mermaid", "obsidian-canvas", "all"]:
+        table_out.add_row(fmt, defaults[fmt])
+    console.print(table_out)
 
 
 @app.command("build-graph")

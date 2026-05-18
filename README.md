@@ -723,3 +723,18 @@ bookmem enrich-metadata "data/books/.../Book.md" --providers loc,openlibrary,goo
 Enrichment fills missing metadata, records provenance in
 `metadata_sources`, and does not overwrite reviewed fields unless
 explicitly told to. See `docs/METADATA_ENRICHMENT.md`.
+
+
+## Edition handling
+
+Track works and editions separately so duplicate detection can tell the
+difference between a true duplicate and a legitimate new edition:
+
+```bash
+bookmem editions
+bookmem editions "The 7 Habits of Highly Effective People"
+bookmem editions --write
+```
+
+Edition metadata uses `work:` and `edition:` frontmatter blocks. See
+`docs/EDITIONS.md`.

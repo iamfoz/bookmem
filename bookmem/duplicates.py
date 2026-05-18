@@ -322,3 +322,14 @@ def write_duplicate_review(groups: list[DuplicateGroup], output: Path | None = N
         encoding="utf-8",
     )
     return output_path
+
+
+def edition_relationship_hint(book_a, book_b) -> str | None:
+    """Return an edition-aware relationship hint for duplicate review output."""
+    try:
+        from .editions import edition_record_from_file, classify_duplicate_relationship
+        a = edition_record_from_file(book_a.path if hasattr(book_a, "path") else book_a)
+        b = edition_record_from_file(book_b.path if hasattr(book_b, "path") else book_b)
+        return classify_duplicate_relationship(a, b)
+    except Exception:
+        return None

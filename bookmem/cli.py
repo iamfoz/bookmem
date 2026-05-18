@@ -30,6 +30,7 @@ from .importers import import_epub, import_html, import_pdf, import_calibre, res
 from .calibre import scan_calibre_library, find_calibre_book, enrich_markdown_from_calibre, import_calibre_metadata_stubs, calibre_book_as_dict
 from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as_dict as grimmory_result_as_dict
 from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_books, enrich_metadata
+from .editions import list_editions, group_editions, edition_records_as_dict, ensure_work_edition_frontmatter
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1635,6 +1636,54 @@ def grimmory_export_command(
         table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
+
+
+@app.command("editions")
+def editions_command(
+    query: str | None = typer.Argument(None, help="Optional title, author, ISBN or work query."),
+    books_dir: Path = typer.Option(Path("data/books"), "--books-dir", help="Canonical books directory."),
+    ensure: bool = typer.Option(False, "--ensure", help="Infer work/edition fields before listing."),
+    write: bool = typer.Option(False, "--write", help="Write inferred work/edition fields to matching books."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing work/edition fields when writing."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List works and editions in the BookMem library."""
+    import json as json_lib
+
+    records = list_editions(books_dir, query=query, ensure=ensure or write)
+    if write:
+        for record in records:
+            ensure_work_edition_frontmatter(Path(record.path), write=True, overwrite=overwrite)
+        records = list_editions(books_dir, query=query, ensure=True)
+
+    if json_output:
+        console.print(json_lib.dumps(edition_records_as_dict(records), indent=2, ensure_ascii=False))
+        return
+
+    grouped = group_editions(records)
+    table_out = Table(title="BookMem editions")
+    table_out.add_column("Work")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("Edition")
+    table_out.add_column("Year")
+    table_out.add_column("ISBN")
+    table_out.add_column("Path")
+
+    for work_id, work_records in sorted(grouped.items()):
+        for record in work_records:
+            table_out.add_row(
+                record.canonical_title,
+                record.title,
+                record.author or "",
+                record.edition_label or (str(record.edition_number) if record.edition_number else ""),
+                str(record.edition_year or ""),
+                record.isbn or "",
+                record.path,
+            )
+
+    console.print(table_out)
+    console.print(f"[green]{len(records)} edition record(s), {len(grouped)} work(s)[/green]")
 
 
 @app.command("enrich-openlibrary")

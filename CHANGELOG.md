@@ -18,6 +18,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.31.0] - 2026-05-18
+
+### Added
+- Added work and edition metadata handling.
+- Added `bookmem editions`.
+- Added `bookmem/editions.py`.
+- Added `docs/EDITIONS.md`.
+- Added frontmatter support for:
+  - `work.work_id`
+  - `work.canonical_title`
+  - `edition.label`
+  - `edition.number`
+  - `edition.year`
+  - `edition.is_revised`
+- Added edition-aware duplicate relationship helper.
+
+### Behaviour
+- BookMem can now distinguish same ISBN duplicates from same-work different-edition records.
+- Edition inference can derive simple edition labels/numbers from book titles and year from published metadata.
+
 ## [0.30.0] - 2026-05-18
 
 ### Added

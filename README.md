@@ -544,3 +544,17 @@ bookmem notes generate "data/books/158.../Book.md" --type implementation-notes -
 
 Notes are written to `data/notes/` and include YAML frontmatter linking
 them back to the canonical BookMem source. See `docs/OBSIDIAN_NOTES.md`.
+
+
+## Clean check
+
+Audit cleaned Markdown before indexing:
+
+```bash
+bookmem clean-check "data/books/158.../Book.md"
+bookmem clean-check "data/books/158.../Book.md" --json
+```
+
+This reports remaining images, HTML, Pandoc spans, empty anchors, heading
+quality, paragraph quality, ISBNs and frontmatter state. See
+`docs/CLEAN_CHECK.md`.

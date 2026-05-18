@@ -8,6 +8,20 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.21.0] - 2026-05-18
+
+### Added
+- Added cleaned Markdown quality checks.
+- Added `bookmem/clean_check.py`.
+- Added `bookmem clean-check`.
+- Added JSON output for clean-check automation.
+- Added CI-friendly failure flags:
+  - `--fail-on-warning`
+  - `--fail-on-fail`
+- Added `docs/CLEAN_CHECK.md`.
+- Clean checks now report remaining images, HTML, SVG/image tags, Pandoc spans, Pandoc attributes, div fences, empty anchors, raw HTML fences, EPUB artefact markers, hard-wrap splits, paragraph health, heading structure, ISBNs and frontmatter state.
+
 ## [0.20.0] - 2026-05-18
 
 ### Added

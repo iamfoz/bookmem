@@ -22,6 +22,7 @@ from .stats import author_counts, class_counts, collection_totals, load_book_sta
 from .topic_maps import map_topic as build_topic_map, write_topic_map
 from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
 from .notes import generate_note, generate_notes_for_directory, load_note_templates
+from .clean_check import assess_cleanliness, summarise_clean_check
 from .citation_exports import (
     export_references,
     format_reference,
@@ -1354,6 +1355,81 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@app.command("clean-check")
+def clean_check_command(
+    book: Path,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON"),
+    fail_on_warning: bool = typer.Option(False, "--fail-on-warning", help="Exit non-zero on WARN or FAIL"),
+    fail_on_fail: bool = typer.Option(False, "--fail-on-fail", help="Exit non-zero only on FAIL"),
+):
+    """Audit a cleaned Markdown book for remaining conversion clutter."""
+    import json as json_lib
+
+    report = assess_cleanliness(book)
+
+    if json_output:
+        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+    else:
+        summary = summarise_clean_check(report)
+        table_out = Table(title=f"Clean check: {book}")
+        table_out.add_column("Check")
+        table_out.add_column("Value")
+        table_out.add_column("Status")
+
+        def add_count(label: str, key: str):
+            table_out.add_row(label, str(report["checks"][key]), report["statuses"].get(key, ""))
+
+        table_out.add_row("Overall", report["status"], report["status"])
+        add_count("Images remaining", "images_remaining")
+        add_count("HTML tags remaining", "html_tags_remaining")
+        add_count("SVG/raw image tags remaining", "svg_or_raw_image_tags_remaining")
+        add_count("Pandoc spans remaining", "pandoc_spans_remaining")
+        add_count("Pandoc attributes remaining", "pandoc_attributes_remaining")
+        add_count("Pandoc div fences remaining", "pandoc_div_fences_remaining")
+        add_count("Empty anchors remaining", "empty_anchors_remaining")
+        add_count("Raw HTML fences remaining", "raw_html_fences_remaining")
+        add_count("EPUB artefact markers", "epub_artifact_markers")
+        add_count("Footnote backlink artefacts", "footnote_backlink_artifacts")
+        add_count("Non-breaking spaces", "non_breaking_spaces")
+        add_count("Hard-wrap splits", "hard_wrap_splits")
+
+        table_out.add_row(
+            "Average paragraph length",
+            str(report["paragraphs"]["average_paragraph_length"]),
+            report["paragraphs"]["status"],
+        )
+        table_out.add_row(
+            "Heading structure",
+            f'{report["headings"]["heading_count"]} headings',
+            report["headings"]["status"],
+        )
+        table_out.add_row(
+            "ISBNs found",
+            str(report["isbn"]["count"]),
+            "OK" if report["isbn"]["count"] else "WARN",
+        )
+        table_out.add_row(
+            "Frontmatter",
+            "present" if report["frontmatter"]["present"] else "missing",
+            report["frontmatter"]["status"],
+        )
+
+        console.print(table_out)
+
+        if report["isbn"]["values"]:
+            console.print("[cyan]ISBNs:[/cyan] " + ", ".join(report["isbn"]["values"]))
+
+        if report["recommendations"]:
+            console.print("\n[bold]Recommendations[/bold]")
+            for recommendation in report["recommendations"]:
+                console.print(f"- {recommendation}")
+
+    if fail_on_warning and report["status"] in {"WARN", "FAIL"}:
+        raise typer.Exit(code=1)
+    if fail_on_fail and report["status"] == "FAIL":
+        raise typer.Exit(code=1)
 
 
 @notes_app.command("templates")

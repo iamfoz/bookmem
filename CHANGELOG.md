@@ -5,6 +5,26 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+
+## [0.15.0] - 2026-05-18
+
+### Added
+
+- Added collection-level statistics reporting.
+- Added `bookmem/stats.py`.
+- Added `docs/STATS.md`.
+- Added `bookmem stats` command.
+- Added breakdowns by:
+  - BMDC class
+  - author
+  - topic
+- Added JSON output for dashboards and agent workflows.
+
+### Notes
+
+- Statistics are calculated from canonical Markdown frontmatter and manifest/index state.
+- Chunk counts depend on the manifest and therefore reflect the last successful ingest.
+
 ## [0.14.0] - 2026-05-18
 
 ### Added

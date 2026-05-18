@@ -18,6 +18,7 @@ from .summaries import search_summaries as search_summary_index, summarise_book 
 from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
 from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
+from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts
 from .citation_exports import (
     export_references,
     format_reference,
@@ -986,6 +987,98 @@ def export_references_command(
         console.print(f"[green]Exported {len(references)} references to {output}[/green]")
         return
     console.print(text)
+
+
+@app.command("stats")
+def stats_command(
+    by_class: bool = typer.Option(False, "--by-class", help="Show class distribution."),
+    by_author: bool = typer.Option(False, "--by-author", help="Show author distribution."),
+    by_topic: bool = typer.Option(False, "--by-topic", help="Show topic distribution."),
+    books_dir: Path | None = typer.Option(None, "--books-dir", help="Canonical books directory. Defaults to BOOKMEM_BOOKS_DIR."),
+    limit: int = typer.Option(20, "--limit", "-n", help="Maximum rows to display in each breakdown."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show collection-level statistics for the canonical book corpus."""
+    import json
+
+    stats = load_book_stats(books_dir=books_dir)
+    if not stats:
+        console.print("[yellow]No canonical Markdown books found[/yellow]")
+        return
+
+    payload = stats_payload(stats, limit=limit)
+    if json_output:
+        console.print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    totals = collection_totals(stats)
+    console.print(
+        Panel(
+            f"Total books: {totals['books']}\n"
+            f"Indexed books: {totals['indexed_books']}\n"
+            f"Indexed chunks: {totals['indexed_chunks']}\n"
+            f"Books needing index: {totals['books_needing_index']}\n"
+            f"Unclassified books: {totals['unclassified_books']}\n"
+            f"Books without author: {totals['books_without_author']}\n"
+            f"Books without topics: {totals['books_without_topics']}\n"
+            f"Books with ISBN: {totals['books_with_isbn']}",
+            title="Collection statistics",
+            expand=False,
+        )
+    )
+
+    show_all = not (by_class or by_author or by_topic)
+
+    if show_all or by_class:
+        table_out = Table(title="Books by BMDC class")
+        table_out.add_column("Class")
+        table_out.add_column("Label")
+        table_out.add_column("Books", justify="right")
+        table_out.add_column("Chunks", justify="right")
+        table_out.add_column("Authors", justify="right")
+        for row in class_counts(stats)[:limit]:
+            table_out.add_row(
+                str(row["class_code"]),
+                str(row["label"]),
+                str(row["books"]),
+                str(row["chunks"]),
+                str(row["authors"]),
+            )
+        console.print(table_out)
+
+    if show_all or by_author:
+        table_out = Table(title="Books by author")
+        table_out.add_column("Author")
+        table_out.add_column("Books", justify="right")
+        table_out.add_column("Chunks", justify="right")
+        table_out.add_column("Classes")
+        for row in author_counts(stats)[:limit]:
+            table_out.add_row(
+                str(row["author"]),
+                str(row["books"]),
+                str(row["chunks"]),
+                str(row["classes"]),
+            )
+        console.print(table_out)
+
+    if show_all or by_topic:
+        rows = topic_counts(stats)[:limit]
+        if not rows:
+            console.print("[yellow]No topics found in frontmatter[/yellow]")
+            return
+        table_out = Table(title="Books by topic")
+        table_out.add_column("Topic")
+        table_out.add_column("Books", justify="right")
+        table_out.add_column("Chunks", justify="right")
+        table_out.add_column("Classes")
+        for row in rows:
+            table_out.add_row(
+                str(row["topic"]),
+                str(row["books"]),
+                str(row["chunks"]),
+                str(row["classes"]),
+            )
+        console.print(table_out)
 
 
 @app.command("duplicates")

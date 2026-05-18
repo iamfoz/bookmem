@@ -1,6 +1,6 @@
 # BookMem
 
-Current package version: **0.13.0**
+Current package version: **0.15.0**
 
 
 BookMem is a local, agent-readable Markdown book corpus.
@@ -48,6 +48,7 @@ The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented 
 - Context reading around a retrieved chunk
 - Review queue for metadata, classification, ISBN conflicts and low-confidence matches
 - Formatted citations and pluggable reference manager exports
+- Collection-level statistics by class, author and topic
 - CLI-first workflow suitable for agent tools
 
 ## Project layout
@@ -368,6 +369,20 @@ bookmem duplicates --write-review
 ```
 
 See `docs/DUPLICATES.md`.
+
+## Collection statistics
+
+Inspect the shape and balance of the canonical library:
+
+```bash
+bookmem stats
+bookmem stats --by-class
+bookmem stats --by-author
+bookmem stats --by-topic
+bookmem stats --json
+```
+
+See `docs/STATS.md`.
 
 ## Reference exports
 

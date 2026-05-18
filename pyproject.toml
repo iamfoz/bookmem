@@ -1,6 +1,6 @@
 [project]
 name = "bookmem"
-version = "0.13.0"
+version = "0.14.0"
 description = "Machine-readable Markdown book corpus for agent retrieval"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -10,7 +10,7 @@ maintainers = [{ name = "Martyn Forryan" }]
 dependencies = [
     "lancedb>=0.21.0",
     "sentence-transformers>=3.0.0",
-    "typer>=0.13.0",
+    "typer>=0.14.0",
     "rich>=13.7.0",
     "pydantic>=2.7.0",
     "python-dotenv>=1.0.1",

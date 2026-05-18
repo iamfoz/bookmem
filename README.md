@@ -354,6 +354,21 @@ BookMem stores source-location metadata on every indexed chunk, including `sourc
 
 See [`docs/CITATIONS.md`](docs/CITATIONS.md).
 
+## Duplicate detection
+
+Find duplicate and near-duplicate books before indexing or tidying the library:
+
+```bash
+bookmem duplicates
+bookmem duplicates --by isbn
+bookmem duplicates --by title-author
+bookmem duplicates --by content
+bookmem duplicates --by near
+bookmem duplicates --write-review
+```
+
+See `docs/DUPLICATES.md`.
+
 ## Reference exports
 
 BookMem can generate formatted book citations and export reference-manager files from canonical Markdown frontmatter.

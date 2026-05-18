@@ -5,6 +5,25 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+## [0.14.0] - 2026-05-18
+
+### Added
+
+- Added duplicate and near-duplicate detection.
+- Added `bookmem/duplicates.py`.
+- Added `docs/DUPLICATES.md`.
+- Added `bookmem duplicates` command with detection by:
+  - ISBN
+  - normalised title and author
+  - normalised content hash
+  - near-duplicate similarity
+- Added optional duplicate review export to `data/review/possible_duplicates.yaml`.
+- Added `bookmem review duplicates` to inspect duplicate review candidates.
+
+### Notes
+
+- Duplicate detection is deliberately non-destructive. BookMem flags candidates but does not delete, rename or move books automatically.
+
 ## [0.13.0] - 2026-05-18
 
 ### Added

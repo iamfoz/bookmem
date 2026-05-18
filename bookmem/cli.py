@@ -17,6 +17,7 @@ from .manifest import load_manifest, manifest_path, status_for_book
 from .summaries import search_summaries as search_summary_index, summarise_book as summarise_one_book, summarise_books as summarise_many_books
 from .router import route_query
 from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
+from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
 from .citation_exports import (
     export_references,
     format_reference,
@@ -112,6 +113,47 @@ def review_isbn_conflicts_command(
         or issue.get("issue") == "loc_class_conflict"
     ]
     _print_review_table("isbn_conflicts", relevant)
+
+
+@review_app.command("duplicates")
+def review_duplicates_command(
+    regenerate: bool = typer.Option(False, "--regenerate", help="Regenerate possible duplicate review file before displaying."),
+    books_dir: Path | None = typer.Option(None, "--books-dir"),
+    raw_dir: Path | None = typer.Option(Path("data/raw-books"), "--raw-dir"),
+    threshold: float = typer.Option(0.88, "--threshold"),
+):
+    """Show duplicate review candidates from data/review/possible_duplicates.yaml."""
+    import yaml
+    output_path = Path("data/review/possible_duplicates.yaml")
+    if regenerate or not output_path.exists():
+        books = load_book_identities(books_dir=books_dir, raw_dir=raw_dir, include_raw=True)
+        groups = find_duplicate_groups(books, by="all", similarity_threshold=threshold)
+        write_duplicate_review(groups, output=output_path)
+
+    if not output_path.exists():
+        console.print("[yellow]No duplicate review file found. Run: bookmem duplicates --write-review[/yellow]")
+        return
+
+    data = yaml.safe_load(output_path.read_text(encoding="utf-8")) or {}
+    groups = data.get("groups", [])
+    if not groups:
+        console.print("[green]No possible duplicates in review file[/green]")
+        return
+
+    table_out = Table(title="Duplicate review candidates")
+    table_out.add_column("Reason")
+    table_out.add_column("Score")
+    table_out.add_column("Books")
+    table_out.add_column("Review")
+    for group in groups:
+        paths = [str(book.get("path", "")) for book in group.get("books", [])]
+        table_out.add_row(
+            str(group.get("reason", "")),
+            f"{float(group.get('score', 0.0)):.0%}",
+            "\n".join(paths),
+            str((group.get("review") or {}).get("status", "pending")),
+        )
+    console.print(table_out)
 
 
 @review_app.command("metadata")
@@ -944,6 +986,59 @@ def export_references_command(
         console.print(f"[green]Exported {len(references)} references to {output}[/green]")
         return
     console.print(text)
+
+
+@app.command("duplicates")
+def duplicates_command(
+    by: str = typer.Option(
+        "all",
+        "--by",
+        help="Duplicate method: all, isbn, title-author, content, or near",
+    ),
+    books_dir: Path | None = typer.Option(None, "--books-dir", help="Canonical books directory. Defaults to BOOKMEM_BOOKS_DIR."),
+    raw_dir: Path | None = typer.Option(Path("data/raw-books"), "--raw-dir", help="Optional raw-books directory to include."),
+    include_raw: bool = typer.Option(True, "--include-raw/--canonical-only", help="Include raw Markdown exports as well as canonical books."),
+    threshold: float = typer.Option(0.88, "--threshold", help="Near-duplicate similarity threshold from 0.0 to 1.0."),
+    write_review: bool = typer.Option(False, "--write-review", help="Write data/review/possible_duplicates.yaml."),
+):
+    """Find duplicate or near-duplicate books by ISBN, title/author, content hash or similarity."""
+    valid_methods = {"all", "isbn", "title-author", "content", "near"}
+    if by not in valid_methods:
+        console.print(f"[red]Unsupported duplicate method: {by}. Supported: {', '.join(sorted(valid_methods))}[/red]")
+        raise typer.Exit(code=1)
+
+    books = load_book_identities(books_dir=books_dir, raw_dir=raw_dir, include_raw=include_raw)
+    if not books:
+        console.print("[yellow]No Markdown files found to compare[/yellow]")
+        return
+
+    groups = find_duplicate_groups(books, by=by, similarity_threshold=threshold)
+    if not groups:
+        console.print(f"[green]No duplicates found across {len(books)} files[/green]")
+        if write_review:
+            output_path = write_duplicate_review(groups)
+            console.print(f"[green]Wrote empty duplicate review file to {output_path}[/green]")
+        return
+
+    console.print(f"[yellow]Found {len(groups)} possible duplicate group(s) across {len(books)} files[/yellow]")
+    for idx, group in enumerate(groups, start=1):
+        lines = [
+            f"[bold]Reason:[/bold] {group.reason}",
+            f"[bold]Score:[/bold] {group.score:.0%}",
+        ]
+        if group.details:
+            lines.append("[bold]Details:[/bold] " + "; ".join(group.details))
+        lines.append("")
+        for book in group.books:
+            isbn_text = ", ".join(book.isbns) if book.isbns else "no ISBN"
+            lines.append(f"- {book.path}")
+            lines.append(f"  {book.title or 'Unknown title'} — {book.author or 'Unknown author'}")
+            lines.append(f"  {book.collection}; {isbn_text}")
+        console.print(Panel("\n".join(lines), title=f"Possible duplicate {idx}", expand=False))
+
+    if write_review:
+        output_path = write_duplicate_review(groups)
+        console.print(f"[green]Wrote duplicate review file to {output_path}[/green]")
 
 
 @app.command("reference-formats")

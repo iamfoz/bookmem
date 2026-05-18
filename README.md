@@ -499,3 +499,16 @@ bookmem export-references data/books --format bibtex --output exports/references
 ```
 
 See `docs/PLUGGABLE_REFERENCE_FORMATS.md` for the export format schema.
+
+
+## MCP server
+
+BookMem can expose the local corpus to MCP-capable agents:
+
+```bash
+bookmem serve-mcp
+```
+
+The server provides tools for search, reading chunks/sections/chapters,
+query routing, book listing and topic mapping. See
+`docs/MCP_SERVER.md` for configuration examples and tool details.

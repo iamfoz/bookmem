@@ -5,6 +5,25 @@ All notable changes to BookMem are documented in this file.
 BookMem uses semantic versioning while it is under active early development. Until `1.0.0`, minor versions may still include CLI and schema changes, but each bump represents a coherent feature milestone.
 
 
+
+## [0.18.0] - 2026-05-18
+
+### Added
+- Added optional MCP server integration for MCP-capable agents.
+- Added `bookmem serve-mcp` CLI command.
+- Added `bookmem/mcp_server.py`.
+- Exposed MCP tools:
+  - `bookmem.search`
+  - `bookmem.read_chunk`
+  - `bookmem.read_around`
+  - `bookmem.read_section`
+  - `bookmem.read_chapter`
+  - `bookmem.list_books`
+  - `bookmem.route_query`
+  - `bookmem.map_topic`
+- Added `docs/MCP_SERVER.md` with client configuration examples and recommended agent workflow.
+- Added `mcp>=1.2.0` optional integration dependency.
+
 ## [0.17.0] - 2026-05-18
 
 ### Added

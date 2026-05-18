@@ -1351,5 +1351,15 @@ def validate_citation_styles_command():
     raise typer.Exit(code=1)
 
 
+
+
+@app.command("serve-mcp")
+def serve_mcp():
+    """Run the BookMem MCP server over stdio."""
+    from .mcp_server import main as run_mcp_server
+
+    run_mcp_server()
+
+
 if __name__ == "__main__":
     app()

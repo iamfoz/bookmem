@@ -1,0 +1,61 @@
+services:
+  bookmem-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bookmem:latest
+    container_name: bookmem-api
+    command: ["bookmem", "serve", "--host", "0.0.0.0", "--port", "8765"]
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./exports:/app/exports
+    environment:
+      BOOKMEM_BOOKS_DIR: /app/data/books
+      BOOKMEM_DB_DIR: /app/data/lancedb
+      BOOKMEM_TABLE: book_chunks
+      BOOKMEM_EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+    restart: unless-stopped
+
+  bookmem-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bookmem:latest
+    container_name: bookmem-mcp
+    command: ["bookmem", "serve-mcp"]
+    profiles:
+      - mcp
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./exports:/app/exports
+    environment:
+      BOOKMEM_BOOKS_DIR: /app/data/books
+      BOOKMEM_DB_DIR: /app/data/lancedb
+      BOOKMEM_TABLE: book_chunks
+      BOOKMEM_EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+    stdin_open: true
+    tty: false
+    restart: "no"
+
+  bookmem-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bookmem:latest
+    container_name: bookmem-worker
+    profiles:
+      - tools
+    command: ["bookmem", "doctor"]
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./exports:/app/exports
+    environment:
+      BOOKMEM_BOOKS_DIR: /app/data/books
+      BOOKMEM_DB_DIR: /app/data/lancedb
+      BOOKMEM_TABLE: book_chunks
+      BOOKMEM_EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2

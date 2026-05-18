@@ -12,6 +12,22 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.25.0] - 2026-05-18
+
+### Added
+- Added Docker support.
+- Added `Dockerfile`.
+- Added `docker-compose.yml`.
+- Added `.dockerignore`.
+- Added `docs/DOCKER.md`.
+- Added Compose services:
+  - `bookmem-api`
+  - `bookmem-mcp`
+  - `bookmem-worker`
+- Added documented mounts for `./data`, `./config` and `./exports`.
+- Added container health check for the FastAPI service.
+
 ## [0.24.0] - 2026-05-18
 
 ### Added

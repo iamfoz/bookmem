@@ -601,3 +601,23 @@ bookmem doctor --json
 
 `--fix` only applies safe repairs such as creating missing folders,
 `.gitkeep` placeholders or an empty manifest. See `docs/DOCTOR.md`.
+
+
+## Docker
+
+Build and run the API service:
+
+```bash
+docker compose build
+docker compose up -d bookmem-api
+```
+
+Run one-off CLI commands:
+
+```bash
+docker compose run --rm bookmem-worker bookmem doctor
+docker compose run --rm bookmem-worker bookmem ingest --changed-only
+```
+
+The compose file mounts `./data`, `./config` and `./exports` into the
+container so the corpus remains on the host. See `docs/DOCKER.md`.

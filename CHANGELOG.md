@@ -49,6 +49,20 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.0] - 2026-05-18
+
+### Added
+- Added `bookmem doctor --deep`.
+- Added `bookmem doctor --deep --sample-size`.
+- Added `bookmem/doctor_deep.py`.
+- Added deep diagnostics for sampled chunks, citation line ranges, manifest paths, summaries, concept source chunks, graph nodes, embedding dimensions, review queues and config parsing.
+
+### Behaviour
+- Deep doctor mode is read-only and does not run migrations.
+- Deep doctor results are included under `deep` in JSON output.
+- Overall doctor status now reflects deep diagnostic warnings/failures when `--deep` is used.
+
 ## [0.60.0] - 2026-05-18
 
 ### Added

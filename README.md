@@ -1194,3 +1194,17 @@ bookmem jobs tail <job_id>
 
 Job files live in `data/jobs/` as `<job_id>.json` and `<job_id>.log`.
 See `docs/JOBS.md`.
+
+
+## Deep doctor diagnostics
+
+Run deeper integrity checks across chunks, citations, manifests,
+summaries, concepts, graph, embeddings, review queues and config files:
+
+```bash
+bookmem doctor --deep
+bookmem doctor --deep --json
+bookmem doctor --deep --sample-size 25
+```
+
+Deep mode is read-only. See `docs/DOCTOR.md`.

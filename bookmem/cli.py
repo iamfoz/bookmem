@@ -26,6 +26,7 @@ from .notes import generate_note, generate_notes_for_directory, load_note_templa
 from .clean_check import assess_cleanliness, summarise_clean_check
 from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleaning_profiles, report_as_dict
 from .doctor import run_doctor
+from .doctor_deep import run_deep_doctor
 from .backup import create_backup, restore_backup, inspect_backup, result_as_dict
 from .importers import import_epub, import_html, import_pdf, import_calibre, result_as_dict as import_result_as_dict
 from .calibre import scan_calibre_library, find_calibre_book, enrich_markdown_from_calibre, import_calibre_metadata_stubs, calibre_book_as_dict
@@ -4547,12 +4548,20 @@ def restore_command(
 @app.command("doctor")
 def doctor_command(
     fix: bool = typer.Option(False, "--fix", help="Apply safe automatic fixes for missing folders/placeholders."),
+    deep: bool = typer.Option(False, "--deep", help="Run deeper read-only integrity diagnostics."),
+    sample_size: int = typer.Option(10, "--sample-size", help="Sample size for deep diagnostics."),
     json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
 ):
     """Run a BookMem health check."""
     import json as json_lib
 
     report = run_doctor(fix=fix)
+    deep_report = run_deep_doctor(sample_size=sample_size) if deep else None
+    if deep_report:
+        report["deep"] = deep_report
+        if report["status"] != "FAIL" and deep_report["status"] in {"WARN", "FAIL"}:
+            report["status"] = deep_report["status"]
+        report.setdefault("reasons", []).extend(deep_report.get("reasons", []))
 
     if json_output:
         console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
@@ -4578,6 +4587,19 @@ def doctor_command(
         )
 
     console.print(table_out)
+
+    if deep_report:
+        deep_table = Table(title="Doctor deep")
+        deep_table.add_column("Check")
+        deep_table.add_column("Status")
+        deep_table.add_column("Message")
+        for check in deep_report["checks"]:
+            deep_table.add_row(
+                str(check["name"]),
+                str(check["status"]),
+                str(check["message"]),
+            )
+        console.print(deep_table)
 
     counts = report["counts"]
     console.print(

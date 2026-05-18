@@ -117,3 +117,34 @@ bookmem migrations apply
 ```
 
 See `docs/MIGRATIONS.md`.
+
+
+## Deep diagnostics
+
+Run deeper read-only integrity checks:
+
+```bash
+bookmem doctor --deep
+bookmem doctor --deep --json
+bookmem doctor --deep --sample-size 25
+```
+
+Deep mode checks:
+
+```text
+random sample chunks can be read
+random sample citations point to valid files/lines
+manifest paths exist
+summaries match book_ids
+concept source_chunks exist in index
+graph nodes reference existing books
+embedding dimension matches LanceDB vector dimension
+review queue files parse correctly
+config files parse as YAML/JSON
+```
+
+Deep doctor is diagnostic only. It does not mutate data and does not run
+migrations.
+
+If `--fix` is also supplied, only the existing conservative basic doctor
+fixes are applied. Deep checks remain read-only.

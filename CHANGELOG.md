@@ -6,6 +6,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.19.0] - 2026-05-18
+
+### Added
+- Added optional local FastAPI service for container-friendly integrations.
+- Added `bookmem serve` CLI command.
+- Added `bookmem/api.py`.
+- Added HTTP endpoints:
+  - `GET /health`
+  - `GET /books`
+  - `POST /search`
+  - `POST /route`
+  - `GET /chunks/{chunk_id}`
+  - `GET /chunks/{chunk_id}/around`
+  - `GET /chunks/{chunk_id}/section`
+  - `GET /books/{book_id}/chapters`
+  - `GET /books/{book_id}/chapters/{chapter}`
+  - `POST /topic-map`
+- Added `docs/LOCAL_API.md`.
+- Added FastAPI and Uvicorn dependencies.
+
 ## [0.18.0] - 2026-05-18
 
 ### Added

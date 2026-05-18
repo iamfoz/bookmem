@@ -1361,5 +1361,19 @@ def serve_mcp():
     run_mcp_server()
 
 
+
+
+@app.command("serve")
+def serve_api(
+    host: str = typer.Option("127.0.0.1", "--host", help="Host interface to bind"),
+    port: int = typer.Option(8765, "--port", "-p", help="Port to listen on"),
+    reload: bool = typer.Option(False, "--reload", help="Enable Uvicorn reload mode"),
+):
+    """Run the local BookMem FastAPI service."""
+    import uvicorn
+
+    uvicorn.run("bookmem.api:app", host=host, port=port, reload=reload)
+
+
 if __name__ == "__main__":
     app()

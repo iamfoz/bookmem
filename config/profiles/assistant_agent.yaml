@@ -1,0 +1,34 @@
+schema_version: 1
+profile:
+  name: assistant_agent
+  label: Assistant agent
+  description: Generic assistant-agent profile for tool/agent integrations.
+  environment: agent
+
+paths:
+  data_dir: data
+  config_dir: config
+  exports_dir: exports
+  backups_dir: backups
+  lancedb_dir: data/lancedb
+
+services:
+  api:
+    host: 127.0.0.1
+    port: 8765
+    require_api_key: true
+  mcp:
+    enabled: true
+
+retrieval:
+  default_workspace:
+  default_limit: 8
+
+agent:
+  permissions_profile: assistant_agent
+  require_confirmation_for_writes: true
+
+features:
+  auto_restore_points: true
+  audit_log: true
+  plugins_enabled: false

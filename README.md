@@ -1165,3 +1165,18 @@ bookmem plugins validate
 Plugin manifests live under `plugins/` in category directories such as
 `importers/`, `enrichers/`, `exporters/`, `summary_providers/` and
 `citation_styles/`. See `docs/PLUGINS.md`.
+
+
+## Config profiles / environments
+
+Switch between local, Docker and agent-oriented profiles:
+
+```bash
+bookmem --profile assistant_agent search "systems thinking"
+bookmem profile current
+bookmem profile list
+bookmem profile validate assistant_agent
+bookmem profile use docker
+```
+
+Profiles live in `config/profiles/`. See `docs/PROFILES.md`.

@@ -118,6 +118,23 @@ app.add_typer(plugins_app, name="plugins")
 console = Console()
 
 
+
+
+@app.callback()
+def main_callback(
+    ctx: typer.Context,
+    profile: str | None = typer.Option(None, "--profile", help="Config profile/environment to use."),
+):
+    """BookMem command root."""
+    ctx.obj = ctx.obj or {}
+    ctx.obj["profile"] = profile
+    if profile:
+        # Validate and apply environment overlay for command duration.
+        ctx.obj["_profile_context"] = profile_environment(profile)
+        ctx.obj["_profile"] = ctx.obj["_profile_context"].__enter__()
+
+
+
 def _print_review_table(queue_name: str, issues: list[dict]) -> None:
     if not issues:
         console.print(f"[green]No {queue_name} review issues found[/green]")
@@ -3817,6 +3834,129 @@ def answer_pack_command(
         console.print("\n[yellow]Warnings[/yellow]")
         for error in pack["errors"]:
             console.print(f"- {error}")
+
+
+@profile_app.command("current")
+def profile_current_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show the active profile."""
+    import json as json_lib
+
+    name = active_profile_name() or "local"
+    profile = get_profile(name)
+    payload = profile_as_dict(profile)
+    payload["active_source"] = "BOOKMEM_PROFILE" if __import__("os").environ.get("BOOKMEM_PROFILE") else "data/manifests/current_profile.yaml or default"
+
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            f"Name: {profile.name}\n"
+            f"Label: {profile.label}\n"
+            f"Environment: {profile.environment}\n"
+            f"Data dir: {profile.data_dir}\n"
+            f"Config dir: {profile.config_dir}\n"
+            f"Exports dir: {profile.exports_dir}\n"
+            f"Permissions profile: {profile.permissions_profile or '(none)'}",
+            title="Current profile",
+            expand=False,
+        )
+    )
+
+
+@profile_app.command("list")
+def profile_list_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List available config profiles."""
+    import json as json_lib
+
+    profiles = profiles_as_dict()
+    if json_output:
+        console.print(json_lib.dumps(profiles, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Config profiles")
+    table_out.add_column("Name")
+    table_out.add_column("Label")
+    table_out.add_column("Environment")
+    table_out.add_column("Data")
+    table_out.add_column("Config")
+    table_out.add_column("Permissions")
+    for item in profiles:
+        table_out.add_row(
+            item["name"],
+            item["label"],
+            item["environment"],
+            item["data_dir"],
+            item["config_dir"],
+            item.get("permissions_profile") or "",
+        )
+    console.print(table_out)
+
+
+@profile_app.command("show")
+def profile_show_command(
+    name: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Show one profile."""
+    import json as json_lib
+
+    profile = get_profile(name)
+    payload = profile_as_dict(profile)
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    console.print(
+        Panel(
+            "\n".join(f"{key}: {value}" for key, value in payload.items()),
+            title=f"Profile: {name}",
+            expand=False,
+        )
+    )
+
+
+@profile_app.command("use")
+def profile_use_command(
+    name: str,
+):
+    """Persist the current profile for future commands."""
+    write_current_profile(name)
+    console.print(f"[green]Current profile set to:[/green] {name}")
+
+
+@profile_app.command("validate")
+def profile_validate_command(
+    name: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Validate a config profile."""
+    import json as json_lib
+
+    issues = validate_profile(name)
+    if json_output:
+        console.print(json_lib.dumps({"profile": name, "issues": issues}, indent=2, ensure_ascii=False))
+        return
+
+    if not issues:
+        console.print(f"[green]Profile is valid:[/green] {name}")
+        return
+
+    table_out = Table(title=f"Profile validation: {name}")
+    table_out.add_column("Level")
+    table_out.add_column("Issue")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(issue.get("level", ""), issue.get("issue", ""), issue.get("message", ""))
+    console.print(table_out)
+
+    if any(issue.get("level") == "error" for issue in issues):
+        raise typer.Exit(code=1)
 
 
 @plugins_app.command("list")

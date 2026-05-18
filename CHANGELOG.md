@@ -47,6 +47,29 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.59.0] - 2026-05-18
+
+### Added
+- Added config profiles/environments.
+- Added global `bookmem --profile <name>` option.
+- Added `config/profiles/local.yaml`.
+- Added `config/profiles/docker.yaml`.
+- Added `config/profiles/assistant_agent.yaml`.
+- Added `bookmem profile current`.
+- Added `bookmem profile list`.
+- Added `bookmem profile show`.
+- Added `bookmem profile use`.
+- Added `bookmem profile validate`.
+- Added `bookmem/profiles.py`.
+- Added `docs/PROFILES.md`.
+
+### Behaviour
+- Profiles can set data/config/export/backup/index paths, API/MCP defaults, retrieval defaults, permissions profile and feature flags.
+- `BOOKMEM_PROFILE` is supported and takes precedence over the persisted current profile.
+- `bookmem profile use` persists the selected profile in `data/manifests/current_profile.yaml`.
+- The built-in agent profile is generic: `assistant_agent`.
+
 ## [0.58.0] - 2026-05-18
 
 ### Added

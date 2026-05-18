@@ -1208,3 +1208,10 @@ bookmem doctor --deep --sample-size 25
 ```
 
 Deep mode is read-only. See `docs/DOCTOR.md`.
+
+
+## CLI startup performance
+
+The CLI uses lazy command imports so simple commands such as
+`bookmem --help` do not import heavyweight embedding dependencies such
+as `sentence-transformers`, `sklearn` or `scipy`.

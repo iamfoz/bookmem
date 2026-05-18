@@ -50,6 +50,14 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.1] - 2026-05-18
+
+### Fixed
+- Fixed slow/hanging CLI startup caused by importing embedding/index modules at import time.
+- `bookmem --help` no longer imports `sentence-transformers`, `sklearn` or `scipy`.
+- Replaced eager CLI imports with lazy command-level wrappers.
+
 ## [0.61.0] - 2026-05-18
 
 ### Added

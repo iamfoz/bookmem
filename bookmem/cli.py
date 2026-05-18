@@ -7,69 +7,220 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from .ingest import find_markdown_files, ingest_books
-from .search import format_markdown_citation, format_source_location, get_table, read_around as search_read_around, read_chapter as search_read_chapter, read_chunk, read_section as search_read_section, search_books
-from .taxonomy import all_routing_aliases, load_taxonomy, resolve_alias
-from .loc import enrich_file_with_loc, lookup_loc_by_isbn
-from .frontmatter import find_isbns_in_text
-from .prepare import prepare_book as prepare_one_book
-from .manifest import load_manifest, manifest_path, status_for_book
-from .summaries import search_summaries as search_summary_index, summarise_book as summarise_one_book, summarise_books as summarise_many_books
-from .summary_providers import load_summary_providers, validate_summary_providers, summarise_book_with_provider, summarise_books_with_provider
-from .router import route_query
-from .review import apply_review_queue, load_review_queue, review_file_path, write_review_queues
-from .duplicates import find_duplicate_groups, load_book_identities, write_duplicate_review
-from .stats import author_counts, class_counts, collection_totals, load_book_stats, stats_payload, topic_counts, difficulty_counts, density_counts, best_read_as_counts
-from .topic_maps import map_topic as build_topic_map, write_topic_map
-from .agent_exports import SUPPORTED_AGENT_EXPORT_FORMATS, export_agent_corpus
-from .notes import generate_note, generate_notes_for_directory, load_note_templates
-from .clean_check import assess_cleanliness, summarise_clean_check
-from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleaning_profiles, report_as_dict
-from .doctor import run_doctor
-from .doctor_deep import run_deep_doctor
-from .backup import create_backup, restore_backup, inspect_backup, result_as_dict
-from .importers import import_epub, import_html, import_pdf, import_calibre, result_as_dict as import_result_as_dict
-from .calibre import scan_calibre_library, find_calibre_book, enrich_markdown_from_calibre, import_calibre_metadata_stubs, calibre_book_as_dict
-from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as_dict as grimmory_result_as_dict
-from .metadata_enrichment import enrich_with_openlibrary, enrich_with_google_books, enrich_metadata
-from .editions import list_editions, group_editions, edition_records_as_dict, ensure_work_edition_frontmatter
-from .book_graph import build_book_graph, related_books
-from .graph_exports import export_graph, export_all_graph_formats, SUPPORTED_GRAPH_EXPORT_FORMATS
-from .answer_pack import build_answer_pack
-from .prompt_packs import list_prompts, show_prompt, prompt_assets_as_dict
-from .concepts import extract_concepts_from_book, extract_concepts_from_books, search_concepts, list_concepts, rebuild_concept_index
-from .index_versions import index_status, update_manifest_index_metadata
-from .embedding_management import current_embedding_info, embedding_profiles, profiles_as_dict, validate_embedding_models, benchmark_embeddings, reindex_with_embedding_model
-from .evaluation import evaluate_retrieval, load_eval_queries, eval_queries_as_dict
-from .web_ui import run_ui
-from .tui import run_tui
-from .setup_wizard import load_setup_presets, presets_as_dict, setup_steps_for_preset, setup_status, run_setup_preset
-from .migrations import migration_status, apply_migrations, create_migration
-from .clean_derived import clean_derived, clean_result_as_dict
-from .human_review import machine_drafts, drafts_as_dict, approve_summary, approve_concepts, reject_concept, mark_human_reviewed, set_summary_status, set_concepts_status
-from .audit import tail_audit, search_audit, export_audit, append_audit_record
-from .restore_points import create_restore_point, list_restore_points, show_restore_point, rollback_restore_point, restore_point_from_audit_id, restore_point_as_dict
-from .permissions import check_permission, list_agent_permissions, list_agents, validate_permissions, decision_as_dict
-from .workspaces import list_workspaces_as_dict, workspace_search, workspace_answer_pack, validate_workspaces
-from .saved_queries import save_query, list_saved_queries, run_saved_query, generate_brief
-from .reading_lists import generate_reading_list
-from .reading_metadata import infer_reading_metadata, result_as_dict as reading_metadata_result_as_dict
-from .passages import extract_passages, search_passages, favourite_passage, export_passages
-from .topic_compare import compare_topic, render_compare_markdown
-from .claims import extract_claims, search_claims, compare_claims, render_claims_compare_markdown
-from .plugins import discover_plugins, plugins_as_dict, validate_plugins, plugin_summary
-from .citation_exports import (
-    export_references,
-    format_reference,
-    load_citation_styles,
-    load_reference_export_formats,
-    reference_from_frontmatter,
-    references_from_directory,
-    supported_export_formats,
-    supported_styles,
-    validate_citation_styles,
-    validate_reference_export_formats,
-)
+
+# Lazy imports keep `bookmem --help` fast. Heavy dependencies such as
+# sentence-transformers, scipy and sklearn must not be imported at CLI startup.
+def _lazy_call(module_name: str, attr_name: str):
+    def _wrapper(*args, **kwargs):
+        from importlib import import_module
+        return getattr(import_module(module_name), attr_name)(*args, **kwargs)
+    _wrapper.__name__ = attr_name
+    return _wrapper
+
+
+def _lazy_value(module_name: str, attr_name: str):
+    from importlib import import_module
+    return getattr(import_module(module_name), attr_name)
+
+
+find_markdown_files = _lazy_call("bookmem.ingest", "find_markdown_files")
+ingest_books = _lazy_call("bookmem.ingest", "ingest_books")
+format_markdown_citation = _lazy_call("bookmem.search", "format_markdown_citation")
+format_source_location = _lazy_call("bookmem.search", "format_source_location")
+get_table = _lazy_call("bookmem.search", "get_table")
+search_read_around = _lazy_call("bookmem.search", "read_around")
+search_read_chapter = _lazy_call("bookmem.search", "read_chapter")
+read_chunk = _lazy_call("bookmem.search", "read_chunk")
+search_read_section = _lazy_call("bookmem.search", "read_section")
+search_books = _lazy_call("bookmem.search", "search_books")
+all_routing_aliases = _lazy_call("bookmem.taxonomy", "all_routing_aliases")
+load_taxonomy = _lazy_call("bookmem.taxonomy", "load_taxonomy")
+resolve_alias = _lazy_call("bookmem.taxonomy", "resolve_alias")
+enrich_file_with_loc = _lazy_call("bookmem.loc", "enrich_file_with_loc")
+lookup_loc_by_isbn = _lazy_call("bookmem.loc", "lookup_loc_by_isbn")
+find_isbns_in_text = _lazy_call("bookmem.frontmatter", "find_isbns_in_text")
+prepare_one_book = _lazy_call("bookmem.prepare", "prepare_book")
+load_manifest = _lazy_call("bookmem.manifest", "load_manifest")
+manifest_path = _lazy_call("bookmem.manifest", "manifest_path")
+status_for_book = _lazy_call("bookmem.manifest", "status_for_book")
+search_summary_index = _lazy_call("bookmem.summaries", "search_summaries")
+summarise_one_book = _lazy_call("bookmem.summaries", "summarise_book")
+summarise_many_books = _lazy_call("bookmem.summaries", "summarise_books")
+load_summary_providers = _lazy_call("bookmem.summary_providers", "load_summary_providers")
+validate_summary_providers = _lazy_call("bookmem.summary_providers", "validate_summary_providers")
+summarise_book_with_provider = _lazy_call("bookmem.summary_providers", "summarise_book_with_provider")
+summarise_books_with_provider = _lazy_call("bookmem.summary_providers", "summarise_books_with_provider")
+route_query = _lazy_call("bookmem.router", "route_query")
+apply_review_queue = _lazy_call("bookmem.review", "apply_review_queue")
+load_review_queue = _lazy_call("bookmem.review", "load_review_queue")
+review_file_path = _lazy_call("bookmem.review", "review_file_path")
+write_review_queues = _lazy_call("bookmem.review", "write_review_queues")
+find_duplicate_groups = _lazy_call("bookmem.duplicates", "find_duplicate_groups")
+load_book_identities = _lazy_call("bookmem.duplicates", "load_book_identities")
+write_duplicate_review = _lazy_call("bookmem.duplicates", "write_duplicate_review")
+author_counts = _lazy_call("bookmem.stats", "author_counts")
+class_counts = _lazy_call("bookmem.stats", "class_counts")
+collection_totals = _lazy_call("bookmem.stats", "collection_totals")
+load_book_stats = _lazy_call("bookmem.stats", "load_book_stats")
+stats_payload = _lazy_call("bookmem.stats", "stats_payload")
+topic_counts = _lazy_call("bookmem.stats", "topic_counts")
+difficulty_counts = _lazy_call("bookmem.stats", "difficulty_counts")
+density_counts = _lazy_call("bookmem.stats", "density_counts")
+best_read_as_counts = _lazy_call("bookmem.stats", "best_read_as_counts")
+build_topic_map = _lazy_call("bookmem.topic_maps", "map_topic")
+write_topic_map = _lazy_call("bookmem.topic_maps", "write_topic_map")
+export_agent_corpus = _lazy_call("bookmem.agent_exports", "export_agent_corpus")
+generate_note = _lazy_call("bookmem.notes", "generate_note")
+generate_notes_for_directory = _lazy_call("bookmem.notes", "generate_notes_for_directory")
+load_note_templates = _lazy_call("bookmem.notes", "load_note_templates")
+assess_cleanliness = _lazy_call("bookmem.clean_check", "assess_cleanliness")
+summarise_clean_check = _lazy_call("bookmem.clean_check", "summarise_clean_check")
+clean_markdown_file = _lazy_call("bookmem.clean", "clean_markdown_file")
+load_cleaning_profiles = _lazy_call("bookmem.clean", "load_cleaning_profiles")
+validate_cleaning_profiles = _lazy_call("bookmem.clean", "validate_cleaning_profiles")
+report_as_dict = _lazy_call("bookmem.clean", "report_as_dict")
+run_doctor = _lazy_call("bookmem.doctor", "run_doctor")
+run_deep_doctor = _lazy_call("bookmem.doctor_deep", "run_deep_doctor")
+create_backup = _lazy_call("bookmem.backup", "create_backup")
+restore_backup = _lazy_call("bookmem.backup", "restore_backup")
+inspect_backup = _lazy_call("bookmem.backup", "inspect_backup")
+backup_result_as_dict = _lazy_call("bookmem.backup", "result_as_dict")
+import_epub = _lazy_call("bookmem.importers", "import_epub")
+import_html = _lazy_call("bookmem.importers", "import_html")
+import_pdf = _lazy_call("bookmem.importers", "import_pdf")
+import_calibre = _lazy_call("bookmem.importers", "import_calibre")
+import_result_as_dict = _lazy_call("bookmem.importers", "result_as_dict")
+scan_calibre_library = _lazy_call("bookmem.calibre", "scan_calibre_library")
+find_calibre_book = _lazy_call("bookmem.calibre", "find_calibre_book")
+enrich_markdown_from_calibre = _lazy_call("bookmem.calibre", "enrich_markdown_from_calibre")
+import_calibre_metadata_stubs = _lazy_call("bookmem.calibre", "import_calibre_metadata_stubs")
+calibre_book_as_dict = _lazy_call("bookmem.calibre", "calibre_book_as_dict")
+write_grimmory_sidecar = _lazy_call("bookmem.grimmory", "write_grimmory_sidecar")
+export_grimmory_library = _lazy_call("bookmem.grimmory", "export_grimmory_library")
+grimmory_result_as_dict = _lazy_call("bookmem.grimmory", "result_as_dict")
+enrich_with_openlibrary = _lazy_call("bookmem.metadata_enrichment", "enrich_with_openlibrary")
+enrich_with_google_books = _lazy_call("bookmem.metadata_enrichment", "enrich_with_google_books")
+enrich_metadata = _lazy_call("bookmem.metadata_enrichment", "enrich_metadata")
+list_editions = _lazy_call("bookmem.editions", "list_editions")
+group_editions = _lazy_call("bookmem.editions", "group_editions")
+edition_records_as_dict = _lazy_call("bookmem.editions", "edition_records_as_dict")
+ensure_work_edition_frontmatter = _lazy_call("bookmem.editions", "ensure_work_edition_frontmatter")
+build_book_graph = _lazy_call("bookmem.book_graph", "build_book_graph")
+related_books = _lazy_call("bookmem.book_graph", "related_books")
+export_graph = _lazy_call("bookmem.graph_exports", "export_graph")
+export_all_graph_formats = _lazy_call("bookmem.graph_exports", "export_all_graph_formats")
+build_answer_pack = _lazy_call("bookmem.answer_pack", "build_answer_pack")
+list_prompts = _lazy_call("bookmem.prompt_packs", "list_prompts")
+show_prompt = _lazy_call("bookmem.prompt_packs", "show_prompt")
+prompt_assets_as_dict = _lazy_call("bookmem.prompt_packs", "prompt_assets_as_dict")
+extract_concepts_from_book = _lazy_call("bookmem.concepts", "extract_concepts_from_book")
+extract_concepts_from_books = _lazy_call("bookmem.concepts", "extract_concepts_from_books")
+search_concepts = _lazy_call("bookmem.concepts", "search_concepts")
+list_concepts = _lazy_call("bookmem.concepts", "list_concepts")
+rebuild_concept_index = _lazy_call("bookmem.concepts", "rebuild_concept_index")
+index_status = _lazy_call("bookmem.index_versions", "index_status")
+update_manifest_index_metadata = _lazy_call("bookmem.index_versions", "update_manifest_index_metadata")
+current_embedding_info = _lazy_call("bookmem.embedding_management", "current_embedding_info")
+embedding_profiles = _lazy_call("bookmem.embedding_management", "embedding_profiles")
+profiles_as_dict = _lazy_call("bookmem.embedding_management", "profiles_as_dict")
+validate_embedding_models = _lazy_call("bookmem.embedding_management", "validate_embedding_models")
+benchmark_embeddings = _lazy_call("bookmem.embedding_management", "benchmark_embeddings")
+reindex_with_embedding_model = _lazy_call("bookmem.embedding_management", "reindex_with_embedding_model")
+evaluate_retrieval = _lazy_call("bookmem.evaluation", "evaluate_retrieval")
+load_eval_queries = _lazy_call("bookmem.evaluation", "load_eval_queries")
+eval_queries_as_dict = _lazy_call("bookmem.evaluation", "eval_queries_as_dict")
+run_ui = _lazy_call("bookmem.web_ui", "run_ui")
+run_tui = _lazy_call("bookmem.tui", "run_tui")
+load_setup_presets = _lazy_call("bookmem.setup_wizard", "load_setup_presets")
+presets_as_dict = _lazy_call("bookmem.setup_wizard", "presets_as_dict")
+setup_steps_for_preset = _lazy_call("bookmem.setup_wizard", "setup_steps_for_preset")
+setup_status = _lazy_call("bookmem.setup_wizard", "setup_status")
+run_setup_preset = _lazy_call("bookmem.setup_wizard", "run_setup_preset")
+migration_status = _lazy_call("bookmem.migrations", "migration_status")
+apply_migrations = _lazy_call("bookmem.migrations", "apply_migrations")
+create_migration = _lazy_call("bookmem.migrations", "create_migration")
+clean_derived = _lazy_call("bookmem.clean_derived", "clean_derived")
+clean_result_as_dict = _lazy_call("bookmem.clean_derived", "clean_result_as_dict")
+machine_drafts = _lazy_call("bookmem.human_review", "machine_drafts")
+drafts_as_dict = _lazy_call("bookmem.human_review", "drafts_as_dict")
+approve_summary = _lazy_call("bookmem.human_review", "approve_summary")
+approve_concepts = _lazy_call("bookmem.human_review", "approve_concepts")
+reject_concept = _lazy_call("bookmem.human_review", "reject_concept")
+mark_human_reviewed = _lazy_call("bookmem.human_review", "mark_human_reviewed")
+set_summary_status = _lazy_call("bookmem.human_review", "set_summary_status")
+set_concepts_status = _lazy_call("bookmem.human_review", "set_concepts_status")
+tail_audit = _lazy_call("bookmem.audit", "tail_audit")
+search_audit = _lazy_call("bookmem.audit", "search_audit")
+export_audit = _lazy_call("bookmem.audit", "export_audit")
+append_audit_record = _lazy_call("bookmem.audit", "append_audit_record")
+create_restore_point = _lazy_call("bookmem.restore_points", "create_restore_point")
+list_restore_points = _lazy_call("bookmem.restore_points", "list_restore_points")
+show_restore_point = _lazy_call("bookmem.restore_points", "show_restore_point")
+rollback_restore_point = _lazy_call("bookmem.restore_points", "rollback_restore_point")
+restore_point_from_audit_id = _lazy_call("bookmem.restore_points", "restore_point_from_audit_id")
+restore_point_as_dict = _lazy_call("bookmem.restore_points", "restore_point_as_dict")
+check_permission = _lazy_call("bookmem.permissions", "check_permission")
+list_agent_permissions = _lazy_call("bookmem.permissions", "list_agent_permissions")
+list_agents = _lazy_call("bookmem.permissions", "list_agents")
+validate_permissions = _lazy_call("bookmem.permissions", "validate_permissions")
+decision_as_dict = _lazy_call("bookmem.permissions", "decision_as_dict")
+list_workspaces_as_dict = _lazy_call("bookmem.workspaces", "list_workspaces_as_dict")
+workspace_search = _lazy_call("bookmem.workspaces", "workspace_search")
+workspace_answer_pack = _lazy_call("bookmem.workspaces", "workspace_answer_pack")
+validate_workspaces = _lazy_call("bookmem.workspaces", "validate_workspaces")
+save_query = _lazy_call("bookmem.saved_queries", "save_query")
+list_saved_queries = _lazy_call("bookmem.saved_queries", "list_saved_queries")
+run_saved_query = _lazy_call("bookmem.saved_queries", "run_saved_query")
+generate_brief = _lazy_call("bookmem.saved_queries", "generate_brief")
+generate_reading_list = _lazy_call("bookmem.reading_lists", "generate_reading_list")
+infer_reading_metadata = _lazy_call("bookmem.reading_metadata", "infer_reading_metadata")
+reading_metadata_result_as_dict = _lazy_call("bookmem.reading_metadata", "result_as_dict")
+extract_passages = _lazy_call("bookmem.passages", "extract_passages")
+search_passages = _lazy_call("bookmem.passages", "search_passages")
+favourite_passage = _lazy_call("bookmem.passages", "favourite_passage")
+export_passages = _lazy_call("bookmem.passages", "export_passages")
+compare_topic = _lazy_call("bookmem.topic_compare", "compare_topic")
+render_compare_markdown = _lazy_call("bookmem.topic_compare", "render_compare_markdown")
+extract_claims = _lazy_call("bookmem.claims", "extract_claims")
+search_claims = _lazy_call("bookmem.claims", "search_claims")
+compare_claims = _lazy_call("bookmem.claims", "compare_claims")
+render_claims_compare_markdown = _lazy_call("bookmem.claims", "render_claims_compare_markdown")
+discover_plugins = _lazy_call("bookmem.plugins", "discover_plugins")
+plugins_as_dict = _lazy_call("bookmem.plugins", "plugins_as_dict")
+validate_plugins = _lazy_call("bookmem.plugins", "validate_plugins")
+plugin_summary = _lazy_call("bookmem.plugins", "plugin_summary")
+export_references = _lazy_call("bookmem.citation_exports", "export_references")
+format_reference = _lazy_call("bookmem.citation_exports", "format_reference")
+load_citation_styles = _lazy_call("bookmem.citation_exports", "load_citation_styles")
+load_reference_export_formats = _lazy_call("bookmem.citation_exports", "load_reference_export_formats")
+reference_from_frontmatter = _lazy_call("bookmem.citation_exports", "reference_from_frontmatter")
+references_from_directory = _lazy_call("bookmem.citation_exports", "references_from_directory")
+supported_export_formats = _lazy_call("bookmem.citation_exports", "supported_export_formats")
+supported_styles = _lazy_call("bookmem.citation_exports", "supported_styles")
+validate_citation_styles = _lazy_call("bookmem.citation_exports", "validate_citation_styles")
+validate_reference_export_formats = _lazy_call("bookmem.citation_exports", "validate_reference_export_formats")
+
+
+def _supported_agent_export_formats():
+    return _lazy_value("bookmem.agent_exports", "SUPPORTED_AGENT_EXPORT_FORMATS")
+
+
+def _supported_graph_export_formats():
+    return _lazy_value("bookmem.graph_exports", "SUPPORTED_GRAPH_EXPORT_FORMATS")
+
+
+
+profile_environment = _lazy_call("bookmem.profiles", "profile_environment")
+active_profile_name = _lazy_call("bookmem.profiles", "active_profile_name")
+get_profile = _lazy_call("bookmem.profiles", "get_profile")
+write_current_profile = _lazy_call("bookmem.profiles", "write_current_profile")
+profile_profiles_as_dict = _lazy_call("bookmem.profiles", "profiles_as_dict")
+profile_as_dict = _lazy_call("bookmem.profiles", "profile_as_dict")
+validate_profile = _lazy_call("bookmem.profiles", "validate_profile")
+list_jobs = _lazy_call("bookmem.jobs", "list_jobs")
+read_job = _lazy_call("bookmem.jobs", "read_job")
+tail_job = _lazy_call("bookmem.jobs", "tail_job")
+job_as_dict = _lazy_call("bookmem.jobs", "job_as_dict")
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
 review_app = typer.Typer(help="Generate, inspect and apply review queues")
@@ -1303,7 +1454,7 @@ def agent_export_command(
 ):
     """Export the BookMem corpus for other agents and retrieval frameworks."""
     export_format = format.lower().strip()
-    supported = set(SUPPORTED_AGENT_EXPORT_FORMATS) | {"all"}
+    supported = set(_supported_agent_export_formats()) | {"all"}
     if export_format not in supported:
         console.print(f"[red]Unsupported format: {export_format}. Supported: {', '.join(sorted(supported))}[/red]")
         raise typer.Exit(code=1)
@@ -4475,7 +4626,7 @@ def backup_command(
     import json as json_lib
 
     result = create_backup(output_path=output, overwrite=overwrite)
-    payload = result_as_dict(result)
+    payload = backup_result_as_dict(result)
 
     if json_output:
         console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
@@ -4518,7 +4669,7 @@ def restore_command(
         overwrite=overwrite,
         dry_run=dry_run,
     )
-    payload = result_as_dict(result)
+    payload = backup_result_as_dict(result)
     payload["manifest"] = manifest
 
     if json_output:

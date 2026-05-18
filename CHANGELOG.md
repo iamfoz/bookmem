@@ -16,6 +16,27 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.29.0] - 2026-05-18
+
+### Added
+- Added Calibre metadata integration.
+- Added `bookmem calibre scan`.
+- Added `bookmem calibre metadata`.
+- Added `bookmem calibre import`.
+- Added `bookmem calibre enrich`.
+- Added `bookmem/calibre.py`.
+- Added `docs/CALIBRE.md`.
+- Added Grimmory sidecar/export integration.
+- Added `bookmem grimmory sidecar`.
+- Added `bookmem grimmory export`.
+- Added `bookmem/grimmory.py`.
+- Added `docs/GRIMMORY.md`.
+
+### Notes
+- Calibre is treated as a metadata enrichment source, not the canonical metadata store.
+- Grimmory integration is file-based and exports sidecar-style JSON rather than writing directly into Grimmory's database.
+
 ## [0.28.0] - 2026-05-18
 
 ### Added

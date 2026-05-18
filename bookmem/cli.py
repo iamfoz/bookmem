@@ -27,6 +27,8 @@ from .clean import clean_markdown_file, load_cleaning_profiles, validate_cleanin
 from .doctor import run_doctor
 from .backup import create_backup, restore_backup, inspect_backup, result_as_dict
 from .importers import import_epub, import_html, import_pdf, import_calibre, result_as_dict as import_result_as_dict
+from .calibre import scan_calibre_library, find_calibre_book, enrich_markdown_from_calibre, import_calibre_metadata_stubs, calibre_book_as_dict
+from .grimmory import write_grimmory_sidecar, export_grimmory_library, result_as_dict as grimmory_result_as_dict
 from .citation_exports import (
     export_references,
     format_reference,
@@ -44,9 +46,13 @@ app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
 review_app = typer.Typer(help="Generate, inspect and apply review queues")
 notes_app = typer.Typer(help="Generate Obsidian-friendly book notes")
 import_app = typer.Typer(help="Import source book formats into raw Markdown")
+calibre_app = typer.Typer(help="Calibre metadata integration")
+grimmory_app = typer.Typer(help="Grimmory sidecar/export integration")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
+app.add_typer(calibre_app, name="calibre")
+app.add_typer(grimmory_app, name="grimmory")
 console = Console()
 
 
@@ -1367,6 +1373,122 @@ def validate_citation_styles_command():
 
 
 
+@calibre_app.command("scan")
+def calibre_scan_command(
+    library_path: Path,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+    limit: int = typer.Option(50, "--limit", "-n", help="Maximum rows to display."),
+):
+    """Scan a Calibre library metadata.db."""
+    import json as json_lib
+
+    books = scan_calibre_library(library_path)
+    if json_output:
+        console.print(json_lib.dumps([calibre_book_as_dict(book) for book in books], indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title=f"Calibre library: {library_path}")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("ISBN")
+    table_out.add_column("Formats")
+    for book in books[:limit]:
+        table_out.add_row(
+            book.title,
+            ", ".join(book.authors),
+            book.isbn or "",
+            ", ".join(book.formats),
+        )
+    console.print(table_out)
+    console.print(f"[green]{len(books)} book(s) found[/green]")
+
+
+@calibre_app.command("metadata")
+def calibre_metadata_command(
+    library_path: Path,
+    query: str,
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Find Calibre metadata by title, author, ISBN or tag."""
+    import json as json_lib
+
+    matches = find_calibre_book(library_path, query)
+    if json_output:
+        console.print(json_lib.dumps([calibre_book_as_dict(book) for book in matches], indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title=f"Calibre metadata matches: {query}")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("ISBN")
+    table_out.add_column("Publisher")
+    table_out.add_column("Tags")
+    for book in matches:
+        table_out.add_row(
+            book.title,
+            ", ".join(book.authors),
+            book.isbn or "",
+            book.publisher or "",
+            ", ".join(book.tags[:8]),
+        )
+    console.print(table_out)
+
+
+@calibre_app.command("import")
+def calibre_import_command(
+    library_path: Path,
+    output_dir: Path = typer.Option(Path("data/raw-books"), "--output-dir", "-o"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing metadata stubs."),
+):
+    """Import Calibre metadata as raw Markdown stubs."""
+    paths = import_calibre_metadata_stubs(library_path, output_dir=output_dir, overwrite=overwrite)
+    console.print(f"[green]{len(paths)} Calibre metadata stub(s) written to {output_dir}[/green]")
+
+
+@calibre_app.command("enrich")
+def calibre_enrich_command(
+    book: Path,
+    library_path: Path,
+    query: str | None = typer.Option(None, "--query", help="Override the lookup query."),
+    write: bool = typer.Option(False, "--write", help="Write Calibre metadata into BookMem frontmatter."),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing frontmatter fields."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Enrich one canonical Markdown book from Calibre metadata."""
+    import json as json_lib
+
+    frontmatter, match = enrich_markdown_from_calibre(
+        book_path=book,
+        calibre_library=library_path,
+        query=query,
+        write=write,
+        overwrite=overwrite,
+    )
+    payload = {
+        "book": str(book),
+        "matched": calibre_book_as_dict(match) if match else None,
+        "wrote": write,
+        "frontmatter": frontmatter,
+    }
+    if json_output:
+        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        return
+    if not match:
+        console.print("[yellow]No Calibre match found[/yellow]")
+        return
+    console.print(
+        Panel(
+            f"Matched: {match.title}\n"
+            f"Authors: {', '.join(match.authors)}\n"
+            f"ISBN: {match.isbn or ''}\n"
+            f"Publisher: {match.publisher or ''}\n"
+            f"Wrote: {'yes' if write else 'no'}",
+            title="Calibre enrichment",
+            expand=False,
+        )
+    )
+
+
 @import_app.command("epub")
 def import_epub_command(
     source: Path,
@@ -1470,6 +1592,48 @@ def import_calibre_command(
         table_out.add_row(result.title or "", result.author or "", result.output_path)
     console.print(table_out)
     console.print(f"[green]{len(results)} metadata stub(s) written[/green]")
+
+
+@grimmory_app.command("sidecar")
+def grimmory_sidecar_command(
+    book: Path,
+    output_dir: Path | None = typer.Option(None, "--output-dir", "-o", help="Directory for sidecar. Defaults to book folder."),
+    overwrite: bool = typer.Option(False, "--overwrite"),
+):
+    """Write a Grimmory-style metadata JSON sidecar for one BookMem book."""
+    sidecar = write_grimmory_sidecar(book, output_dir=output_dir, overwrite=overwrite)
+    console.print(f"[green]Wrote sidecar:[/green] {sidecar}")
+
+
+@grimmory_app.command("export")
+def grimmory_export_command(
+    books_dir: Path = typer.Argument(Path("data/books")),
+    output_dir: Path = typer.Option(Path("exports/grimmory"), "--output-dir", "-o"),
+    copy_markdown: bool = typer.Option(False, "--copy-markdown", help="Copy BookMem Markdown into the Grimmory export folder."),
+    overwrite: bool = typer.Option(False, "--overwrite"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Export BookMem metadata as Grimmory-ready sidecar files."""
+    import json as json_lib
+
+    results = export_grimmory_library(
+        books_dir=books_dir,
+        output_dir=output_dir,
+        copy_markdown=copy_markdown,
+        overwrite=overwrite,
+    )
+    if json_output:
+        console.print(json_lib.dumps([grimmory_result_as_dict(result) for result in results], indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Grimmory export")
+    table_out.add_column("Title")
+    table_out.add_column("Authors")
+    table_out.add_column("Sidecar")
+    for result in results:
+        table_out.add_row(result.title, ", ".join(result.authors), result.sidecar_path)
+    console.print(table_out)
+    console.print(f"[green]{len(results)} sidecar file(s) written[/green]")
 
 
 @app.command("backup")

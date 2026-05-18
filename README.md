@@ -680,3 +680,30 @@ import → raw Markdown → clean → frontmatter → classify → prepare → i
 ```
 
 See `docs/IMPORT_ADAPTERS.md`.
+
+
+## Calibre integration
+
+Use Calibre as a metadata source without replacing BookMem frontmatter:
+
+```bash
+bookmem calibre scan "/path/to/Calibre Library"
+bookmem calibre metadata "/path/to/Calibre Library" "Book Title"
+bookmem calibre import "/path/to/Calibre Library"
+bookmem calibre enrich "data/books/.../Book.md" "/path/to/Calibre Library" --write
+```
+
+See `docs/CALIBRE.md`.
+
+
+## Grimmory integration
+
+Export BookMem metadata as Grimmory-ready sidecar JSON files:
+
+```bash
+bookmem grimmory sidecar "data/books/.../Book.md"
+bookmem grimmory export data/books --output-dir exports/grimmory
+bookmem grimmory export data/books --output-dir exports/grimmory --copy-markdown
+```
+
+See `docs/GRIMMORY.md`.

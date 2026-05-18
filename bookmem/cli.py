@@ -48,6 +48,7 @@ from .human_review import machine_drafts, drafts_as_dict, approve_summary, appro
 from .audit import tail_audit, search_audit, export_audit, append_audit_record
 from .restore_points import create_restore_point, list_restore_points, show_restore_point, rollback_restore_point, restore_point_from_audit_id, restore_point_as_dict
 from .permissions import check_permission, list_agent_permissions, list_agents, validate_permissions, decision_as_dict
+from .workspaces import list_workspaces_as_dict, workspace_search, workspace_answer_pack, validate_workspaces
 from .citation_exports import (
     export_references,
     format_reference,
@@ -76,6 +77,7 @@ migrations_app = typer.Typer(help="Explicit schema/data migrations")
 audit_app = typer.Typer(help="Inspect and export the durable audit log")
 restore_points_app = typer.Typer(help="Create, inspect and roll back restore points")
 permissions_app = typer.Typer(help="Check agent permissions and safety policy")
+workspace_app = typer.Typer(help="Use named workspace/project corpus views")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -90,6 +92,7 @@ app.add_typer(migrations_app, name="migrations")
 app.add_typer(audit_app, name="audit")
 app.add_typer(restore_points_app, name="restore-points")
 app.add_typer(permissions_app, name="permissions")
+app.add_typer(workspace_app, name="workspace")
 console = Console()
 
 
@@ -1870,6 +1873,160 @@ def _print_audit_table(records, title: str = "Audit log"):
             str(record.get("target") or ""),
             str(len(changed)),
             str(record.get("command") or "")[:80],
+        )
+    console.print(table_out)
+
+
+@workspace_app.command("list")
+def workspace_list_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """List configured workspaces."""
+    import json as json_lib
+
+    workspaces = list_workspaces_as_dict()
+    if json_output:
+        console.print(json_lib.dumps(workspaces, indent=2, ensure_ascii=False))
+        return
+
+    table_out = Table(title="Workspaces")
+    table_out.add_column("Name")
+    table_out.add_column("Label")
+    table_out.add_column("Classes")
+    table_out.add_column("Topics")
+    table_out.add_column("Aliases")
+
+    for ws in workspaces:
+        table_out.add_row(
+            ws["name"],
+            ws["label"],
+            ", ".join(ws.get("classes", [])),
+            ", ".join(ws.get("topics", [])[:8]),
+            ", ".join(ws.get("aliases", [])),
+        )
+    console.print(table_out)
+
+
+@workspace_app.command("validate")
+def workspace_validate_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Validate workspace configuration."""
+    import json as json_lib
+
+    issues = validate_workspaces()
+    if json_output:
+        console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+        return
+
+    if not issues:
+        console.print("[green]Workspace configuration is valid.[/green]")
+        return
+
+    table_out = Table(title="Workspace validation issues")
+    table_out.add_column("Workspace")
+    table_out.add_column("Level")
+    table_out.add_column("Message")
+    for issue in issues:
+        table_out.add_row(issue.get("workspace", ""), issue.get("level", ""), issue.get("message", ""))
+    console.print(table_out)
+
+
+@workspace_app.command("search")
+def workspace_search_command(
+    workspace: str,
+    query: str,
+    limit: int = typer.Option(10, "--limit", "-n"),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Search within a named workspace/project view."""
+    import json as json_lib
+
+    result = workspace_search(workspace, query, limit=limit)
+    if json_output:
+        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    ws = result["workspace"]
+    console.print(
+        Panel(
+            f"Workspace: {ws['name']}\n"
+            f"Label: {ws['label']}\n"
+            f"Query: {query}\n"
+            f"Results: {result['count']}",
+            title="Workspace search",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title=f"Workspace search results: {workspace}")
+    table_out.add_column("#", justify="right")
+    table_out.add_column("Book")
+    table_out.add_column("Author")
+    table_out.add_column("Class")
+    table_out.add_column("Location")
+    table_out.add_column("Citation")
+
+    for index, row in enumerate(result["results"], start=1):
+        table_out.add_row(
+            str(index),
+            str(row.get("title") or ""),
+            str(row.get("author") or ""),
+            str(row.get("primary_class") or ""),
+            str(row.get("heading_path") or ""),
+            str(row.get("citation") or ""),
+        )
+    console.print(table_out)
+
+
+@workspace_app.command("answer-pack")
+def workspace_answer_pack_command(
+    workspace: str,
+    query: str,
+    limit: int = typer.Option(6, "--limit", "-n"),
+    context: int = typer.Option(1, "--context", "-c"),
+    no_text: bool = typer.Option(False, "--no-text", help="Return metadata/excerpts rather than full passage text."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Build an answer pack scoped to a named workspace/project view."""
+    import json as json_lib
+
+    pack = workspace_answer_pack(
+        workspace,
+        query,
+        limit=limit,
+        context=context,
+        include_text=not no_text,
+    )
+
+    if json_output:
+        console.print(json_lib.dumps(pack, indent=2, ensure_ascii=False, default=str))
+        return
+
+    ws = pack["workspace"]
+    console.print(
+        Panel(
+            f"Workspace: {ws['name']}\n"
+            f"Label: {ws['label']}\n"
+            f"Query: {query}\n"
+            f"Top passages: {len(pack.get('top_passages', []))}\n"
+            f"Citations: {len(pack.get('citations', []))}",
+            title="Workspace answer pack",
+            expand=False,
+        )
+    )
+
+    table_out = Table(title="Relevant books")
+    table_out.add_column("#", justify="right")
+    table_out.add_column("Title")
+    table_out.add_column("Author")
+    table_out.add_column("Class")
+    for index, book in enumerate(pack.get("relevant_books", []), start=1):
+        table_out.add_row(
+            str(index),
+            str(book.get("title") or ""),
+            str(book.get("author") or ""),
+            str(book.get("primary_class") or ""),
         )
     console.print(table_out)
 

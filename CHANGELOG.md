@@ -38,6 +38,24 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.50.0] - 2026-05-18
+
+### Added
+- Added workspace/project views for scoped retrieval.
+- Added `config/workspaces.yaml`.
+- Added `bookmem workspace list`.
+- Added `bookmem workspace validate`.
+- Added `bookmem workspace search <workspace> <query>`.
+- Added `bookmem workspace answer-pack <workspace> <query>`.
+- Added `bookmem/workspaces.py`.
+- Added `docs/WORKSPACES.md`.
+- Added built-in workspaces for productivity, finance and agent infrastructure.
+
+### Behaviour
+- Workspace search scopes retrieval using classes, routing aliases and topics.
+- Workspace answer packs include workspace metadata and scoped results so agents can prefer project-specific evidence.
+
 ## [0.49.1] - 2026-05-18
 
 ### Changed

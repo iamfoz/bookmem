@@ -1,0 +1,59 @@
+schema_version: 1
+
+workspaces:
+  productivity:
+    label: Productivity and personal effectiveness
+    description: Habits, systems, self-improvement, management and practical personal effectiveness.
+    classes:
+      - "158"
+      - "650"
+      - "658"
+    topics:
+      - habits
+      - systems
+      - personal effectiveness
+      - productivity
+      - goals
+      - energy management
+    aliases:
+      - personal_development
+      - productivity
+      - management
+
+  finance:
+    label: Finance and investing
+    description: Personal finance, investing, markets, valuation, risk and economic decision-making.
+    classes:
+      - "330"
+      - "332"
+      - "336"
+    topics:
+      - investing
+      - valuation
+      - risk
+      - compound interest
+      - markets
+      - personal finance
+    aliases:
+      - finance
+      - investing
+      - economics
+
+  agent_infrastructure:
+    label: Agent infrastructure and AI systems
+    description: AI, machine intelligence, information systems and agent/tooling design.
+    classes:
+      - "006"
+      - "004"
+      - "005"
+    topics:
+      - agents
+      - AI
+      - machine learning
+      - retrieval
+      - automation
+      - software
+    aliases:
+      - ai
+      - artificial_intelligence
+      - software

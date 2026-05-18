@@ -1032,3 +1032,17 @@ bookmem permissions validate
 Decisions are `allow`, `require_confirmation`, `deny` or `unknown`.
 Deny wins; unknown should be treated as unsafe. See
 `docs/AGENT_PERMISSIONS.md`.
+
+
+## Workspaces
+
+Use named project/corpus views to narrow retrieval:
+
+```bash
+bookmem workspace list
+bookmem workspace search productivity "systems versus goals"
+bookmem workspace answer-pack finance "risk and return"
+```
+
+Workspaces are configured in `config/workspaces.yaml` using BMDC
+classes, topics and aliases. See `docs/WORKSPACES.md`.

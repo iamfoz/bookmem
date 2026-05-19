@@ -3812,7 +3812,7 @@ def concepts_rebuild_index_command(
 @concepts_app.command("search")
 def concepts_search_command(
     query: str,
-    class_code: str | None = typer.Option(None, "--class", "class_filter", help="Filter by BMDC class."),
+    class_filter: str | None = typer.Option(None, "--class", "--class-code", help="Filter by BMDC class."),
     limit: int = typer.Option(20, "--limit", "-n"),
     json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
 ):
@@ -3845,7 +3845,7 @@ def concepts_search_command(
 
 @concepts_app.command("list")
 def concepts_list_command(
-    class_code: str | None = typer.Option(None, "--class", "class_filter", help="Filter by BMDC class."),
+    class_filter: str | None = typer.Option(None, "--class", "--class-code", help="Filter by BMDC class."),
     concept_type: str | None = typer.Option(None, "--type", help="Filter by concept type."),
     limit: int = typer.Option(100, "--limit", "-n"),
     json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),

@@ -52,6 +52,13 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.3] - 2026-05-18
+
+### Fixed
+- Fixed Typer/Click parameter declaration collision in concept commands.
+- `bookmem --help` no longer fails with `TypeError: Name 'class_code' defined twice`.
+
 ## [0.61.2] - 2026-05-18
 
 ### Fixed

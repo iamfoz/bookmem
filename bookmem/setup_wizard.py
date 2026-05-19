@@ -219,19 +219,35 @@ def create_required_dirs() -> dict[str, Any]:
     return {"created": created, "count": len(created)}
 
 
-def setup_status() -> dict[str, Any]:
+def setup_status(include_index: bool = False) -> dict[str, Any]:
+    """Return setup status.
+
+    By default this is deliberately passive: it must not load embedding models,
+    touch Hugging Face, or initialise LanceDB. Use include_index=True for deeper
+    index diagnostics.
+    """
     presets = load_setup_presets()
     doctor = run_doctor(fix=False)
-    try:
-        from .index_versions import index_status
-        idx = index_status()
-    except Exception as exc:
+
+    if include_index:
+        try:
+            from .index_versions import index_status
+            idx = index_status()
+        except Exception as exc:
+            idx = {
+                "status": "WARN",
+                "stale": None,
+                "reason": f"Index status unavailable: {exc}",
+                "errors": [str(exc)],
+            }
+    else:
         idx = {
-            "status": "WARN",
+            "status": "SKIPPED",
             "stale": None,
-            "reason": f"Index status unavailable: {exc}",
-            "errors": [str(exc)],
+            "reason": "Index diagnostics skipped. Re-run setup status with --include-index to check embeddings/LanceDB.",
+            "errors": [],
         }
+
     dirs = {str(path): path.exists() for path in REQUIRED_DIRS}
     return {
         "setup_wizard_version": SETUP_WIZARD_VERSION,

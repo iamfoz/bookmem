@@ -1215,3 +1215,13 @@ Deep mode is read-only. See `docs/DOCTOR.md`.
 The CLI uses lazy command imports so simple commands such as
 `bookmem --help` do not import heavyweight embedding dependencies such
 as `sentence-transformers`, `sklearn` or `scipy`.
+
+
+## Setup status is passive by default
+
+`bookmem setup status` does not load embedding models, initialise LanceDB,
+or contact Hugging Face. Use the explicit deeper mode when required:
+
+```bash
+bookmem setup status --include-index
+```

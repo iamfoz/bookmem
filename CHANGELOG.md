@@ -57,6 +57,14 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.8] - 2026-05-18
+
+### Fixed
+- Made `bookmem setup status` passive by default.
+- `bookmem setup status` no longer loads embedding models, initialises LanceDB, or downloads from Hugging Face.
+- Added `bookmem setup status --include-index` for explicit embedding/LanceDB diagnostics.
+
 ## [0.61.7] - 2026-05-18
 
 ### Fixed

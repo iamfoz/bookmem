@@ -3335,12 +3335,13 @@ def setup_presets_command(
 
 @setup_app.command("status")
 def setup_status_command(
+    include_index: bool = typer.Option(False, "--include-index", help="Also run embedding/LanceDB index diagnostics."),
     json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
 ):
     """Show first-run setup status."""
     import json as json_lib
 
-    status = setup_status()
+    status = setup_status(include_index=include_index)
     if json_output:
         console.print(json_lib.dumps(status, indent=2, ensure_ascii=False))
         return

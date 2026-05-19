@@ -56,6 +56,14 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.7] - 2026-05-18
+
+### Fixed
+- Fixed `doctor.collection_counts()` to use actual review queue keys: `metadata`, `classification`, and `low_confidence`.
+- Kept `possible_duplicates.yaml` counting as an optional direct review file.
+- Fixed `bookmem setup status` so missing LanceDB/index dependencies report a warning instead of crashing.
+
 ## [0.61.6] - 2026-05-18
 
 ### Fixed

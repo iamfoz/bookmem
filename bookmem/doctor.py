@@ -300,16 +300,30 @@ def collection_counts() -> dict[str, int]:
 
     review_items = 0
     for name in (
-        "needs_metadata",
-        "needs_classification",
-        "low_confidence_matches",
-        "possible_duplicates",
+        "metadata",
+        "classification",
+        "low_confidence",
     ):
         path = review_file_path(name)
         if not path.exists():
             continue
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            if isinstance(data, dict):
+                for value in data.values():
+                    if isinstance(value, list):
+                        review_items += len(value)
+                if "items" in data and isinstance(data["items"], list):
+                    review_items += len(data["items"])
+            elif isinstance(data, list):
+                review_items += len(data)
+        except Exception:
+            review_items += 1
+
+    possible_duplicates = review_file_path("low_confidence").parent / "possible_duplicates.yaml"
+    if possible_duplicates.exists():
+        try:
+            data = yaml.safe_load(possible_duplicates.read_text(encoding="utf-8")) or {}
             if isinstance(data, dict):
                 for value in data.values():
                     if isinstance(value, list):

@@ -220,11 +220,18 @@ def create_required_dirs() -> dict[str, Any]:
 
 
 def setup_status() -> dict[str, Any]:
-    from .index_versions import index_status
-
     presets = load_setup_presets()
     doctor = run_doctor(fix=False)
-    idx = index_status()
+    try:
+        from .index_versions import index_status
+        idx = index_status()
+    except Exception as exc:
+        idx = {
+            "status": "WARN",
+            "stale": None,
+            "reason": f"Index status unavailable: {exc}",
+            "errors": [str(exc)],
+        }
     dirs = {str(path): path.exists() for path in REQUIRED_DIRS}
     return {
         "setup_wizard_version": SETUP_WIZARD_VERSION,

@@ -507,3 +507,27 @@ def book_id_from_frontmatter(path: Path) -> str:
     existing, body, _ = read_markdown_with_frontmatter(path)
     title, author, _isbn, _parsed = infer_title_author_isbn(path, existing, body)
     return slugify(f"{author or ''}_{title}")
+
+
+
+def discover_book_files(root: Path | str) -> list[Path]:
+    """Return Markdown book files under root.
+
+    Backwards-compatible helper used by doctor/API/MCP/notes modules.
+    """
+    root = Path(root)
+    if not root.exists():
+        return []
+    return sorted(
+        path for path in root.rglob("*.md")
+        if path.is_file() and not any(part.startswith(".") for part in path.parts)
+    )
+
+
+def read_frontmatter_and_body(path: Path | str) -> tuple[dict, str]:
+    """Read Markdown frontmatter and body.
+
+    Backwards-compatible wrapper around read_markdown_with_frontmatter.
+    """
+    frontmatter, body, _had_frontmatter = read_markdown_with_frontmatter(Path(path))
+    return frontmatter, body

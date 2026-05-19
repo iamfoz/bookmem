@@ -53,6 +53,14 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.4] - 2026-05-18
+
+### Fixed
+- Restored backwards-compatible `frontmatter.discover_book_files` helper.
+- Restored backwards-compatible `frontmatter.read_frontmatter_and_body` helper.
+- Fixed setup/doctor imports that still expected those helpers after the frontmatter refactor.
+
 ## [0.61.3] - 2026-05-18
 
 ### Fixed

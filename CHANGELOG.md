@@ -58,6 +58,13 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.9] - 2026-05-18
+
+### Fixed
+- Fixed deterministic summary generation when `split_by_markdown_headings()` returns richer section tuples such as `(level, heading, text)`.
+- Added section normalisation in `summary_providers.py` so summary providers accept tuple/list/dict section shapes.
+
 ## [0.61.8] - 2026-05-18
 
 ### Fixed

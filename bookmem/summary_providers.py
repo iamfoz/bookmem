@@ -164,7 +164,44 @@ def _call_ollama(prompt: str, cfg: dict[str, Any]) -> dict[str, Any]:
     return _extract_json(data.get("response") or "{}")
 
 
+
+def _normalise_sections(sections: list[Any]) -> list[tuple[str, str]]:
+    """Normalise chunking.split_by_markdown_headings output.
+
+    Older/newer chunking helpers may return:
+    - (heading, text)
+    - (level, heading, text)
+    - dicts with heading/text fields
+
+    Summary generation only needs heading and text.
+    """
+    normalised: list[tuple[str, str]] = []
+    for section in sections:
+        if isinstance(section, dict):
+            heading = section.get("heading") or section.get("title") or section.get("heading_path") or ""
+            text = section.get("text") or section.get("body") or section.get("content") or ""
+        elif isinstance(section, (tuple, list)):
+            if len(section) == 2:
+                heading, text = section
+            elif len(section) >= 3:
+                # Common shape: (level, heading, text)
+                heading = section[1]
+                text = section[2]
+            elif len(section) == 1:
+                heading = ""
+                text = section[0]
+            else:
+                heading = ""
+                text = ""
+        else:
+            heading = ""
+            text = str(section)
+        normalised.append((str(heading or ""), str(text or "")))
+    return normalised
+
+
 def _deterministic_payload(path: Path, meta: dict[str, Any], body: str, book_meta: dict[str, Any], sections: list[tuple[str, str]]) -> dict[str, Any]:
+    sections = _normalise_sections(sections)
     combined_text = "\n\n".join(section_text for _heading, section_text in sections) or body
     ideas = _heading_ideas(sections, book_meta["topics"], limit=12)
     best_for = _best_for(book_meta, ideas, combined_text, limit=10)
@@ -196,7 +233,7 @@ def summarise_book_with_provider(
     raw = path.read_text(encoding="utf-8", errors="replace")
     meta, body = parse_frontmatter(raw)
     book_meta = _book_metadata(path, meta)
-    sections = split_by_markdown_headings(body)
+    sections = _normalise_sections(split_by_markdown_headings(body))
     combined_text = "\n\n".join(section_text for _heading, section_text in sections) or body
 
     if provider == "deterministic":

@@ -55,6 +55,13 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.6] - 2026-05-18
+
+### Fixed
+- Fixed `bookmem setup status` / `bookmem doctor` review queue counting.
+- `doctor.collection_counts()` now passes logical queue names to `review_file_path()` instead of YAML filenames.
+
 ## [0.61.5] - 2026-05-18
 
 ### Fixed

@@ -300,10 +300,10 @@ def collection_counts() -> dict[str, int]:
 
     review_items = 0
     for name in (
-        "needs_metadata.yaml",
-        "needs_classification.yaml",
-        "low_confidence_matches.yaml",
-        "possible_duplicates.yaml",
+        "needs_metadata",
+        "needs_classification",
+        "low_confidence_matches",
+        "possible_duplicates",
     ):
         path = review_file_path(name)
         if not path.exists():

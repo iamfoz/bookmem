@@ -54,6 +54,13 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.5] - 2026-05-18
+
+### Fixed
+- Fixed `bookmem setup presets` importing `index_versions`/LanceDB at module import time.
+- Setup preset listing now only loads setup preset configuration; heavier index checks remain lazy inside setup status/preflight operations.
+
 ## [0.61.4] - 2026-05-18
 
 ### Fixed

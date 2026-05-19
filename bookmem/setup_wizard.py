@@ -14,7 +14,6 @@ import yaml
 
 from .doctor import run_doctor
 from .config import get_settings
-from .index_versions import index_status
 from .audit import append_audit_record
 
 
@@ -221,6 +220,8 @@ def create_required_dirs() -> dict[str, Any]:
 
 
 def setup_status() -> dict[str, Any]:
+    from .index_versions import index_status
+
     presets = load_setup_presets()
     doctor = run_doctor(fix=False)
     idx = index_status()

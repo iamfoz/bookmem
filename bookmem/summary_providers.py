@@ -25,6 +25,7 @@ from .summaries import (
     utc_now_iso,
 )
 from .manifest import get_record_for_path, markdown_hashes, relative_or_absolute, upsert_book_record
+from .book_files import discover_book_markdown_files
 
 
 SUMMARY_PROVIDER_VERSION = "0.1.0"
@@ -343,5 +344,5 @@ def summarise_book_with_provider(
 
 
 def summarise_books_with_provider(root: Path, provider: str = "deterministic", write: bool = True, overwrite: bool = True):
-    files = sorted(root.glob("**/*.md"))
+    files = discover_book_markdown_files(root)
     return [summarise_book_with_provider(path, provider=provider, write=write, overwrite=overwrite) for path in files]

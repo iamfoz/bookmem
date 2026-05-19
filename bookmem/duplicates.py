@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from hashlib import sha256
 from pathlib import Path
+
+from .book_files import discover_book_markdown_files
 import difflib
 import re
 from typing import Any, Iterable
@@ -158,7 +160,7 @@ def discover_markdown_files(books_dir: Path | None = None, raw_dir: Path | None 
     for root, collection in roots:
         if not root.exists():
             continue
-        for path in sorted(root.glob("**/*.md")):
+        for path in discover_book_markdown_files(root):
             if ".staging" in path.parts:
                 continue
             resolved = path.resolve()

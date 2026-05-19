@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+
+from .book_files import discover_book_markdown_files
 from typing import Any
 
 import yaml
@@ -69,7 +71,7 @@ def _record_for_path(path: Path) -> dict[str, Any] | None:
 def load_book_stats(books_dir: Path | None = None) -> list[BookStat]:
     settings = get_settings()
     root = books_dir or settings.books_dir
-    files = sorted(set(root.glob("*.md")) | set(root.glob("**/*.md")))
+    files = discover_book_markdown_files(root)
     stats: list[BookStat] = []
 
     for path in files:

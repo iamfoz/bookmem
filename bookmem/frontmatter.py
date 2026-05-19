@@ -11,6 +11,7 @@ import yaml
 from .chunking import FRONTMATTER_RE, slugify
 from .config import get_settings
 from .taxonomy import get_class_label, infer_class_from_path, normalise_alias
+from .book_files import discover_book_markdown_files
 
 
 # Filename convention supported by BookMem:
@@ -515,13 +516,7 @@ def discover_book_files(root: Path | str) -> list[Path]:
 
     Backwards-compatible helper used by doctor/API/MCP/notes modules.
     """
-    root = Path(root)
-    if not root.exists():
-        return []
-    return sorted(
-        path for path in root.rglob("*.md")
-        if path.is_file() and not any(part.startswith(".") for part in path.parts)
-    )
+    return discover_book_markdown_files(root)
 
 
 def read_frontmatter_and_body(path: Path | str) -> tuple[dict, str]:

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+
+from .book_files import discover_book_markdown_files
 from typing import Any
 
 import yaml
@@ -163,7 +165,7 @@ def _issue_base(path: Path, frontmatter: dict[str, Any]) -> dict[str, Any]:
 def scan_review_issues(books_dir: Path | None = None) -> dict[str, list[dict[str, Any]]]:
     settings = get_settings()
     root = books_dir or settings.books_dir
-    files = sorted(root.glob("**/*.md"))
+    files = discover_book_markdown_files(root)
 
     metadata_issues: list[dict[str, Any]] = []
     classification_issues: list[dict[str, Any]] = []
@@ -457,7 +459,7 @@ def canonical_filename_mismatches(books_dir: Path | None = None) -> list[dict[st
     settings = get_settings()
     root = books_dir or settings.books_dir
     mismatches: list[dict[str, Any]] = []
-    for path in sorted(root.glob("**/*.md")):
+    for path in discover_book_markdown_files(root):
         frontmatter, _body, had_frontmatter = read_markdown_with_frontmatter(path)
         if not had_frontmatter:
             continue

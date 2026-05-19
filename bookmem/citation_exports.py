@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+
+from .book_files import discover_book_markdown_files
 import json
 import re
 from typing import Any
@@ -141,7 +143,7 @@ def reference_from_frontmatter(path: Path) -> BookReference:
 
 
 def references_from_directory(books_dir: Path) -> list[BookReference]:
-    return [reference_from_frontmatter(path) for path in sorted(books_dir.glob("**/*.md"))]
+    return [reference_from_frontmatter(path) for path in discover_book_markdown_files(books_dir)]
 
 
 def _split_author_name(author: str | None) -> tuple[str, str]:

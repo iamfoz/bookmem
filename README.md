@@ -1225,3 +1225,11 @@ or contact Hugging Face. Use the explicit deeper mode when required:
 ```bash
 bookmem setup status --include-index
 ```
+
+
+## Book Markdown discovery
+
+BookMem excludes support Markdown files from book discovery, including
+`README.md`, `CHANGELOG.md`, `LICENSE.md`, and files under derived data
+directories. This prevents sample-directory README files being prepared,
+summarised, indexed or exported as books.

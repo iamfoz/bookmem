@@ -12,6 +12,7 @@ import yaml
 from .chunking import parse_frontmatter, slugify
 from .config import get_settings
 from .frontmatter import read_markdown_with_frontmatter
+from .book_files import discover_book_markdown_files
 from .manifest import get_record_for_path
 from .search import format_markdown_citation, format_source_location, get_table
 from .summaries import summaries_root
@@ -157,7 +158,7 @@ def collect_books(books_dir: Path | None = None) -> list[dict[str, Any]]:
     root = books_dir or settings.books_dir
     if not root.exists():
         return []
-    books = [_book_record_from_markdown(path, root) for path in sorted(root.glob("**/*.md"))]
+    books = [_book_record_from_markdown(path, root) for path in discover_book_markdown_files(root)]
     return sorted(books, key=lambda item: (str(item.get("primary_class", "")), str(item.get("title", "")).lower()))
 
 

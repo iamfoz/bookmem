@@ -59,6 +59,16 @@ BookMem uses semantic versioning while it is under active early development. Unt
 
 
 
+
+## [0.61.10] - 2026-05-18
+
+### Fixed
+- Removed incorrect project URLs from `pyproject.toml`.
+- Added shared book Markdown discovery helpers in `bookmem/book_files.py`.
+- Excluded support files such as `README.md`, `CHANGELOG.md`, `LICENSE.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` from book discovery.
+- Applied the book-file filter to ingestion, summaries, summary providers, frontmatter discovery, review, citations, duplicates, stats, agent exports and CLI bulk file scans.
+- Prevented README files in sample/data directories from being treated as books.
+
 ## [0.61.9] - 2026-05-18
 
 ### Fixed

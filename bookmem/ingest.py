@@ -11,15 +11,13 @@ from .config import get_settings
 from .embeddings import embed_texts
 from .manifest import mark_indexed, status_for_book
 from .index_versions import update_manifest_index_metadata
+from .book_files import discover_book_markdown_files
 
 console = Console()
 
 
 def find_markdown_files(books_dir: Path) -> list[Path]:
-    return sorted(
-        path for path in {*books_dir.glob("*.md"), *books_dir.glob("**/*.md")}
-        if "/.staging/" not in str(path)
-    )
+    return discover_book_markdown_files(books_dir)
 
 
 def _delete_existing_rows(table, source_path: Path) -> None:

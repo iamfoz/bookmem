@@ -14,6 +14,7 @@ from .config import get_settings
 from .embeddings import embed_texts
 from .manifest import get_record_for_path, upsert_book_record, relative_or_absolute, markdown_hashes
 from .taxonomy import get_class_label, infer_class_from_path, normalise_alias
+from .book_files import discover_book_markdown_files
 
 SUMMARY_SCHEMA_VERSION = 1
 SUMMARY_GENERATOR_VERSION = "0.1.0"
@@ -323,7 +324,7 @@ def summarise_book(path: Path, write: bool = True, overwrite: bool = True) -> Su
 
 
 def summarise_books(root: Path, write: bool = True, overwrite: bool = True) -> list[SummaryResult]:
-    files = sorted(root.glob("**/*.md"))
+    files = discover_book_markdown_files(root)
     return [summarise_book(path, write=write, overwrite=overwrite) for path in files]
 
 

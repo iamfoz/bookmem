@@ -24,6 +24,7 @@ def _lazy_value(module_name: str, attr_name: str):
 
 
 find_markdown_files = _lazy_call("bookmem.ingest", "find_markdown_files")
+discover_book_markdown_files = _lazy_call("bookmem.book_files", "discover_book_markdown_files")
 ingest_books = _lazy_call("bookmem.ingest", "ingest_books")
 format_markdown_citation = _lazy_call("bookmem.search", "format_markdown_citation")
 format_source_location = _lazy_call("bookmem.search", "format_source_location")
@@ -984,7 +985,7 @@ def enrich_loc_books(
     timeout: int = typer.Option(20, "--timeout"),
 ):
     """Enrich Markdown books under a directory from Library of Congress by ISBN."""
-    files = sorted(books_dir.glob("**/*.md"))
+    files = discover_book_markdown_files(books_dir)
     if not files:
         console.print(f"[yellow]No Markdown files found under {books_dir}[/yellow]")
         return
@@ -1081,7 +1082,7 @@ def prepare_books_command(
     profile: str = typer.Option("epub_pandoc", "--profile", help="Cleaning profile to use when cleaning."),
 ):
     """Bulk prepare Markdown books into the canonical class folder structure."""
-    files = sorted(source_dir.glob("**/*.md"))
+    files = discover_book_markdown_files(source_dir)
     if not files:
         console.print(f"[yellow]No Markdown files found under {source_dir}[/yellow]")
         return
@@ -1302,7 +1303,7 @@ def summarise_books_command(
     provider: str = typer.Option("deterministic", "--provider", help="Summary provider: deterministic, openai or local_ollama."),
 ):
     """Generate book-level and chapter-level summaries for all Markdown books under a directory."""
-    files = sorted(books_dir.glob("**/*.md"))
+    files = discover_book_markdown_files(books_dir)
     if not files:
         console.print(f"[yellow]No Markdown files found under {books_dir}[/yellow]")
         return
@@ -4824,7 +4825,7 @@ def clean_books_command(
     keep_pre_content: bool = typer.Option(False, "--keep-pre-content", help="Do not drop cover/copyright/catalogue material before the first real content heading."),
 ):
     """Clean all Markdown books from one directory into another."""
-    files = sorted(source_dir.glob("**/*.md"))
+    files = discover_book_markdown_files(source_dir)
     if not files:
         console.print(f"[yellow]No Markdown files found under {source_dir}[/yellow]")
         return

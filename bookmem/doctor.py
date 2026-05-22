@@ -6,6 +6,7 @@ from dataclasses import dataclass, asdict
 from importlib import metadata
 from pathlib import Path
 import json
+import shutil
 import sys
 from typing import Any
 
@@ -141,23 +142,43 @@ def check_dependencies() -> DoctorCheck:
     return DoctorCheck("Dependencies", STATUS_OK, "Required packages available.")
 
 
+def _config_file_ok(path: Path) -> bool:
+    """True when a config file exists and parses to a non-empty YAML mapping.
+
+    A present-but-empty file (such as a comment-only placeholder) is not OK: it
+    silently disables the feature it configures and shadows the real config.
+    """
+    if not path.exists():
+        return False
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return isinstance(data, dict) and bool(data)
+
+
 def check_config_files(fix: bool = False) -> DoctorCheck:
-    missing = [path for path in CONFIG_FILES if not path.exists()]
+    broken = [path for path in CONFIG_FILES if not _config_file_ok(path)]
     fixed = False
 
-    if missing and fix:
-        for path in missing:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            if not path.exists():
-                path.write_text("# TODO: restore BookMem configuration for this file.\n", encoding="utf-8")
-                fixed = True
-        missing = [path for path in CONFIG_FILES if not path.exists()]
+    if broken and fix:
+        from .paths import bundled_config_dir
 
-    if missing:
+        bundled = bundled_config_dir()
+        if bundled is not None:
+            for path in broken:
+                source = bundled / path.name
+                if source.is_file():
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, path)
+                    fixed = True
+        broken = [path for path in CONFIG_FILES if not _config_file_ok(path)]
+
+    if broken:
         return DoctorCheck(
             "Config",
             STATUS_FAIL,
-            "Missing config files: " + ", ".join(str(path) for path in missing),
+            "Missing or empty config files: " + ", ".join(str(path) for path in broken),
             fixable=True,
             fixed=fixed,
         )

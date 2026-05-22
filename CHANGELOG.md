@@ -23,6 +23,11 @@ the project is stabilising.
 - `bookmem.__version__` is derived from installed package metadata instead of
   a hardcoded string, so `bookmem doctor` and other version displays report
   the actual installed version.
+- `bookmem doctor --fix` now restores a missing config file by copying the
+  packaged default, instead of writing an empty "TODO" placeholder. An empty
+  placeholder previously passed the config check, blocked `hermes init` from
+  copying the real file, and silently disabled citation and reference exports.
+  The config check also now flags present-but-empty config files.
 
 ### Changed
 - `bookmem doctor` now names the specific citation-style and reference-format

@@ -22,8 +22,7 @@ from urllib.parse import urlencode
 import requests
 
 from .frontmatter import read_markdown_with_frontmatter, write_markdown_with_frontmatter
-from .loc import lookup_loc_by_isbn, enrich_file_with_loc
-from .audit import append_audit_record
+from .loc import enrich_file_with_loc
 
 
 ENRICHMENT_VERSION = "0.1.0"

@@ -1624,20 +1624,20 @@ def stats_command(
         rows = topic_counts(stats)[:limit]
         if not rows:
             console.print("[yellow]No topics found in frontmatter[/yellow]")
-            return
-        table_out = Table(title="Books by topic")
-        table_out.add_column("Topic")
-        table_out.add_column("Books", justify="right")
-        table_out.add_column("Chunks", justify="right")
-        table_out.add_column("Classes")
-        for row in rows:
-            table_out.add_row(
-                str(row["topic"]),
-                str(row["books"]),
-                str(row["chunks"]),
-                str(row["classes"]),
-            )
-        console.print(table_out)
+        else:
+            table_out = Table(title="Books by topic")
+            table_out.add_column("Topic")
+            table_out.add_column("Books", justify="right")
+            table_out.add_column("Chunks", justify="right")
+            table_out.add_column("Classes")
+            for row in rows:
+                table_out.add_row(
+                    str(row["topic"]),
+                    str(row["books"]),
+                    str(row["chunks"]),
+                    str(row["classes"]),
+                )
+            console.print(table_out)
 
 
     if show_all or by_difficulty:
@@ -4486,7 +4486,7 @@ def editions_command(
     table_out.add_column("ISBN")
     table_out.add_column("Path")
 
-    for work_id, work_records in sorted(grouped.items()):
+    for _work_id, work_records in sorted(grouped.items()):
         for record in work_records:
             table_out.add_row(
                 record.canonical_title,
@@ -4906,7 +4906,6 @@ def clean_check_command(
     if json_output:
         console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
     else:
-        summary = summarise_clean_check(report)
         table_out = Table(title=f"Clean check: {book}")
         table_out.add_column("Check")
         table_out.add_column("Value")

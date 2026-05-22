@@ -47,6 +47,12 @@ def canonicalise_title(title: str) -> str:
     return title or "Untitled"
 
 
+def _ordinal_suffix(number: int) -> str:
+    if 10 <= number % 100 <= 20:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+
+
 def infer_edition_from_title(title: str, published: Any = None) -> dict[str, Any]:
     text = title or ""
     edition: dict[str, Any] = {}
@@ -71,7 +77,7 @@ def infer_edition_from_title(title: str, published: Any = None) -> dict[str, Any
     if ordinal and "number" not in edition:
         number = int(ordinal.group(1))
         edition["number"] = number
-        edition["label"] = f"{number}th Edition"
+        edition["label"] = f"{number}{_ordinal_suffix(number)} Edition"
 
     if re.search(r"\brevised\b", text, flags=re.I):
         edition["is_revised"] = True

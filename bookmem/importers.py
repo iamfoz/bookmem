@@ -12,7 +12,6 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 import html
 import re
-import shutil
 import sqlite3
 import zipfile
 import xml.etree.ElementTree as ET

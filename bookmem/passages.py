@@ -13,7 +13,7 @@ import yaml
 
 from .frontmatter import read_markdown_with_frontmatter
 from .chunking import slugify
-from .search import search_books, read_chunk
+from .search import search_books, read_around
 from .audit import append_audit_record
 
 
@@ -234,7 +234,10 @@ def favourite_passage(chunk_or_passage_id: str, tags: list[str] | None = None, n
 
     if passage is None:
         # Try treating it as a chunk id.
-        row = read_chunk(chunk_or_passage_id)
+        rows = read_around(chunk_or_passage_id, before=0, after=0)
+        if not rows:
+            raise ValueError(f"No passage or chunk found for id: {chunk_or_passage_id}")
+        row = rows[0]
         quote = clean_quote(row.get("text") or "")
         passage = {
             "passage_id": slugify(f"fav_{chunk_or_passage_id}"),

@@ -7,12 +7,13 @@ from bookmem.taxonomy import get_class_label, infer_class_from_path, resolve_ali
 
 
 def test_productivity_classification_from_metadata():
-    result = infer_class_from_metadata(
+    primary_class, _label, _source = infer_class_from_metadata(
         title="A Practical Guide to Habits and Productivity",
         author="Jane Example",
         body="systems habits focus personal development self improvement",
+        topics=["productivity", "habits", "personal development"],
     )
-    assert result.primary_class in {"158", "650"}
+    assert primary_class in {"158", "650"}
 
 
 def test_finance_alias_resolves_to_finance_class():
@@ -27,5 +28,8 @@ def test_class_label_exists_for_common_classes():
 
 
 def test_class_can_be_inferred_from_path():
-    inferred = infer_class_from_path(Path("data/books/158-applied-psychology-and-self-improvement/Book.md"))
-    assert inferred == "158"
+    primary_class, _label = infer_class_from_path(
+        Path("data/books/158-applied-psychology-and-self-improvement/Book.md"),
+        Path("data/books"),
+    )
+    assert primary_class == "158"

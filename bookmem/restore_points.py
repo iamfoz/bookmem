@@ -11,12 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 import json
 import re
-import shutil
 import tarfile
-tempfile
+import tempfile
 from typing import Any, Iterable
 
-from .audit import append_audit_record, tail_audit, search_audit
+from .audit import append_audit_record, search_audit
 
 
 RESTORE_POINTS_VERSION = "0.1.0"
@@ -265,7 +264,7 @@ def _safe_extract_tar(tar: tarfile.TarFile, destination: Path) -> None:
     dest = destination.resolve()
     for member in tar.getmembers():
         member_path = (destination / member.name).resolve()
-        if not str(member_path).startswith(str(dest)):
+        if member_path != dest and dest not in member_path.parents:
             raise RuntimeError(f"Unsafe path in archive: {member.name}")
     tar.extractall(destination)
 
@@ -277,6 +276,8 @@ def rollback_restore_point(
     dry_run: bool = True,
     include_canonical_books: bool = False,
 ) -> dict[str, Any]:
+    if not last and restore_point_id is None:
+        raise ValueError("restore_point_id is required unless last=True.")
     point = last_restore_point() if last else get_restore_point(str(restore_point_id))
     archive_path = Path(point["archive_path"])
     if not archive_path.exists():

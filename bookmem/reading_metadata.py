@@ -8,7 +8,6 @@ from pathlib import Path
 import re
 from typing import Any
 
-import yaml
 
 from .frontmatter import read_markdown_with_frontmatter, write_markdown_with_frontmatter
 from .audit import append_audit_record

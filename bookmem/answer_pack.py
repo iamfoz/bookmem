@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-import re
 from typing import Any
 
 from .router import route_query
 from .search import search_books, read_around, format_markdown_citation
 from .summaries import search_summaries
 from .book_graph import related_books, build_book_graph
-from .config import get_settings
 
 
 ANSWER_PACK_VERSION = "0.1.0"
@@ -191,7 +188,19 @@ def build_answer_pack(
     summary_matches = []
     if summaries_first:
         try:
-            summary_matches = search_summaries(query, limit=limit)
+            summary_matches = [
+                {
+                    "score": round(float(result.score), 4),
+                    "level": result.level,
+                    "book_id": result.book_id,
+                    "title": result.title,
+                    "author": result.author,
+                    "chapter_title": result.chapter_title,
+                    "summary_path": str(result.summary_path),
+                    "text": result.text,
+                }
+                for result in search_summaries(query, limit=limit)
+            ]
         except Exception as exc:
             search_errors.append(f"summary search failed: {exc}")
 

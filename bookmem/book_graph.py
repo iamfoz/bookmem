@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 import json
-import math
 import re
 from typing import Any
 
@@ -15,7 +13,7 @@ import yaml
 
 from .config import get_settings
 from .frontmatter import discover_book_files, read_markdown_with_frontmatter
-from .editions import edition_record_from_file, slugify as edition_slugify
+from .editions import slugify as edition_slugify
 
 
 GRAPH_SCHEMA_VERSION = 1
@@ -131,7 +129,11 @@ def load_summary_terms(book_id: str) -> set[str]:
     return token_set(terms)
 
 
-def edge_between(a: BookNode, b: BookNode) -> BookEdge | None:
+def edge_between(
+    a: BookNode,
+    b: BookNode,
+    summary_terms: dict[str, set[str]] | None = None,
+) -> BookEdge | None:
     score = 0.0
     reasons: list[str] = []
     relationship_types: list[str] = []
@@ -167,7 +169,13 @@ def edge_between(a: BookNode, b: BookNode) -> BookEdge | None:
         relationship_types.append("same_routing_aliases")
         reasons.append("shared routing aliases: " + ", ".join(alias_shared[:6]))
 
-    summary_shared = sorted(load_summary_terms(a.book_id) & load_summary_terms(b.book_id))
+    if summary_terms is not None:
+        a_terms = summary_terms.get(a.book_id, set())
+        b_terms = summary_terms.get(b.book_id, set())
+    else:
+        a_terms = load_summary_terms(a.book_id)
+        b_terms = load_summary_terms(b.book_id)
+    summary_shared = sorted(a_terms & b_terms)
     if summary_shared:
         score += min(0.45, 0.08 * len(summary_shared))
         relationship_types.append("similar_summaries")
@@ -192,11 +200,12 @@ def build_book_graph(books_dir: Path | None = None, output_path: Path | None = N
     output_path = output_path or Path("data/graphs/book_graph.json")
 
     nodes = [node_from_book(path) for path in discover_book_files(books_dir)]
+    summary_terms = {node.book_id: load_summary_terms(node.book_id) for node in nodes}
     edges: list[BookEdge] = []
 
     for index, node_a in enumerate(nodes):
         for node_b in nodes[index + 1:]:
-            edge = edge_between(node_a, node_b)
+            edge = edge_between(node_a, node_b, summary_terms)
             if edge and edge.score >= min_score:
                 edges.append(edge)
 

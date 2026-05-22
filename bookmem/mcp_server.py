@@ -20,9 +20,8 @@ from .search import (
     read_around,
     read_chapter,
     read_section,
-    get_table,
 )
-from .topic_maps import build_topic_map
+from .topic_maps import map_topic
 from .frontmatter import discover_book_files, read_frontmatter_and_body
 from .config import get_settings
 
@@ -213,18 +212,14 @@ def mcp_map_topic(
     include_chunks: bool = True,
 ) -> dict[str, Any]:
     """Build a topic map across summaries and indexed chunks."""
-    topic_map = build_topic_map(
-        topic=topic,
+    topic_map = map_topic(
+        query=topic,
         book_limit=_safe_limit(book_limit, default=8, maximum=25),
         summary_limit=_safe_limit(summary_limit, default=20, maximum=100),
         chunk_limit=_safe_limit(chunk_limit, default=20, maximum=100),
         include_chunks=include_chunks,
     )
-    if hasattr(topic_map, "model_dump"):
-        return topic_map.model_dump()
-    if isinstance(topic_map, dict):
-        return topic_map
-    return json.loads(json.dumps(topic_map, default=str))
+    return topic_map.to_dict()
 
 
 @mcp.resource("bookmem://version")

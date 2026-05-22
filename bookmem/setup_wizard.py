@@ -4,16 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
-import json
-import os
 import subprocess
-import sys
 from typing import Any, Callable
 
 import yaml
 
 from .doctor import run_doctor
-from .config import get_settings
 from .audit import append_audit_record
 
 
@@ -97,7 +93,8 @@ def setup_steps_for_preset(preset: SetupPreset, rerun_mode: str = "safe") -> lis
     rebuild = rerun_mode == "rebuild"
 
     prepare_enabled = actions.get("prepare_changed_only", False)
-    ingest_enabled = actions.get("prepare_changed_only", False)
+    # Ingest follows prepare unless a preset overrides it with an explicit `ingest` action.
+    ingest_enabled = actions.get("ingest", prepare_enabled)
     summarise_enabled = actions.get("summarise", False)
     concepts_enabled = actions.get("extract_concepts", False)
     graph_enabled = actions.get("build_graph", False)

@@ -11,7 +11,6 @@ from typing import Any
 
 import yaml
 
-from .config import get_settings
 from .embeddings import embed_texts, embedding_dimension, embedding_model_name, EMBEDDING_PROVIDER
 from .index_versions import current_index_fingerprint, update_manifest_index_metadata
 from .manifest import load_manifest, save_manifest

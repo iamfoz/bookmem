@@ -213,6 +213,10 @@ def split_large_section(
     overlap_chars: int,
 ) -> list[tuple[str, int, int]]:
     """Split a section into chunks and return text plus section-relative char offsets."""
+    # Clamp to guarantee forward progress: overlap must stay below target,
+    # otherwise the sliding window never advances and the loop never ends.
+    target_chars = max(1, target_chars)
+    overlap_chars = max(0, min(overlap_chars, target_chars - 1))
     if len(section_text) <= target_chars:
         return [(section_text, 0, len(section_text))]
 
@@ -258,7 +262,7 @@ def chunk_markdown_file(
         for piece, rel_start, rel_end in split_large_section(section_text, target_chars, overlap_chars):
             hash_value = content_hash(piece)
             chunk_id = f"{book_id}::chunk_{chunk_index:06d}"
-            start_line = section_start_line + piece.count("\n", 0, 0) + section_text.count("\n", 0, rel_start)
+            start_line = section_start_line + section_text.count("\n", 0, rel_start)
             end_line = section_start_line + section_text.count("\n", 0, rel_end)
             heading_path = str(section["heading_path"])
             citation = _citation_for_chunk(md["title"], md["author"], str(path), heading_path, start_line, end_line)

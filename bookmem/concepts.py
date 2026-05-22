@@ -17,7 +17,6 @@ import yaml
 
 from .chunking import chunk_markdown_file, slugify
 from .frontmatter import discover_book_files, read_markdown_with_frontmatter
-from .config import get_settings
 
 
 CONCEPT_SCHEMA_VERSION = 1
@@ -112,7 +111,7 @@ def _book_meta(path: Path) -> dict[str, Any]:
     fm, _body, _had = read_markdown_with_frontmatter(path)
     classification = fm.get("classification") if isinstance(fm.get("classification"), dict) else {}
     return {
-        "book_id": str(fm.get("book_id") or slugify(f"{fm.get('author', '')}_{fm.get('title', path.stem)}")),
+        "book_id": str(fm.get("book_id") or slugify(f"{fm.get('author') or ''}_{fm.get('title') or path.stem}")),
         "title": str(fm.get("title") or path.stem),
         "author": str(fm.get("author")) if fm.get("author") else None,
         "primary_class": str(classification.get("primary_class")) if classification.get("primary_class") else None,

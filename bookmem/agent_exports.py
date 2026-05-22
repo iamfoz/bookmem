@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from .chunking import parse_frontmatter, slugify
+from .chunking import slugify
 from .config import get_settings
 from .frontmatter import read_markdown_with_frontmatter
 from .book_files import discover_book_markdown_files

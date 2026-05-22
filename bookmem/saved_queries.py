@@ -14,7 +14,7 @@ import yaml
 from .answer_pack import build_answer_pack
 from .workspaces import workspace_answer_pack
 from .concepts import search_concepts
-from .topic_map import map_topic
+from .topic_maps import map_topic
 from .manifest import load_manifest
 from .audit import append_audit_record
 
@@ -216,7 +216,7 @@ def generate_brief(name: str, update_last_run: bool = True, markdown: bool = Tru
     topic = None
     if saved.include_topic_map:
         try:
-            topic = map_topic(saved.query)
+            topic = map_topic(saved.query).to_dict()
         except Exception as exc:
             topic = {"error": str(exc)}
 

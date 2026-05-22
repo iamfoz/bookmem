@@ -10,7 +10,6 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 import json
-import os
 import shlex
 import sys
 from typing import Any, Iterable

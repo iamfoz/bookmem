@@ -435,9 +435,11 @@ def apply_metadata_reviews(root: Path | None = None) -> list[dict[str, Any]]:
             continue
         changed = False
         if review.get("suggested_author"):
-            frontmatter["author"] = str(review["suggested_author"]).strip(); changed = True
+            frontmatter["author"] = str(review["suggested_author"]).strip()
+            changed = True
         if review.get("suggested_title"):
-            frontmatter["title"] = str(review["suggested_title"]).strip(); changed = True
+            frontmatter["title"] = str(review["suggested_title"]).strip()
+            changed = True
         if review.get("canonical_isbn"):
             isbn = frontmatter.get("isbn") if isinstance(frontmatter.get("isbn"), dict) else {}
             isbn["reviewed"] = str(review["canonical_isbn"])

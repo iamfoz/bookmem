@@ -236,7 +236,10 @@ def summarise_book(path: Path, write: bool = True, overwrite: bool = True) -> Su
     raw = path.read_text(encoding="utf-8", errors="replace")
     meta, body = parse_frontmatter(raw)
     book_meta = _book_metadata(path, meta)
-    sections = split_by_markdown_headings(body)
+    sections = [
+        (str(section.get("heading_path", "")), str(section.get("section_text", "")))
+        for section in split_by_markdown_headings(body)
+    ]
     combined_text = "\n\n".join(section_text for _heading, section_text in sections) or body
 
     ideas = _heading_ideas(sections, book_meta["topics"], limit=12)

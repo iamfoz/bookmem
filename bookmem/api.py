@@ -8,6 +8,7 @@ functions used by the CLI and MCP server.
 from __future__ import annotations
 
 from typing import Any, Literal
+import hmac
 import os
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -24,7 +25,7 @@ from .search import (
     read_section,
     search_books,
 )
-from .topic_maps import build_topic_map
+from .topic_maps import map_topic
 
 
 
@@ -62,7 +63,7 @@ def require_api_key(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Missing bearer token.")
 
     supplied = header[len(prefix):].strip()
-    if supplied != expected:
+    if not hmac.compare_digest(supplied, expected):
         raise HTTPException(status_code=403, detail="Invalid bearer token.")
 
 
@@ -291,15 +292,11 @@ def get_book_chapter(book_id: str, chapter: str, auth: None = Depends(require_ap
 
 @app.post("/topic-map")
 def topic_map(request: TopicMapRequest, auth: None = Depends(require_api_key)) -> dict[str, Any]:
-    result = build_topic_map(
-        topic=request.topic,
+    result = map_topic(
+        query=request.topic,
         book_limit=request.book_limit,
         summary_limit=request.summary_limit,
         chunk_limit=request.chunk_limit,
         include_chunks=request.include_chunks,
     )
-    if hasattr(result, "model_dump"):
-        return result.model_dump()
-    if isinstance(result, dict):
-        return result
-    return {"topic": request.topic, "result": result}
+    return result.to_dict()

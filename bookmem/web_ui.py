@@ -6,11 +6,10 @@ from pathlib import Path
 import html
 import json
 import subprocess
-import sys
 from typing import Any
 
-from fastapi import FastAPI, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse
 
 from . import __version__
 from .config import get_settings
@@ -21,10 +20,9 @@ from .search import search_books
 from .router import route_query
 from .duplicates import load_book_identities, find_duplicate_groups
 from .review import review_file_path
-from .topic_map import map_topic
+from .topic_maps import map_topic
 from .clean_check import assess_cleanliness, summarise_clean_check
 from .index_versions import index_status
-from .evaluation import evaluate_retrieval
 
 
 UI_VERSION = "0.1.0"
@@ -205,6 +203,10 @@ a {{ color: var(--accent); }}
     return HTMLResponse(content)
 
 
+def topic_pills(topics: Any) -> str:
+    return "".join(f'<span class="pill">{esc(t)}</span>' for t in (topics or [])[:6])
+
+
 def status_class(status: str) -> str:
     status = (status or "").upper()
     if status == "OK":
@@ -271,7 +273,7 @@ def books(q: str = "", class_code: str = ""):
         rows = [r for r in rows if str(r.get("class") or "") == class_code]
 
     tr = "\n".join(
-        f"<tr><td>{esc(r['title'])}</td><td>{esc(r['author'])}</td><td>{esc(r['class'])}</td><td>{esc(r['class_label'])}</td><td>{''.join('<span class=\"pill\">'+esc(t)+'</span>' for t in (r.get('topics') or [])[:6])}</td><td>{esc(r['path'])}</td></tr>"
+        f"<tr><td>{esc(r['title'])}</td><td>{esc(r['author'])}</td><td>{esc(r['class'])}</td><td>{esc(r['class_label'])}</td><td>{topic_pills(r.get('topics'))}</td><td>{esc(r['path'])}</td></tr>"
         for r in rows
     )
     body = f"""
@@ -343,7 +345,7 @@ def topic_maps(topic: str = "systems thinking"):
 """
     if topic:
         try:
-            result = map_topic(topic)
+            result = map_topic(topic).to_dict()
             body += f"<pre>{esc(json.dumps(result, indent=2, ensure_ascii=False))}</pre>"
         except Exception as exc:
             body += f"<pre class='fail'>{esc(exc)}</pre>"

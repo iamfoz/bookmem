@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, asdict
-from pathlib import Path
-import json
 import re
 from typing import Any
 
@@ -197,8 +195,13 @@ def compare_topic(topic: str, limit: int = 12) -> dict[str, Any]:
 
     # Summaries provide book-level map.
     try:
-        for row in search_summaries(topic, limit=limit * 2):
-            text = " ".join(str(row.get(k) or "") for k in ("core_thesis", "summary", "major_ideas", "best_for_questions_about", "text"))
+        for result in search_summaries(topic, limit=limit * 2):
+            text = result.text or ""
+            row = {
+                "book_id": result.book_id,
+                "title": result.title,
+                "author": result.author,
+            }
             stance, score, reason = stance_for_text(topic, text)
             _add_record(
                 grouped,
@@ -207,7 +210,7 @@ def compare_topic(topic: str, limit: int = 12) -> dict[str, Any]:
                 score=score + 1,
                 reason=reason,
                 evidence_text=text,
-                citation=row.get("citation"),
+                citation=None,
                 source="summaries",
             )
     except Exception:

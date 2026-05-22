@@ -194,6 +194,7 @@ def apply_migrations(dry_run: bool = False, target: str | None = None) -> dict[s
         "applied": results,
         "pending_to_apply": [],
         "state_path": str(migration_state_path()),
+        "restore_point": restore_point.restore_point_id if restore_point else None,
     }
 
 
@@ -223,21 +224,29 @@ def create_migration(name: str) -> dict[str, Any]:
         raise FileExistsError(f"Migration already exists: {path}")
 
     title = name.strip().replace('"', '\\"')
-    template = (
-        f'"""{migration_id}\\n\\n{title}\\n"""\\n\\n'
-        "from __future__ import annotations\\n\\n"
-        "from pathlib import Path\\n"
-        "from typing import Any\\n\\n\\n"
-        f'ID = "{migration_id}"\\n'
-        f'DESCRIPTION = "{title}"\\n'
-        "VERSION = 1\\n\\n\\n"
-        "def apply(context: dict[str, Any]) -> dict[str, Any]:\\n"
-        '    root = Path(context.get("root", "."))\\n'
-        "    # TODO: implement migration.\\n"
-        "    # Keep migrations idempotent. Do not overwrite human-reviewed metadata unless\\n"
-        "    # the migration is explicitly designed and documented to do so.\\n"
-        '    return {"changed": False, "note": "Migration stub created; implement apply()."}\\n'
-    )
+    template = f'''"""{migration_id}
+
+{title}
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+
+ID = "{migration_id}"
+DESCRIPTION = "{title}"
+VERSION = 1
+
+
+def apply(context: dict[str, Any]) -> dict[str, Any]:
+    root = Path(context.get("root", "."))
+    # TODO: implement migration.
+    # Keep migrations idempotent. Do not overwrite human-reviewed metadata unless
+    # the migration is explicitly designed and documented to do so.
+    return {{"changed": False, "note": "Migration stub created; implement apply()."}}
+'''
     path.write_text(template, encoding="utf-8")
     append_audit_record(
         action="migrations.create",

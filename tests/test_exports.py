@@ -20,7 +20,7 @@ def test_citation_and_export_formats_are_available():
 
 def test_bibtex_export_contains_book_title(fixture_root):
     references = references_from_directory(fixture_root / "cleaned")
-    output = export_references(references, format_name="bibtex")
+    output = export_references(references, export_format="bibtex")
 
     assert "@book" in output
     assert "Clean Productivity Book" in output

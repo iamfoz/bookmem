@@ -6,7 +6,7 @@ from bookmem.search import format_markdown_citation
 
 def test_chunks_include_line_ranges_and_citations(fixture_root):
     path = fixture_root / "cleaned" / "Clean Productivity Book - Jane Example - 9780306406157.md"
-    chunks = chunk_markdown_file(path, target_chars=400, overlap_chars=50)
+    chunks = chunk_markdown_file(path, fixture_root / "cleaned", target_chars=400, overlap_chars=50)
 
     assert chunks
     first = chunks[0]

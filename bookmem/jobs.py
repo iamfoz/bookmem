@@ -9,7 +9,7 @@ import json
 import re
 import shlex
 import sys
-from typing import Any, Iterable
+from typing import Any
 
 
 JOBS_VERSION = "0.1.0"

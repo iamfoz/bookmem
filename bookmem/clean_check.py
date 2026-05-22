@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
-from dataclasses import dataclass, asdict
 from pathlib import Path
 import re
 from typing import Any

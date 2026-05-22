@@ -9,7 +9,6 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 import json
 import random
-import re
 from typing import Any
 
 import yaml
@@ -18,7 +17,7 @@ from .doctor import STATUS_OK, STATUS_WARN, STATUS_FAIL
 from .config import get_settings
 from .manifest import load_manifest
 from .frontmatter import discover_book_files, read_markdown_with_frontmatter
-from .index_versions import current_index_fingerprint, indexed_table_status, manifest_index_metadata
+from .index_versions import indexed_table_status, manifest_index_metadata
 from .embeddings import embedding_dimension
 
 

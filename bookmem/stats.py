@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 from .book_files import discover_book_markdown_files
 from typing import Any
 
-import yaml
 
-from .chunking import FRONTMATTER_RE, metadata_from_frontmatter, parse_frontmatter, slugify
+from .chunking import metadata_from_frontmatter, parse_frontmatter, slugify
 from .config import get_settings
-from .manifest import get_record_for_path, load_manifest, manifest_path, markdown_hashes
+from .manifest import get_record_for_path, markdown_hashes
 from .taxonomy import get_class_label, normalise_alias
 
 STATS_VERSION = "0.1.0"

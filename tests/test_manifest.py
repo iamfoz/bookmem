@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bookmem.manifest import build_prepared_record, load_manifest, manifest_path, markdown_hashes, save_manifest, upsert_book_record
+from bookmem.manifest import build_prepared_record, load_manifest, manifest_path, markdown_hashes, upsert_book_record
 
 
 def test_markdown_hashes_include_frontmatter_and_content(fixture_root: Path):
     path = fixture_root / "cleaned" / "Clean Productivity Book - Jane Example - 9780306406157.md"
-    hashes = markdown_hashes(path)
+    content_hash, frontmatter_hash, full_hash = markdown_hashes(path)
 
-    assert hashes["content_hash"]
-    assert hashes["frontmatter_hash"]
-    assert hashes["full_hash"]
+    assert content_hash
+    assert frontmatter_hash
+    assert full_hash
 
 
 def test_manifest_upsert_round_trip(temp_library: Path):

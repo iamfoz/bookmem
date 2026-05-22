@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
-from dataclasses import dataclass
 from pathlib import Path
 import re
 import textwrap
@@ -11,11 +9,9 @@ from typing import Any
 
 import yaml
 
-from .config import get_settings
 from .frontmatter import discover_book_files, read_frontmatter_and_body
-from .summaries import summary_paths, load_book_summary
+from .human_review import summary_paths
 from .search import search_books
-from .taxonomy import load_taxonomy
 
 
 NOTE_GENERATOR_VERSION = "0.1.0"
@@ -32,7 +28,6 @@ def yaml_dump(data: dict[str, Any]) -> str:
 
 
 def load_note_templates() -> dict[str, Any]:
-    settings = get_settings()
     base_path = Path("config/note_templates.yaml")
     templates: dict[str, Any] = {}
 
@@ -139,7 +134,6 @@ def paragraph(value: Any, fallback: str = "Not yet available.") -> str:
 
 
 def load_existing_summary_for_book(book_path: Path, frontmatter: dict[str, Any]) -> dict[str, Any]:
-    settings = get_settings()
     book_id = safe_book_id(frontmatter, book_path)
     book_summary_path, chapters_path = summary_paths(book_id)
     data: dict[str, Any] = {}
@@ -220,7 +214,6 @@ def integration_table() -> str:
 
 def render_summary_note(book_path: Path, frontmatter: dict[str, Any], summary_data: dict[str, Any]) -> str:
     title = display_title_from_frontmatter(frontmatter)
-    author = display_author_from_frontmatter(frontmatter)
     core = fallback_core_thesis(frontmatter, summary_data)
     ideas = fallback_major_ideas(frontmatter, summary_data)
     questions = fallback_questions(frontmatter, summary_data)
@@ -257,7 +250,6 @@ Machine-draft placeholder. Review how the book's major ideas connect to each oth
 def render_implementation_note(book_path: Path, frontmatter: dict[str, Any], summary_data: dict[str, Any]) -> str:
     title = display_title_from_frontmatter(frontmatter)
     ideas = fallback_major_ideas(frontmatter, summary_data)
-    topics = extract_classification(frontmatter).get("topics") or []
     questions = fallback_questions(frontmatter, summary_data)
 
     body = f"""# {title} — Implementation Notes
@@ -382,7 +374,6 @@ def note_output_path(book_path: Path, note_type: str = "book-note", output_dir: 
     suffix = templates.get(note_type, {}).get("filename_suffix", "Book Note")
 
     filename = slugify_filename(f"{title} - {author} - {suffix}.md")
-    settings = get_settings()
     target_dir = output_dir or Path("data/notes")
     return target_dir / filename
 

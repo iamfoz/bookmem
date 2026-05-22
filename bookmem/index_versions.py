@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
 from pathlib import Path
 import hashlib
-import json
 from typing import Any
 
 import lancedb
@@ -41,7 +39,6 @@ def taxonomy_version() -> str | None:
 
 
 def current_index_fingerprint() -> dict[str, Any]:
-    settings = get_settings()
     return {
         "index_schema_version": INDEX_SCHEMA_VERSION,
         "chunker_version": CHUNKER_VERSION,

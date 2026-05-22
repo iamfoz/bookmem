@@ -84,10 +84,20 @@ def reciprocal_rank(rows: list[dict[str, Any]], expected_books: list[str], expec
 
 
 def recall_at_k(rows: list[dict[str, Any]], expected_books: list[str], expected_topics: list[str], k: int) -> float:
-    if not expected_books and not expected_topics:
+    """Fraction of expected books/topics that have at least one match in the top-k rows."""
+    expected_items = (
+        [([book], []) for book in expected_books]
+        + [([], [topic]) for topic in expected_topics]
+    )
+    if not expected_items:
         return 0.0
     top_rows = rows[:k]
-    return 1.0 if any(result_matches_expected(row, expected_books, expected_topics) for row in top_rows) else 0.0
+    matched = sum(
+        1
+        for books, topics in expected_items
+        if any(result_matches_expected(row, books, topics) for row in top_rows)
+    )
+    return matched / len(expected_items)
 
 
 def evaluate_retrieval(

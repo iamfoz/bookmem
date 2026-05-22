@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
+import io
 import json
 import tarfile
 from typing import Any
@@ -64,7 +65,7 @@ def utc_now_iso() -> str:
 
 
 def normalise_rel_path(path: Path) -> str:
-    return path.as_posix().lstrip("./")
+    return path.as_posix().removeprefix("./")
 
 
 def should_exclude(path: Path) -> bool:
@@ -127,7 +128,6 @@ def create_backup(
 
     with tarfile.open(output_path, "w:gz") as tar:
         manifest_bytes = json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8")
-        import io
 
         info = tarfile.TarInfo("bookmem-backup-manifest.json")
         info.size = len(manifest_bytes)
@@ -149,7 +149,7 @@ def create_backup(
 def safe_extract_path(target_root: Path, member_name: str) -> Path:
     target = (target_root / member_name).resolve()
     root = target_root.resolve()
-    if not str(target).startswith(str(root)):
+    if target != root and root not in target.parents:
         raise ValueError(f"Unsafe path in backup archive: {member_name}")
     return target
 

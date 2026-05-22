@@ -8,14 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
-import json
 import re
 import sqlite3
 from typing import Any
 
-import yaml
 
-from .frontmatter import read_markdown_with_frontmatter, write_markdown_with_frontmatter, discover_book_files
+from .frontmatter import read_markdown_with_frontmatter, write_markdown_with_frontmatter
 
 
 CALIBRE_INTEGRATION_VERSION = "0.1.0"
@@ -46,10 +44,30 @@ def _connect(calibre_library: Path) -> sqlite3.Connection:
     return conn
 
 
-def _split_csv(value: str | None) -> list[str]:
-    if not value:
+def _authors_for(conn: sqlite3.Connection, book_id: int) -> list[str]:
+    try:
+        rows = conn.execute(
+            "SELECT a.name FROM books_authors_link bal "
+            "JOIN authors a ON a.id = bal.author "
+            "WHERE bal.book = ? ORDER BY bal.id",
+            (book_id,),
+        ).fetchall()
+    except sqlite3.OperationalError:
         return []
-    return [part.strip() for part in str(value).split("||") if part and part.strip()]
+    return [str(row["name"]).strip() for row in rows if row["name"] and str(row["name"]).strip()]
+
+
+def _tags_for(conn: sqlite3.Connection, book_id: int) -> list[str]:
+    try:
+        rows = conn.execute(
+            "SELECT t.name FROM books_tags_link btl "
+            "JOIN tags t ON t.id = btl.tag "
+            "WHERE btl.book = ? ORDER BY t.name",
+            (book_id,),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    return [str(row["name"]).strip() for row in rows if row["name"] and str(row["name"]).strip()]
 
 
 def _identifiers_for(conn: sqlite3.Connection, book_id: int) -> dict[str, str]:
@@ -92,39 +110,33 @@ def scan_calibre_library(calibre_library: Path) -> list[CalibreBook]:
                 b.path,
                 b.pubdate,
                 b.series_index,
-                group_concat(DISTINCT a.name) AS authors,
-                group_concat(DISTINCT t.name) AS tags,
                 p.name AS publisher,
                 s.name AS series
             FROM books b
-            LEFT JOIN books_authors_link bal ON bal.book = b.id
-            LEFT JOIN authors a ON a.id = bal.author
-            LEFT JOIN books_tags_link btl ON btl.book = b.id
-            LEFT JOIN tags t ON t.id = btl.tag
             LEFT JOIN publishers p ON p.id = b.publisher
             LEFT JOIN series s ON s.id = b.series
-            GROUP BY b.id
             ORDER BY b.title
             """
         ).fetchall()
 
         books: list[CalibreBook] = []
         for row in rows:
-            identifiers = _identifiers_for(conn, int(row["id"]))
+            book_id = int(row["id"])
+            identifiers = _identifiers_for(conn, book_id)
             books.append(
                 CalibreBook(
-                    calibre_id=int(row["id"]),
+                    calibre_id=book_id,
                     title=str(row["title"] or ""),
-                    authors=_split_csv(row["authors"]),
+                    authors=_authors_for(conn, book_id),
                     path=str(row["path"]) if row["path"] else None,
                     isbn=_isbn_from_identifiers(identifiers),
                     publisher=str(row["publisher"]) if row["publisher"] else None,
                     published=str(row["pubdate"]) if row["pubdate"] else None,
                     series=str(row["series"]) if row["series"] else None,
                     series_index=float(row["series_index"]) if row["series_index"] is not None else None,
-                    tags=_split_csv(row["tags"]),
+                    tags=_tags_for(conn, book_id),
                     identifiers=identifiers,
-                    formats=_formats_for(conn, int(row["id"])),
+                    formats=_formats_for(conn, book_id),
                 )
             )
         return books
@@ -224,8 +236,8 @@ def import_calibre_metadata_stubs(calibre_library: Path, output_dir: Path, overw
             "importer_version": CALIBRE_INTEGRATION_VERSION,
             "status": "metadata_stub",
         }
-        body = f"# {book.title}\\n\\nImported from Calibre metadata. Import the source ebook file before preparing this as canonical BookMem content.\\n"
-        output.write_text(_frontmatter_block(fm) + "\\n" + body, encoding="utf-8")
+        body = f"# {book.title}\n\nImported from Calibre metadata. Import the source ebook file before preparing this as canonical BookMem content.\n"
+        output.write_text(_frontmatter_block(fm) + "\n" + body, encoding="utf-8")
         paths.append(output)
 
     return paths

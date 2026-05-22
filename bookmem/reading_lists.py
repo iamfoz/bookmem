@@ -8,13 +8,12 @@ import json
 import re
 from typing import Any
 
-import yaml
 
 from .router import route_query
 from .search import search_books
 from .summaries import search_summaries
 from .concepts import search_concepts
-from .topic_map import map_topic
+from .topic_maps import map_topic
 from .book_graph import related_books
 from .audit import append_audit_record
 from .frontmatter import read_markdown_with_frontmatter
@@ -177,7 +176,6 @@ def generate_reading_list(
         warnings.append(f"Routing failed: {exc}")
 
     class_codes = [str(v) for v in route.get("class_codes", []) or []]
-    aliases = [str(v) for v in route.get("aliases", []) or []]
 
     # Passage search, scoped by route where available.
     searched = False
@@ -198,7 +196,12 @@ def generate_reading_list(
 
     # Summary matches.
     try:
-        for row in search_summaries(intent, limit=max(limit, 10)):
+        for result in search_summaries(intent, limit=max(limit, 10)):
+            row = {
+                "book_id": result.book_id,
+                "title": result.title,
+                "author": result.author,
+            }
             _add_score(scores, row, 2.5, "summary match")
     except Exception as exc:
         warnings.append(f"Summary search failed: {exc}")
@@ -222,7 +225,7 @@ def generate_reading_list(
     # Topic map strongest books.
     topic_map = None
     try:
-        topic_map = map_topic(topic or goal or intent)
+        topic_map = map_topic(topic or goal or intent).to_dict()
         strongest = topic_map.get("strongest_books", []) if isinstance(topic_map, dict) else []
         for idx, book in enumerate(strongest[:limit], start=1):
             row = {
@@ -243,14 +246,15 @@ def generate_reading_list(
         top_titles = [v.get("title") for v in sorted(scores.values(), key=lambda x: -x["score"])[:3] if v.get("title")]
         for title in top_titles:
             related = related_books(str(title), limit=4)
-            for rel in related.get("related_books", []) if isinstance(related, dict) else []:
+            for rel in (related.get("related", []) if isinstance(related, dict) else []):
+                node = rel.get("node", {}) if isinstance(rel, dict) else {}
                 row = {
-                    "book_id": rel.get("book_id"),
-                    "title": rel.get("title"),
-                    "author": rel.get("author"),
-                    "primary_class": rel.get("primary_class"),
-                    "primary_label": rel.get("primary_label"),
-                    "source_path": rel.get("source_path"),
+                    "book_id": node.get("book_id"),
+                    "title": node.get("title"),
+                    "author": node.get("author"),
+                    "primary_class": node.get("primary_class"),
+                    "primary_label": node.get("primary_label"),
+                    "source_path": node.get("path"),
                     "citation": f"related to {title}",
                 }
                 _add_score(scores, row, 0.75, "graph relationship")

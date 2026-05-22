@@ -8,7 +8,6 @@ from pathlib import Path
 import json
 from typing import Any
 
-from .audit import append_audit_record
 
 import yaml
 

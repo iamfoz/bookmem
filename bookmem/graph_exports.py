@@ -132,7 +132,7 @@ def _mermaid_id(value: str) -> str:
 def mermaid(graph: dict[str, Any], max_edges: int | None = None) -> str:
     nodes = {str(node.get("book_id")): node for node in _nodes(graph)}
     edges = sorted(_edges(graph), key=lambda edge: float(edge.get("score") or 0), reverse=True)
-    if max_edges:
+    if max_edges is not None:
         edges = edges[:max_edges]
 
     lines = [
@@ -178,7 +178,6 @@ def obsidian_canvas(graph: dict[str, Any]) -> str:
         angle = (2 * math.pi * idx) / max(len(nodes), 1)
         x = int(math.cos(angle) * radius)
         y = int(math.sin(angle) * radius)
-        label = _node_label(node)
         body = [
             f"# {node.get('title') or 'Untitled'}",
             "",

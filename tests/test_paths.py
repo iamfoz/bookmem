@@ -92,3 +92,20 @@ def test_explicit_bookmem_path_env_still_overrides(monkeypatch, tmp_path):
     monkeypatch.setenv("BOOKMEM_BOOKS_DIR", str(tmp_path / "custom-books"))
     settings = get_settings()
     assert settings.books_dir == tmp_path / "custom-books"
+
+
+def test_citation_config_follows_bookmem_home(monkeypatch, tmp_path):
+    """Citation/reference config resolves under the runtime home, not the
+    installed package directory (which differs for non-editable installs)."""
+    from bookmem.citation_exports import (
+        _export_format_config_dir,
+        _export_format_config_path,
+        _style_config_dir,
+        _style_config_path,
+    )
+
+    monkeypatch.setenv("BOOKMEM_HOME", str(tmp_path))
+    assert _style_config_path() == tmp_path / "config" / "citation_styles.yaml"
+    assert _style_config_dir() == tmp_path / "config" / "citation_styles.d"
+    assert _export_format_config_path() == tmp_path / "config" / "reference_export_formats.yaml"
+    assert _export_format_config_dir() == tmp_path / "config" / "reference_export_formats.d"

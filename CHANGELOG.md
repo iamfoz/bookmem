@@ -14,6 +14,17 @@ the project is stabilising.
 - Reserved for changes not yet released.
 
 
+## [0.63.4] - 2026-05-22
+
+### Fixed
+- Citation styles and reference export formats are now loaded from the runtime
+  config directory (`BOOKMEM_HOME/config`) instead of a path relative to the
+  installed package. The previous resolution only worked for editable or
+  source installs; after a regular `pip install` it pointed at a non-existent
+  `site-packages/config/`, so `bookmem doctor`, `cite` and reference exports
+  reported "No citation styles were loaded".
+
+
 ## [0.63.3] - 2026-05-22
 
 ### Fixed
@@ -400,7 +411,8 @@ the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.3...HEAD
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.4...HEAD
+[0.63.4]: https://github.com/iamfoz/bookmem/compare/v0.63.3...v0.63.4
 [0.63.3]: https://github.com/iamfoz/bookmem/compare/v0.63.2...v0.63.3
 [0.63.2]: https://github.com/iamfoz/bookmem/compare/v0.63.1...v0.63.2
 [0.63.1]: https://github.com/iamfoz/bookmem/compare/v0.63.0...v0.63.1

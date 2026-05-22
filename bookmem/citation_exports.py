@@ -13,6 +13,7 @@ import yaml
 
 from .chunking import slugify
 from .frontmatter import read_markdown_with_frontmatter, normalise_isbn
+from .paths import config_dir
 
 CITATION_EXPORT_VERSION = "0.3.0"
 CITATION_STYLE_SCHEMA_VERSION = 1
@@ -190,20 +191,24 @@ def _sentence(parts: list[str]) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+# Citation/reference config lives in the runtime config directory
+# (BOOKMEM_HOME/config), not next to the installed package: a regular
+# `pip install` does not place config/ alongside the package.
+
 def _style_config_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "config" / "citation_styles.yaml"
+    return config_dir() / "citation_styles.yaml"
 
 
 def _style_config_dir() -> Path:
-    return Path(__file__).resolve().parents[1] / "config" / "citation_styles.d"
+    return config_dir() / "citation_styles.d"
 
 
 def _export_format_config_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "config" / "reference_export_formats.yaml"
+    return config_dir() / "reference_export_formats.yaml"
 
 
 def _export_format_config_dir() -> Path:
-    return Path(__file__).resolve().parents[1] / "config" / "reference_export_formats.d"
+    return config_dir() / "reference_export_formats.d"
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:

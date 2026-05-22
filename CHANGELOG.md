@@ -10,8 +10,32 @@ the project is stabilising.
 
 ## [Unreleased]
 
-### Added
-- Reserved for changes not yet released.
+### Fixed
+- Fixed broken imports that prevented several modules from loading: `topic_maps`
+  imports in `web_ui.py`, `reading_lists.py` and `saved_queries.py`, the `map_topic`
+  import and call signature in `api.py` and `mcp_server.py`, `summary_paths` in
+  `notes.py`, and a missing `import tempfile` in `restore_points.py`.
+- Fixed a Python 3.11 f-string `SyntaxError` that made `web_ui.py` unimportable.
+- Restored the `BookMemTUI` class indentation so `bookmem tui` starts, and declared
+  the `textual` dependency it requires.
+- Fixed `summarise-books`, `answer-pack --json`, recurring brief generation and
+  `passages favourite`, which crashed on valid inputs.
+- Fixed topic comparison and reading-list generation silently dropping summary and
+  graph matches.
+- Guarded section chunking against an infinite loop when chunk overlap met or
+  exceeded the target size.
+- Fixed Calibre author/tag parsing and removed literal newline escapes from
+  generated Calibre stubs and `bookmem migrations create` scaffolding.
+- Corrected the recall@k retrieval metric, edition ordinal labels, book-ID
+  generation with null authors, and `bookmem stats` skipping the difficulty,
+  density and best-read-as tables when no topics were present.
+- Removed redundant per-pair summary file reads when building the book graph.
+- Updated the test suite to current function signatures and removed unused
+  imports and variables.
+
+### Security
+- Hardened backup and restore-point archive extraction against path traversal.
+- Used a constant-time comparison for the API bearer token.
 
 
 ## [0.62.0] - 2026-05-22

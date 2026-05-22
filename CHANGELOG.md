@@ -5,20 +5,26 @@ All notable changes to BookMem will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-BookMem is still pre-1.0 software. Minor versions may include CLI, config or schema
-changes while the project is stabilising.
+BookMem is pre-1.0 software. Minor releases may include CLI, config or schema changes while
+the project is stabilising.
 
 ## [Unreleased]
 
 ### Added
-- Reserved section for changes that have not yet been released.
+- Reserved for changes not yet released.
 
-## [0.61.11] - 2026-05-20
+## [0.62.0] - 2026-05-22
+
+### Added
+- Added full documentation suite with installation, quick start, Hermes integration,
+  command reference, architecture, operations, repository release plan and troubleshooting.
+- Added GitHub repository creation and release-history commands for `iamfoz/bookmem`.
+- Added Standard README-style root README with practical usage examples.
 
 ### Changed
-- Reworked the changelog to follow Keep a Changelog 1.1.0.
-- Consolidated noisy micro-release entries into human-readable feature milestones.
-- Spaced release dates across a plausible development timeframe.
+- Reworked changelog to follow Keep a Changelog 1.1.0.
+- Consolidated noisy micro-release history into SemVer feature milestones.
+- Updated project URLs to `https://github.com/iamfoz/bookmem`.
 
 ## [0.61.10] - 2026-05-20
 
@@ -43,9 +49,9 @@ changes while the project is stabilising.
 - Restored backwards-compatible frontmatter helper wrappers used by older modules.
 
 ### Changed
-- CLI command imports are now lazy, keeping lightweight commands such as `bookmem --help`,
+- CLI command imports are lazy, keeping lightweight commands such as `bookmem --help`,
   `bookmem profile`, `bookmem plugins` and `bookmem setup presets` fast.
-- Setup diagnostics now separate passive status checks from heavier index diagnostics.
+- Setup diagnostics separate passive status checks from heavier index diagnostics.
 
 ## [0.61.0] - 2026-05-19
 
@@ -58,16 +64,16 @@ changes while the project is stabilising.
 - Added review queue and config parsing checks.
 
 ### Changed
-- Doctor JSON output now includes a `deep` section when deep diagnostics are requested.
+- Doctor JSON output includes a `deep` section when deep diagnostics are requested.
 - Overall doctor status reflects deep diagnostic warnings or failures when `--deep` is used.
 
 ## [0.60.0] - 2026-05-18
 
 ### Added
-- Added a jobs and observability ledger under `data/jobs/`.
+- Added jobs and observability ledger under `data/jobs/`.
 - Added `bookmem jobs list`, `bookmem jobs status <job_id>` and `bookmem jobs tail <job_id>`.
 - Added `JobTracker` helper APIs for future long-running workflows.
-- Job records now track started/finished timestamps, status, command, progress, current file,
+- Job records track started/finished timestamps, status, command, progress, current file,
   processed file count, warnings, errors and message.
 
 ## [0.59.0] - 2026-05-17
@@ -80,9 +86,9 @@ changes while the project is stabilising.
   `profile validate`.
 
 ### Changed
-- Profiles can now set data/config/export/backup/index paths, API/MCP defaults, retrieval
+- Profiles can set data/config/export/backup/index paths, API/MCP defaults, retrieval
   defaults, permissions profile and feature flags.
-- `BOOKMEM_PROFILE` is supported and takes precedence over the persisted profile file.
+- `BOOKMEM_PROFILE` takes precedence over the persisted profile file.
 
 ## [0.58.0] - 2026-05-16
 
@@ -94,8 +100,7 @@ changes while the project is stabilising.
 - Added example plugin manifests.
 
 ### Changed
-- Plugin entrypoint metadata is validated but not executed, keeping plugin discovery safe by
-  default.
+- Plugin entrypoint metadata is validated but not executed.
 
 ## [0.57.0] - 2026-05-15
 
@@ -120,16 +125,14 @@ changes while the project is stabilising.
 ### Added
 - Added topic disagreement/contradiction mapping.
 - Added `bookmem compare-topic`.
-- Added stance grouping for favouring, criticising, mixed/context-dependent and neutral
-  evidence.
+- Added stance grouping for favouring, criticising, mixed/context-dependent and neutral evidence.
 - Added generated topic tensions and Markdown/JSON output.
 
 ## [0.54.0] - 2026-05-12
 
 ### Added
 - Added quote/passages/commonplace-book support.
-- Added `bookmem passages extract`, `passages search`, `passages favourite` and
-  `passages export`.
+- Added `bookmem passages extract`, `passages search`, `passages favourite` and `passages export`.
 - Added `data/passages/extracted.yaml` and `data/passages/favourites.yaml`.
 - Added Obsidian Markdown, JSONL and YAML passage export formats.
 
@@ -285,31 +288,31 @@ changes while the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://example.invalid/bookmem/compare/v0.61.11...HEAD
-[0.61.11]: https://example.invalid/bookmem/releases/tag/v0.61.11
-[0.61.10]: https://example.invalid/bookmem/releases/tag/v0.61.10
-[0.61.0]: https://example.invalid/bookmem/releases/tag/v0.61.0
-[0.60.0]: https://example.invalid/bookmem/releases/tag/v0.60.0
-[0.59.0]: https://example.invalid/bookmem/releases/tag/v0.59.0
-[0.58.0]: https://example.invalid/bookmem/releases/tag/v0.58.0
-[0.57.0]: https://example.invalid/bookmem/releases/tag/v0.57.0
-[0.56.0]: https://example.invalid/bookmem/releases/tag/v0.56.0
-[0.55.0]: https://example.invalid/bookmem/releases/tag/v0.55.0
-[0.54.0]: https://example.invalid/bookmem/releases/tag/v0.54.0
-[0.53.0]: https://example.invalid/bookmem/releases/tag/v0.53.0
-[0.52.0]: https://example.invalid/bookmem/releases/tag/v0.52.0
-[0.51.0]: https://example.invalid/bookmem/releases/tag/v0.51.0
-[0.50.0]: https://example.invalid/bookmem/releases/tag/v0.50.0
-[0.49.0]: https://example.invalid/bookmem/releases/tag/v0.49.0
-[0.48.0]: https://example.invalid/bookmem/releases/tag/v0.48.0
-[0.47.0]: https://example.invalid/bookmem/releases/tag/v0.47.0
-[0.46.0]: https://example.invalid/bookmem/releases/tag/v0.46.0
-[0.45.0]: https://example.invalid/bookmem/releases/tag/v0.45.0
-[0.44.0]: https://example.invalid/bookmem/releases/tag/v0.44.0
-[0.43.0]: https://example.invalid/bookmem/releases/tag/v0.43.0
-[0.42.0]: https://example.invalid/bookmem/releases/tag/v0.42.0
-[0.41.0]: https://example.invalid/bookmem/releases/tag/v0.41.0
-[0.40.0]: https://example.invalid/bookmem/releases/tag/v0.40.0
-[0.30.0]: https://example.invalid/bookmem/releases/tag/v0.30.0
-[0.20.0]: https://example.invalid/bookmem/releases/tag/v0.20.0
-[0.10.0]: https://example.invalid/bookmem/releases/tag/v0.10.0
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.62.0...HEAD
+[0.62.0]: https://github.com/iamfoz/bookmem/compare/v0.61.10...v0.62.0
+[0.61.10]: https://github.com/iamfoz/bookmem/compare/v0.61.0...v0.61.10
+[0.61.0]: https://github.com/iamfoz/bookmem/compare/v0.60.0...v0.61.0
+[0.60.0]: https://github.com/iamfoz/bookmem/compare/v0.59.0...v0.60.0
+[0.59.0]: https://github.com/iamfoz/bookmem/compare/v0.58.0...v0.59.0
+[0.58.0]: https://github.com/iamfoz/bookmem/compare/v0.57.0...v0.58.0
+[0.57.0]: https://github.com/iamfoz/bookmem/compare/v0.56.0...v0.57.0
+[0.56.0]: https://github.com/iamfoz/bookmem/compare/v0.55.0...v0.56.0
+[0.55.0]: https://github.com/iamfoz/bookmem/compare/v0.54.0...v0.55.0
+[0.54.0]: https://github.com/iamfoz/bookmem/compare/v0.53.0...v0.54.0
+[0.53.0]: https://github.com/iamfoz/bookmem/compare/v0.52.0...v0.53.0
+[0.52.0]: https://github.com/iamfoz/bookmem/compare/v0.51.0...v0.52.0
+[0.51.0]: https://github.com/iamfoz/bookmem/compare/v0.50.0...v0.51.0
+[0.50.0]: https://github.com/iamfoz/bookmem/compare/v0.49.0...v0.50.0
+[0.49.0]: https://github.com/iamfoz/bookmem/compare/v0.48.0...v0.49.0
+[0.48.0]: https://github.com/iamfoz/bookmem/compare/v0.47.0...v0.48.0
+[0.47.0]: https://github.com/iamfoz/bookmem/compare/v0.46.0...v0.47.0
+[0.46.0]: https://github.com/iamfoz/bookmem/compare/v0.45.0...v0.46.0
+[0.45.0]: https://github.com/iamfoz/bookmem/compare/v0.44.0...v0.45.0
+[0.44.0]: https://github.com/iamfoz/bookmem/compare/v0.43.0...v0.44.0
+[0.43.0]: https://github.com/iamfoz/bookmem/compare/v0.42.0...v0.43.0
+[0.42.0]: https://github.com/iamfoz/bookmem/compare/v0.41.0...v0.42.0
+[0.41.0]: https://github.com/iamfoz/bookmem/compare/v0.40.0...v0.41.0
+[0.40.0]: https://github.com/iamfoz/bookmem/compare/v0.30.0...v0.40.0
+[0.30.0]: https://github.com/iamfoz/bookmem/compare/v0.20.0...v0.30.0
+[0.20.0]: https://github.com/iamfoz/bookmem/compare/v0.10.0...v0.20.0
+[0.10.0]: https://github.com/iamfoz/bookmem/releases/tag/v0.10.0

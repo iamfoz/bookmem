@@ -1,6 +1,6 @@
 [project]
 name = "bookmem"
-version = "0.61.11"
+version = "0.62.0"
 description = "Machine-readable Markdown book corpus for agent retrieval"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -51,3 +51,9 @@ select = ["E", "F", "I", "UP", "B"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
+
+[project.urls]
+Homepage = "https://github.com/iamfoz/bookmem"
+Repository = "https://github.com/iamfoz/bookmem"
+Changelog = "https://github.com/iamfoz/bookmem/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/iamfoz/bookmem/tree/main/docs"

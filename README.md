@@ -1,1101 +1,360 @@
 # BookMem
 
-Current package version: **0.17.0**
+Machine-readable Markdown book corpus for agent retrieval
 
+BookMem turns a folder of Markdown books into a searchable, citable, agent-friendly research corpus. It cleans books, generates frontmatter, classifies them using BMDC, builds a LanceDB index, extracts summaries/concepts/claims/passages, and exposes the corpus through CLI tools, exports, a local API, MCP, Docker and Hermes-friendly workflows.
 
-BookMem is a local, agent-readable Markdown book corpus.
+## Table of Contents
 
-It ingests Markdown books, classifies them with **BookMem Decimal Classification (BMDC)**, chunks them by Markdown structure, embeds them, stores them in LanceDB, and exposes a CLI that agents can use for targeted retrieval.
+- [Background](#background)
+- [Install](#install)
+  - [Dependencies](#dependencies)
+  - [Development install](#development-install)
+  - [Docker install](#docker-install)
+  - [Hermes install](#hermes-install)
+- [Usage](#usage)
+  - [Quick start](#quick-start)
+  - [Prepare and ingest books](#prepare-and-ingest-books)
+  - [Ask questions](#ask-questions)
+  - [Read with citations](#read-with-citations)
+  - [Summaries, concepts, claims and passages](#summaries-concepts-claims-and-passages)
+  - [Workspaces, briefs and reading lists](#workspaces-briefs-and-reading-lists)
+  - [Local API and MCP](#local-api-and-mcp)
+  - [Profiles](#profiles)
+  - [Maintenance](#maintenance)
+  - [Repository release commands](#repository-release-commands)
+- [Documentation](#documentation)
+- [API](#api)
+- [Maintainers](#maintainers)
+- [Acknowledgements](#acknowledgements)
+- [Contributing](#contributing)
+- [License](#license)
 
-The design goal is not merely to search Markdown. The goal is to let an agent search the right part of a book library, read around retrieved passages, and cite where ideas came from.
+## Background
 
+BookMem is designed for people building personal research assistants, executive-assistant agents, note systems or local knowledge bases from a private library of books.
 
-## Classification and IP notes
-
-BookMem uses **BookMem Decimal Classification (BMDC)** as its internal classification layer. BMDC class numbers are intended to be interoperable with the familiar decimal library classification numbering pattern where useful, while the labels, aliases and documentation in this project remain BookMem's own working descriptions.
-
-The practical rule is: use compatible numbers, use our own words. Do not copy proprietary editorial descriptions, captions, notes, schedules or hierarchy text from external classification manuals into `config/bmdc.yaml` or the documentation.
-
-See [`docs/CLASSIFICATION_IP.md`](docs/CLASSIFICATION_IP.md) for the operating rules.
-
-## Licence
-
-BookMem is licensed under **GPL-3.0-only**. See [`LICENSE`](LICENSE).
-
-## Author
-
-BookMem was created by **Martyn Forryan**.
-
-See [`AUTHORS.md`](AUTHORS.md) and [`NOTICE`](NOTICE).
-
-
-## Classification note
-
-BMDC is BookMem's own pragmatic decimal subject map. Its numbers are deliberately chosen to remain compatible with established decimal library classification habits where useful, but BMDC is not named as, affiliated with, endorsed by, or a substitute for any third-party classification product. Its wording and routing aliases are original to this project.
-
-The taxonomy is stored in [`config/bmdc.yaml`](config/bmdc.yaml) and documented in [`docs/TAXONOMY.md`](docs/TAXONOMY.md).
-
-## Current features
-
-- Markdown book ingestion
-- YAML frontmatter support
-- BMDC classification via `config/bmdc.yaml`
-- Folder-based classification fallback
-- LanceDB vector storage
-- Full-text index creation where supported by the installed LanceDB version
-- Hybrid, vector and full-text search modes
-- BMDC class and routing alias filters
-- Context reading around a retrieved chunk
-- Review queue for metadata, classification, ISBN conflicts and low-confidence matches
-- Formatted citations and pluggable reference manager exports
-- Collection-level statistics by class, author and topic
-- CLI-first workflow suitable for agent tools
-- Portable exports for an assistant agent, OpenClaw, Claude Code, LlamaIndex and LangChain
-
-## Project layout
+The core idea is simple:
 
 ```text
-bookmem/
-  bookmem/
-    cli.py
-    config.py
-    chunking.py
-    embeddings.py
-    ingest.py
-    search.py
-    taxonomy.py
-  config/
-    bmdc.yaml
-  docs/
-    TAXONOMY.md
-  data/
-    books/
-      158-applied-psychology-personal-development/
-      332-finance-investing-and-financial-markets/
-      999-unclassified/
-    lancedb/
-    manifests/
-  pyproject.toml
-  LICENSE
-  .env.example
+books as Markdown
+→ cleaned canonical books
+→ frontmatter and classification
+→ chunks with citations
+→ summaries, concepts, claims and passages
+→ search, answer packs, briefs, exports, API and MCP
 ```
+
+BookMem stores canonical books as Markdown because Markdown is easy to inspect, back up, diff and fix. Derived state such as summaries, graphs, review queues, passages and indexes can be regenerated.
+
+BookMem uses BMDC, a Dewey-compatible numbering scheme with original labels and descriptions. The numbers are intended to be interoperable with common library expectations, while the taxonomy wording belongs to this project.
 
 ## Install
 
+### Dependencies
+
+BookMem requires:
+
+```text
+Python 3.11+
+Git
+pip or pipx
+```
+
+The Python package dependencies are declared in `pyproject.toml`. For embedding and indexing workflows, BookMem uses LanceDB and `sentence-transformers`.
+
+### Development install
+
+Clone and install:
+
 ```bash
+git clone https://github.com/iamfoz/bookmem.git
+cd bookmem
+
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
-cp .env.example .env
+
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 ```
 
-For development tools:
+Check the CLI:
 
 ```bash
-pip install -e '.[dev]'
+bookmem --help
+bookmem doctor
+bookmem setup presets
+bookmem setup status
 ```
 
-## Add books
+`bookmem setup status` is passive by default. It will not download embedding models or initialise LanceDB unless you ask it to:
 
-Place Markdown files under `data/books/`.
+```bash
+bookmem setup status --include-index
+```
 
-Example:
+### Docker install
+
+Build and run the API service:
+
+```bash
+docker compose up --build bookmem-api
+```
+
+Typical mounts:
 
 ```text
-data/books/
-  158-applied-psychology-personal-development/
-    Atomic Habits - James Clear.md
-  332-finance-investing-and-financial-markets/
-    The Psychology of Money - Morgan Housel.md
+./data:/app/data
+./config:/app/config
+./exports:/app/exports
+./backups:/app/backups
 ```
 
-BookMem will infer the primary BMDC class from the parent folder if the Markdown file does not contain frontmatter.
-
-## Recommended frontmatter
-
-```yaml
----
-title: The Psychology of Money
-author: Morgan Housel
-
-classification:
-  scheme: bmdc
-  primary_class: "332"
-  primary_label: Finance, investing and financial markets
-  secondary_class:
-    - "153"
-    - "158"
-  routing_aliases:
-    - finance
-    - investing
-    - behavioural_finance
-  topics:
-    - money psychology
-    - investing
-    - risk
-    - compounding
-    - wealth
----
-```
-
-A productivity book might look like:
-
-```yaml
----
-title: Atomic Habits
-author: James Clear
-
-classification:
-  scheme: bmdc
-  primary_class: "158"
-  primary_label: Applied psychology and self-improvement
-  secondary_class:
-    - "153"
-  routing_aliases:
-    - personal_development
-    - productivity
-    - habits
-  topics:
-    - habit formation
-    - behaviour change
-    - systems
-    - identity
----
-```
-
-## Ingest
+Run MCP in Docker:
 
 ```bash
-bookmem ingest --reset
+docker compose up --build bookmem-mcp
 ```
 
-This reads Markdown files, creates chunks, embeds them using the configured sentence-transformers model, stores them in LanceDB, and attempts to create a full-text index on the `text` column.
+See [docs/DOCKER.md](docs/DOCKER.md).
 
-The first run may take a while because the embedding model needs to be downloaded.
+### Hermes install
 
-## Search
-
-Search all indexed books:
-
-```bash
-bookmem search "compound interest"
-```
-
-Search only finance-related material using a routing alias:
-
-```bash
-bookmem search "compound interest" --alias finance
-```
-
-Search by BMDC class code:
-
-```bash
-bookmem search "habit formation" --class 158
-```
-
-Use explicit search modes:
-
-```bash
-bookmem search "identity-based habits" --mode hybrid
-bookmem search "identity-based habits" --mode vector
-bookmem search "identity-based habits" --mode fts
-```
-
-## Read surrounding context
-
-Search results include a `chunk_id`. Use it to read around a result:
-
-```bash
-bookmem read james_clear_atomic_habits::chunk_000012 --context 2
-```
-
-## List indexed books
-
-```bash
-bookmem list-books
-bookmem list-books --class 332
-bookmem list-books --alias finance
-```
-
-## Inspect taxonomy
-
-```bash
-bookmem list-taxonomy
-bookmem list-aliases
-```
-
-## Agent usage pattern
-
-An agent should use BookMem like this:
+BookMem works well as a local tool for Hermes-style agents because it exposes:
 
 ```text
-1. Classify the user question into likely routing aliases or BMDC classes.
-2. Search using `bookmem search` with those filters.
-3. Inspect the strongest results.
-4. Use `bookmem read` to read neighbouring context.
-5. Answer only from retrieved evidence.
-6. Broaden the search only if results are weak or the question is cross-domain.
+CLI commands
+MCP server
+local FastAPI service
+JSON/Markdown exports
+config profiles
+agent permissions
+audit logs
+jobs status
 ```
 
-Examples:
+Recommended Hermes layout:
+
+```text
+~/.hermes/
+  hermes-agent/
+  bookmem/
+    data/
+    config/
+    exports/
+```
+
+Install BookMem into the same Python environment Hermes can call, or expose it as a CLI command in Hermes' tool PATH:
 
 ```bash
-bookmem search "what do my books say about market crashes?" --alias finance --limit 8
-bookmem search "how do I improve focus?" --alias productivity --limit 8
-bookmem search "how should I think about risk?" --alias finance --alias psychology --limit 12
+cd ~/.hermes
+git clone https://github.com/iamfoz/bookmem.git
+cd bookmem
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+
+bookmem --profile assistant_agent doctor
 ```
 
-## Classification strategy
+Create or edit a Hermes tool entry that calls BookMem commands. A simple pattern is:
 
-Every book should have:
+```yaml
+tools:
+  bookmem_search:
+    command: /Users/YOU/.hermes/bookmem/.venv/bin/bookmem
+    args:
+      - --profile
+      - assistant_agent
+      - search
+```
 
-- one primary BMDC class
-- zero or more secondary BMDC classes
-- zero or more routing aliases
-- zero or more topic tags
-
-The primary class answers: **where does this book mainly belong?**
-
-The secondary classes and tags answer: **where else might this book be useful?**
-
-The routing aliases answer: **which common agent queries should include this book?**
-
-## Optional Library of Congress enrichment
-
-If your files are named `<Title> - <Author> - <ISBN>.md`, BookMem can use the ISBN to query the Library of Congress SRU catalogue and copy a catalogue class number into the book frontmatter as a BMDC-compatible class identifier.
+For MCP-capable Hermes setups:
 
 ```bash
-bookmem loc-lookup 9798988534969
-bookmem enrich-loc "data/books/Book.md" --write
-bookmem enrich-loc-books data/books --write
-bookmem scan-isbns "data/books/unclassified/Book.md"
+bookmem --profile assistant_agent serve-mcp
 ```
 
-This is optional and online-only. See `docs/LOC_ENRICHMENT.md`.
-
-## ISBN discovery
-
-BookMem can scan poorly named Markdown exports for checksum-validated ISBNs and use those ISBNs for optional catalogue enrichment. See `docs/ISBN_DISCOVERY.md`.
-
-
-## Automatic book preparation
-
-Raw Markdown exports can be cleaned, frontmattered, classified, renamed and placed into the canonical BMDC folder structure in one step:
+For containerised Hermes setups, run the API service:
 
 ```bash
-bookmem prepare-book "data/raw-books/ugly_export_001.md"
-bookmem prepare-book "data/raw-books/ugly_export_001.md" --enrich-loc
-bookmem prepare-books data/raw-books --enrich-loc
+bookmem --profile docker serve --require-api-key
 ```
 
-Prepared files are stored under `data/books/<class-folder>/` using:
+Then configure Hermes to call the local API endpoint from the same Docker network.
+
+Recommended Hermes-safe defaults:
+
+```bash
+bookmem permissions check assistant_agent search
+bookmem permissions list assistant_agent
+bookmem --profile assistant_agent workspace search productivity "systems versus goals"
+bookmem --profile assistant_agent answer-pack "What do my books say about systems versus goals?" --json
+```
+
+See [docs/HERMES.md](docs/HERMES.md).
+
+## Usage
+
+### Quick start
+
+Run setup:
+
+```bash
+bookmem setup presets
+bookmem setup run --preset balanced
+```
+
+Add Markdown books under:
+
+```text
+data/raw-books/
+```
+
+A good filename format is:
 
 ```text
 <Title> - <Author> - <ISBN>.md
 ```
 
-See `docs/PREPARE_BOOKS.md` for the full workflow.
+Example:
 
-## Manifest and changed-file detection
+```text
+Atomic Habits - James Clear - 9780735211292.md
+```
 
-BookMem stores generated operational state in `data/manifests/books.json`. This lets repeated runs skip unchanged books.
+Prepare and ingest:
 
 ```bash
-bookmem status
 bookmem prepare-books data/raw-books --changed-only
 bookmem ingest --changed-only
 ```
 
-The manifest tracks body hashes, frontmatter hashes, preparation/index timestamps, chunk counts and classification source. Canonical metadata still lives in each cleaned Markdown file's YAML frontmatter.
-
-See `docs/MANIFEST.md` for details.
-
-## Book and chapter summaries
-
-Generate derived book/chapter summary maps before searching chunks:
+Search:
 
 ```bash
-bookmem summarise-books data/books
-bookmem search-summaries "systems versus goals"
+bookmem search "systems versus goals"
 ```
 
-Summaries are stored under `data/summaries/<book_id>/book.yaml` and `data/summaries/<book_id>/chapters.yaml`. They are derived state and can be rebuilt from the cleaned Markdown books. See `docs/SUMMARIES.md`.
-
-
-## Query routing
-
-BookMem can deterministically route a natural-language question to likely BMDC aliases and class codes before searching.
+Build an answer pack:
 
 ```bash
-bookmem route "What do my books say about compound interest?"
-bookmem ask-search "What do my books say about compound interest?"
-bookmem ask-search "systems versus goals" --summaries-first
-```
-
-The router is rules-based in this version. It uses BMDC aliases, class labels, topic hints and configured routing aliases. It does not call an LLM by default.
-
-See `docs/ROUTER.md`.
-
-
-## Reading context safely
-
-BookMem stores chapter, section and neighbour metadata for every chunk. This lets agents expand context without dumping an entire book.
-
-```bash
-bookmem read "<chunk_id>" --context 2
-bookmem read-around "<chunk_id>" --before 2 --after 3
-bookmem read-section --chunk-id "<chunk_id>"
-bookmem read-chapter --book "<book_id>" --chapter "Chapter 6"
-```
-
-See `docs/READING_TOOLS.md` for the agent guidance and metadata details.
-
-## Citation support
-
-BookMem stores source-location metadata on every indexed chunk, including `source_path`, `heading_path`, `chapter_id`, `section_id`, `start_line`, `end_line` and a generated citation string. Search, routed search and reading commands now display line ranges and reusable citations for agent answers.
-
-See [`docs/CITATIONS.md`](docs/CITATIONS.md).
-
-## Duplicate detection
-
-Find duplicate and near-duplicate books before indexing or tidying the library:
-
-```bash
-bookmem duplicates
-bookmem duplicates --by isbn
-bookmem duplicates --by title-author
-bookmem duplicates --by content
-bookmem duplicates --by near
-bookmem duplicates --write-review
-```
-
-See `docs/DUPLICATES.md`.
-
-## Collection statistics
-
-Inspect the shape and balance of the canonical library:
-
-```bash
-bookmem stats
-bookmem stats --by-class
-bookmem stats --by-author
-bookmem stats --by-topic
-bookmem stats --json
-```
-
-See `docs/STATS.md`.
-
-## Topic maps
-
-Build an agent-friendly map of a topic across summaries and indexed chunks:
-
-```bash
-bookmem map-topic "systems thinking"
-bookmem map-topic "compound interest" --json
-bookmem map-topic "energy management" --output exports/topic-maps/energy-management.yaml
-```
-
-Topic maps show likely BMDC routing, strongest books, recurring themes and evidence snippets so an agent can decide what to read next.
-
-See `docs/TOPIC_MAPS.md`.
-
-## Agent exports
-
-BookMem can export the corpus for other agents and retrieval frameworks. See [`docs/AGENT_EXPORTS.md`](docs/AGENT_EXPORTS.md).
-
-```bash
-bookmem export --format jsonl
-bookmem export --format llamaindex
-bookmem export --format langchain
-bookmem export --format markdown-index
-bookmem export --format all
-```
-
-Useful output files include:
-
-```text
-exports/bookmem_chunks.jsonl
-exports/bookmem_books.json
-exports/bookmem_agent_tools.md
-```
-
-## Reference exports
-
-BookMem can generate formatted book citations and export reference-manager files from canonical Markdown frontmatter.
-
-```bash
-bookmem cite "data/books/Book.md" --style apa
-bookmem cite-books data/books --style harvard --output exports/references-harvard.md
-bookmem export-references data/books --format bibtex --output exports/references.bib
-bookmem export-references data/books --format ris --output exports/references.ris
-bookmem export-references data/books --format csl-json --output exports/references.json
-bookmem export-references data/books --format endnote-xml --output exports/references.xml
-```
-
-Supported formatted styles are `apa`, `harvard`, `mla` and `chicago`. Supported export formats are `bibtex`, `ris`, `csl-json` and `endnote-xml`.
-
-See [`docs/REFERENCE_EXPORTS.md`](docs/REFERENCE_EXPORTS.md).
-
-## Review queue
-
-Automatic metadata extraction and classification are useful, but they should not be treated as infallible. BookMem can generate a review queue under:
-
-```text
-data/review/
-  needs_metadata.yaml
-  needs_classification.yaml
-  low_confidence_matches.yaml
-```
-
-Generate the queue:
-
-```bash
-bookmem review
-```
-
-Inspect specific queues:
-
-```bash
-bookmem review metadata
-bookmem review classifications
-bookmem review isbn-conflicts
-bookmem review low-confidence
-```
-
-To apply edits, mark entries in the YAML as approved and set the relevant reviewed fields, then run:
-
-```bash
-bookmem review apply
-```
-
-Review application updates Markdown frontmatter only. It does not silently delete files or move books around.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history.
-
-
-## Pluggable citation styles
-
-BookMem citation styles are YAML-defined. Built-in styles live in `config/citation_styles.yaml`, and local styles can be added under `config/citation_styles.d/`.
-
-```bash
-bookmem citation-styles
-bookmem validate-citation-styles
-bookmem cite "data/books/Book.md" --style apa
-```
-
-See `docs/PLUGGABLE_CITATIONS.md` for the template format.
-
-## Pluggable reference export formats
-
-BookMem reference export formats are YAML-defined.
-Built-in export formats live in `config/reference_export_formats.yaml`, and local formats can be added under `config/reference_export_formats.d/`.
-
-```bash
-bookmem reference-formats
-bookmem validate-reference-formats
-bookmem export-references data/books --format bibtex --output exports/references.bib
-```
-
-See `docs/PLUGGABLE_REFERENCE_FORMATS.md` for the export format schema.
-
-
-## MCP server
-
-BookMem can expose the local corpus to MCP-capable agents:
-
-```bash
-bookmem serve-mcp
-```
-
-The server provides tools for search, reading chunks/sections/chapters,
-query routing, book listing and topic mapping. See
-`docs/MCP_SERVER.md` for configuration examples and tool details.
-
-
-## Local HTTP API
-
-BookMem can also run a small FastAPI service for local/container integrations:
-
-```bash
-bookmem serve
-```
-
-Default URL:
-
-```text
-http://127.0.0.1:8765
-```
-
-Key endpoints include `/books`, `/search`, `/route`, `/chunks/{chunk_id}`,
-and `/books/{book_id}/chapters`. See `docs/LOCAL_API.md`.
-
-
-## Obsidian notes
-
-BookMem can generate human-facing Markdown notes for Obsidian:
-
-```bash
-bookmem notes generate "data/books/158.../Book.md" --write
-bookmem notes generate "data/books/158.../Book.md" --type summary --write
-bookmem notes generate "data/books/158.../Book.md" --type implementation-notes --write
-```
-
-Notes are written to `data/notes/` and include YAML frontmatter linking
-them back to the canonical BookMem source. See `docs/OBSIDIAN_NOTES.md`.
-
-
-## Clean check
-
-Audit cleaned Markdown before indexing:
-
-```bash
-bookmem clean-check "data/books/158.../Book.md"
-bookmem clean-check "data/books/158.../Book.md" --json
-```
-
-This reports remaining images, HTML, Pandoc spans, empty anchors, heading
-quality, paragraph quality, ISBNs and frontmatter state. See
-`docs/CLEAN_CHECK.md`.
-
-
-## Cleaning profiles
-
-Markdown cleanup is profile-driven:
-
-```bash
-bookmem cleaning-profiles
-bookmem clean "Book.md" --profile epub_pandoc --output "Book.cleaned.md"
-bookmem clean-books data/raw-books data/books --profile epub_pandoc
-bookmem prepare-books data/raw-books --profile epub_pandoc --changed-only
-```
-
-Profiles live in `config/cleaning_profiles.yaml` and can be extended in
-`config/cleaning_profiles.d/`. See `docs/CLEANING_PROFILES.md`.
-
-
-## Testing
-
-Install development dependencies and run the test suite:
-
-```bash
-pip install -e ".[dev]"
-pytest
-pytest tests/test_cleaning.py
-```
-
-The suite uses a small fixture corpus under `tests/fixtures/`. See
-`docs/TESTING.md`.
-
-
-## Doctor
-
-Run a health check after upgrades or before exposing BookMem to agents:
-
-```bash
-bookmem doctor
-bookmem doctor --fix
-bookmem doctor --json
-```
-
-`--fix` only applies safe repairs such as creating missing folders,
-`.gitkeep` placeholders or an empty manifest. See `docs/DOCTOR.md`.
-
-
-## Docker
-
-Build and run the API service:
-
-```bash
-docker compose build
-docker compose up -d bookmem-api
-```
-
-Run one-off CLI commands:
-
-```bash
-docker compose run --rm bookmem-worker bookmem doctor
-docker compose run --rm bookmem-worker bookmem ingest --changed-only
-```
-
-The compose file mounts `./data`, `./config` and `./exports` into the
-container so the corpus remains on the host. See `docs/DOCKER.md`.
-
-
-## API authentication
-
-The local API can require a simple bearer token:
-
-```bash
-BOOKMEM_API_REQUIRE_KEY=true BOOKMEM_API_KEY=change-me bookmem serve
-```
-
-Or:
-
-```bash
-bookmem serve --require-api-key --api-key "change-me"
-```
-
-Use:
-
-```http
-Authorization: Bearer change-me
-```
-
-See `docs/API_AUTH.md`.
-
-
-## Backup and restore
-
-Create a portable backup of canonical and reviewable BookMem state:
-
-```bash
-bookmem backup --output backups/bookmem-2026-05-18.tar.gz
-bookmem restore backups/bookmem-2026-05-18.tar.gz --dry-run
-bookmem restore backups/bookmem-2026-05-18.tar.gz
-```
-
-Backups include `data/books`, `data/summaries`, `data/notes`,
-`data/manifests`, `data/review`, `config` and project metadata. They
-exclude `data/lancedb`, `.venv`, caches and exports. See
-`docs/BACKUP_RESTORE.md`.
-
-
-## Import adapters
-
-Import source book formats into raw Markdown under `data/raw-books/`:
-
-```bash
-bookmem import epub "Book.epub"
-bookmem import html "Book.html"
-bookmem import pdf "Book.pdf"
-bookmem import calibre "/path/to/Calibre Library"
-```
-
-The normal pipeline then takes over:
-
-```text
-import → raw Markdown → clean → frontmatter → classify → prepare → ingest
-```
-
-See `docs/IMPORT_ADAPTERS.md`.
-
-
-## Calibre integration
-
-Use Calibre as a metadata source without replacing BookMem frontmatter:
-
-```bash
-bookmem calibre scan "/path/to/Calibre Library"
-bookmem calibre metadata "/path/to/Calibre Library" "Book Title"
-bookmem calibre import "/path/to/Calibre Library"
-bookmem calibre enrich "data/books/.../Book.md" "/path/to/Calibre Library" --write
-```
-
-See `docs/CALIBRE.md`.
-
-
-## Grimmory integration
-
-Export BookMem metadata as Grimmory-ready sidecar JSON files:
-
-```bash
-bookmem grimmory sidecar "data/books/.../Book.md"
-bookmem grimmory export data/books --output-dir exports/grimmory
-bookmem grimmory export data/books --output-dir exports/grimmory --copy-markdown
-```
-
-See `docs/GRIMMORY.md`.
-
-
-## Metadata enrichment
-
-Optional online metadata enrichment supports Library of Congress, Open
-Library and Google Books:
-
-```bash
-bookmem enrich-openlibrary "data/books/.../Book.md" --write
-bookmem enrich-google-books "data/books/.../Book.md" --write
-bookmem enrich-metadata "data/books/.../Book.md" --providers loc,openlibrary,google --write
-```
-
-Enrichment fills missing metadata, records provenance in
-`metadata_sources`, and does not overwrite reviewed fields unless
-explicitly told to. See `docs/METADATA_ENRICHMENT.md`.
-
-
-## Edition handling
-
-Track works and editions separately so duplicate detection can tell the
-difference between a true duplicate and a legitimate new edition:
-
-```bash
-bookmem editions
-bookmem editions "The 7 Habits of Highly Effective People"
-bookmem editions --write
-```
-
-Edition metadata uses `work:` and `edition:` frontmatter blocks. See
-`docs/EDITIONS.md`.
-
-
-## Book relationship graph
-
-Build a derived graph of book-to-book relationships:
-
-```bash
-bookmem build-graph
-bookmem related "Atomic Habits"
-bookmem related --topic "systems thinking"
-```
-
-The graph is stored at `data/graphs/book_graph.json` and uses signals
-such as shared topics, class, summaries, author and work/edition groups.
-See `docs/BOOK_GRAPH.md`.
-
-
-## Answer packs
-
-Gather route, relevant books, passages, context, related books and
-citations into one structured evidence bundle:
-
-```bash
-bookmem answer-pack "What do my books say about systems versus goals?"
 bookmem answer-pack "What do my books say about systems versus goals?" --json
 ```
 
-This is designed for an assistant agent and other agents that need evidence before
-producing a final answer. See `docs/ANSWER_PACKS.md`.
+### Prepare and ingest books
 
-
-## Summary providers
-
-Deterministic summaries remain the default, with optional LLM-assisted
-providers:
+Clean a book:
 
 ```bash
-bookmem summary-providers
-bookmem summarise-book "data/books/.../Book.md" --provider deterministic
-bookmem summarise-book "data/books/.../Book.md" --provider openai
-bookmem summarise-books data/books --provider local_ollama
+bookmem clean "data/raw-books/Book.md" --profile epub_pandoc
 ```
 
-LLM-assisted summaries are always marked as `review_status:
-machine_draft` and record provider/model metadata. See
-`docs/SUMMARY_PROVIDERS.md`.
-
-
-## Prompt packs
-
-Reusable prompt assets live under `prompts/`:
+Check the cleaned Markdown:
 
 ```bash
-bookmem prompts list
-bookmem prompts show summarise_book
-bookmem prompts show answer_from_corpus
+bookmem clean-check "data/raw-books/Book.md"
 ```
 
-Included prompts cover summary generation, implementation notes,
-classification, key model extraction and answering from corpus evidence.
-See `docs/PROMPT_PACKS.md`.
+Generate or update frontmatter:
 
+```bash
+bookmem frontmatter "data/raw-books/Book.md" --write
+```
 
-## Concept extraction
+Prepare books into canonical structure:
 
-Extract reusable concepts, models, frameworks and methods from books:
+```bash
+bookmem prepare-books data/raw-books --changed-only
+```
+
+Ingest into LanceDB:
+
+```bash
+bookmem ingest --changed-only
+```
+
+Reset and rebuild the index:
+
+```bash
+bookmem ingest --reset
+```
+
+### Ask questions
+
+Search the whole corpus:
+
+```bash
+bookmem search "compound interest"
+```
+
+Route a query:
+
+```bash
+bookmem route "What do my books say about compound interest?"
+```
+
+Use routed search and context assembly:
+
+```bash
+bookmem ask-search "What do my books say about compound interest?"
+```
+
+Build a structured answer pack:
+
+```bash
+bookmem answer-pack "What do my books say about risk and return?"
+bookmem answer-pack "What do my books say about risk and return?" --json
+```
+
+### Read with citations
+
+Read a chunk:
+
+```bash
+bookmem read-section --chunk-id <chunk_id>
+```
+
+Read around a chunk:
+
+```bash
+bookmem read-around <chunk_id> --before 2 --after 3
+```
+
+Read a chapter:
+
+```bash
+bookmem read-chapter --book <book_id> --chapter "Chapter 6"
+```
+
+Search results include source information such as title, author, chapter/heading path, line range and chunk ID.
+
+### Summaries, concepts, claims and passages
+
+Generate summaries:
+
+```bash
+bookmem summarise-books data/books --provider deterministic
+bookmem search-summaries "systems versus goals"
+```
+
+Extract concepts:
 
 ```bash
 bookmem extract-concepts "data/books/.../Book.md"
-bookmem concepts extract-books data/books
 bookmem concepts search "circle of influence"
-bookmem concepts list --class 158
 ```
 
-Concepts are derived artefacts under `data/concepts/` and include source
-chunks/citations. See `docs/CONCEPTS.md`.
-
-
-## Index versioning
-
-Check whether the retrieval index is stale compared with current
-chunking, embedding, cleaning and taxonomy settings:
+Extract claims:
 
 ```bash
-bookmem index-status
-bookmem index-status --json
+bookmem extract-claims "data/books/.../Book.md"
+bookmem claims search "goals"
+bookmem claims compare "compound interest"
 ```
 
-The manifest records index schema, chunker version, embedding model,
-embedding dimension, cleaner version and taxonomy fingerprint. See
-`docs/INDEX_VERSIONING.md`.
-
-
-## Embedding model management
-
-Manage embedding profiles, benchmark models and reindex safely:
-
-```bash
-bookmem embeddings info
-bookmem embeddings models
-bookmem embeddings benchmark --model bge-m3
-bookmem embeddings reindex --model bge-m3
-```
-
-Embedding metadata is stored in the manifest and index fingerprint. See
-`docs/EMBEDDINGS.md`.
-
-
-## Retrieval evaluation
-
-Measure retrieval quality with a small benchmark query set:
-
-```bash
-bookmem eval queries
-bookmem eval retrieval
-bookmem eval retrieval --json
-```
-
-Evaluation queries live in `eval/queries.yaml` and report Recall@K, MRR
-and failed queries. See `docs/EVALUATION.md`.
-
-
-## Web UI
-
-Run a small local web UI:
-
-```bash
-bookmem ui
-```
-
-Open:
-
-```text
-http://127.0.0.1:8787
-```
-
-Docker:
-
-```bash
-docker compose up -d bookmem-ui
-```
-
-The UI includes dashboard, books, classes, review queue, duplicates,
-search, topic maps, clean-check reports, system status and a small
-allowlisted control panel. See `docs/WEB_UI.md`.
-
-
-## Terminal UI
-
-Run the interactive Textual terminal UI:
-
-```bash
-bookmem tui
-```
-
-The TUI includes dashboard, books, search, review, duplicates, system
-status and a safe control panel for long-running operations such as
-changed-only ingestion. See `docs/TUI.md`.
-
-
-## Setup wizard
-
-BookMem includes a first-run setup wizard with presets:
-
-```bash
-bookmem setup presets
-bookmem setup plan balanced
-bookmem setup run balanced --dry-run
-bookmem setup run balanced
-```
-
-The same setup flow is available in the TUI:
-
-```bash
-bookmem tui
-```
-
-Open the `Setup` tab to choose from `full_fat`, `balanced`, `minimal`,
-`import_ready` and `agent_ready`. See `docs/SETUP_WIZARD.md`.
-
-
-Setup can be re-run safely on existing installations:
-
-```bash
-bookmem setup run balanced --mode safe
-bookmem setup run balanced --mode repair
-bookmem setup run agent_ready --mode rebuild
-bookmem setup run full_fat --mode safe --force
-```
-
-Long-running setup steps use spinner/progress/status output in the CLI
-and a streaming log in the TUI.
-
-
-## Migrations
-
-BookMem has an explicit migration system for persisted schema/data
-upgrades:
-
-```bash
-bookmem migrations status
-bookmem migrations apply --dry-run
-bookmem migrations apply
-bookmem migrations create "add concept review status"
-```
-
-Applied migrations are tracked in `data/manifests/migrations.json`.
-Migrations are deliberately separate from `doctor --fix`. See
-`docs/MIGRATIONS.md`.
-
-
-## Generated artefact cleaner
-
-Safely clean generated/derived state before rebuilding:
-
-```bash
-bookmem clean-derived --all --dry-run
-bookmem clean-derived --summaries --execute
-bookmem clean-derived --concepts --execute
-bookmem clean-derived --graphs --execute
-bookmem clean-derived --index --execute
-```
-
-The cleaner never deletes `data/books/`, `data/raw-books/` or `config/`.
-Review queues are cleaned only with explicit `--review`. See
-`docs/CLEAN_DERIVED.md`.
-
-
-## Human review workflow
-
-Promote, reject or mark generated machine-draft artefacts:
-
-```bash
-bookmem review machine-drafts
-bookmem review approve-summary <book_id>
-bookmem review approve-concepts <book_id>
-bookmem review reject-concept <concept_id>
-bookmem review mark-human-reviewed <path>
-```
-
-Supported review statuses are `machine_draft`, `needs_human_review`,
-`human_reviewed`, `rejected` and `superseded`. See
-`docs/HUMAN_REVIEW.md`.
-
-
-## Audit log
-
-BookMem writes a durable JSONL audit trail for important agent-facing
-actions:
-
-```bash
-bookmem audit tail
-bookmem audit search "enrich"
-bookmem audit export --format jsonl
-```
-
-The log lives at `data/audit/bookmem.log.jsonl` and records command,
-action, status, changed files, provider and details. See
-`docs/AUDIT.md`.
-
-
-## Restore points and rollback
-
-Create recoverable snapshots and roll back safely:
-
-```bash
-bookmem restore-points create "before metadata enrichment"
-bookmem restore-points list
-bookmem restore-points show <restore_point_id>
-bookmem rollback <restore_point_id>
-bookmem rollback <restore_point_id> --execute
-bookmem rollback --last
-bookmem rollback --audit-id "metadata.enrich_metadata"
-```
-
-Rollback is dry-run by default and blocks canonical book restoration
-unless `--include-canonical-books` is supplied. See
-`docs/RESTORE_POINTS.md`.
-
-
-## Agent permissions
-
-Define what agents are allowed to do in `config/agent_permissions.yaml`:
-
-```bash
-bookmem permissions check assistant_agent enrich_metadata.write
-bookmem permissions list assistant_agent
-bookmem permissions agents
-bookmem permissions validate
-```
-
-Decisions are `allow`, `require_confirmation`, `deny` or `unknown`.
-Deny wins; unknown should be treated as unsafe. See
-`docs/AGENT_PERMISSIONS.md`.
-
-
-## Workspaces
-
-Use named project/corpus views to narrow retrieval:
-
-```bash
-bookmem workspace list
-bookmem workspace search productivity "systems versus goals"
-bookmem workspace answer-pack finance "risk and return"
-```
-
-Workspaces are configured in `config/workspaces.yaml` using BMDC
-classes, topics and aliases. See `docs/WORKSPACES.md`.
-
-
-## Saved queries and research briefs
-
-Save recurring research questions and generate evidence briefs:
-
-```bash
-bookmem query save "systems versus goals" --name systems-goals --workspace productivity
-bookmem query run systems-goals
-bookmem brief generate systems-goals
-```
-
-Saved queries live in `data/queries/`; generated briefs live in
-`data/briefs/`. See `docs/SAVED_QUERIES_AND_BRIEFS.md`.
-
-
-## Reading-list generation
-
-Generate ordered reading paths from summaries, concepts, topic maps,
-graph relationships and search:
-
-```bash
-bookmem reading-list "I want to understand habit design"
-bookmem reading-list --topic "personal finance for beginners"
-bookmem reading-list --goal "build an executive assistant agent"
-bookmem reading-list --topic "systems thinking" --save --name systems-thinking
-```
-
-Saved lists are written to `data/reading-lists/`. See
-`docs/READING_LISTS.md`.
-
-
-## Reading metadata
-
-Infer reading difficulty, estimated length, density and best reading
-posture:
-
-```bash
-bookmem reading-metadata infer "data/books/.../Book.md"
-bookmem reading-metadata infer "data/books/.../Book.md" --write
-bookmem stats --by-difficulty
-```
-
-Reading metadata is stored under `reading:` in frontmatter and is used by
-reading-list generation. See `docs/READING_METADATA.md`.
-
-
-## Passages and commonplace book
-
-Extract, search, favourite and export useful passages:
+Extract useful passages:
 
 ```bash
 bookmem passages extract "data/books/.../Book.md"
@@ -1104,87 +363,89 @@ bookmem passages favourite <chunk_id>
 bookmem passages export --format obsidian --output exports/commonplace.md
 ```
 
-Passage data lives in `data/passages/extracted.yaml` and
-`data/passages/favourites.yaml`. See `docs/PASSAGES.md`.
+### Workspaces, briefs and reading lists
 
-
-## Topic comparison / disagreement mapping
-
-Compare supportive, critical and mixed stances on a topic:
+List workspaces:
 
 ```bash
-bookmem compare-topic "goals"
-bookmem compare-topic "goals" --json
-bookmem compare-topic "goals" --markdown --output exports/goals-comparison.md
+bookmem workspace list
 ```
 
-Comparisons use passages, summaries and chunk search, and are marked
-`review_status: machine_draft`. See `docs/TOPIC_COMPARISON.md`.
-
-
-## Claims
-
-Extract, search and compare assertion claims:
+Search a workspace:
 
 ```bash
-bookmem extract-claims "data/books/.../Book.md"
-bookmem claims search "goals"
-bookmem claims compare "compound interest"
-bookmem claims compare "goals" --markdown --output exports/goals-claims.md
+bookmem workspace search productivity "systems versus goals"
+bookmem workspace answer-pack finance "risk and return" --json
 ```
 
-Claims are stored in `data/claims/claims.yaml` and marked
-`review_status: machine_draft`. See `docs/CLAIMS.md`.
-
-
-## Graph visualisation exports
-
-Export the derived book graph for visualisation tools:
+Save a recurring query:
 
 ```bash
-bookmem graph export --format graphml
-bookmem graph export --format cytoscape
-bookmem graph export --format mermaid
-bookmem graph export --format obsidian-canvas
-bookmem graph export --format all
+bookmem query save "systems versus goals" --name systems-goals --workspace productivity
+bookmem brief generate systems-goals
 ```
 
-Outputs are written to `exports/graphs/`. See `docs/GRAPH_EXPORTS.md`.
-
-
-## Plugins
-
-Discover and validate lightweight plugin manifests:
+Generate a reading list:
 
 ```bash
-bookmem plugins list
-bookmem plugins list --category importers
-bookmem plugins validate
+bookmem reading-list --topic "personal finance for beginners"
+bookmem reading-list --goal "build an executive assistant agent"
 ```
 
-Plugin manifests live under `plugins/` in category directories such as
-`importers/`, `enrichers/`, `exporters/`, `summary_providers/` and
-`citation_styles/`. See `docs/PLUGINS.md`.
+### Local API and MCP
 
+Run the local API:
 
-## Config profiles / environments
+```bash
+bookmem serve --host 127.0.0.1 --port 8765
+```
 
-Switch between local, Docker and agent-oriented profiles:
+Require an API key:
+
+```bash
+BOOKMEM_API_KEY="change-me" bookmem serve --require-api-key
+```
+
+Run MCP:
+
+```bash
+bookmem serve-mcp
+```
+
+### Profiles
+
+Use a profile for one command:
 
 ```bash
 bookmem --profile assistant_agent search "systems thinking"
-bookmem profile current
-bookmem profile list
-bookmem profile validate assistant_agent
-bookmem profile use docker
+bookmem --profile docker serve
 ```
 
-Profiles live in `config/profiles/`. See `docs/PROFILES.md`.
+Persist a profile:
 
+```bash
+bookmem profile use assistant_agent
+bookmem profile current
+```
 
-## Jobs and observability
+Built-in profiles:
 
-Inspect long-running job status and logs:
+```text
+local
+docker
+assistant_agent
+```
+
+### Maintenance
+
+Run health checks:
+
+```bash
+bookmem doctor
+bookmem doctor --deep
+```
+
+Inspect jobs:
 
 ```bash
 bookmem jobs list
@@ -1192,44 +453,82 @@ bookmem jobs status <job_id>
 bookmem jobs tail <job_id>
 ```
 
-Job files live in `data/jobs/` as `<job_id>.json` and `<job_id>.log`.
-See `docs/JOBS.md`.
-
-
-## Deep doctor diagnostics
-
-Run deeper integrity checks across chunks, citations, manifests,
-summaries, concepts, graph, embeddings, review queues and config files:
+Back up and restore:
 
 ```bash
-bookmem doctor --deep
-bookmem doctor --deep --json
-bookmem doctor --deep --sample-size 25
+bookmem backup --output backups/bookmem-$(date +%Y-%m-%d).tar.gz
+bookmem restore backups/bookmem-2026-05-22.tar.gz
 ```
 
-Deep mode is read-only. See `docs/DOCTOR.md`.
-
-
-## CLI startup performance
-
-The CLI uses lazy command imports so simple commands such as
-`bookmem --help` do not import heavyweight embedding dependencies such
-as `sentence-transformers`, `sklearn` or `scipy`.
-
-
-## Setup status is passive by default
-
-`bookmem setup status` does not load embedding models, initialise LanceDB,
-or contact Hugging Face. Use the explicit deeper mode when required:
+Export graph visualisations:
 
 ```bash
-bookmem setup status --include-index
+bookmem graph export --format all
 ```
 
+### Repository release commands
 
-## Book Markdown discovery
+A full set of commands for creating `github.com/iamfoz/bookmem`, reconstructing a plausible month-long SemVer release history, tagging releases and pushing them is in [docs/REPOSITORY_RELEASE_PLAN.md](docs/REPOSITORY_RELEASE_PLAN.md).
 
-BookMem excludes support Markdown files from book discovery, including
-`README.md`, `CHANGELOG.md`, `LICENSE.md`, and files under derived data
-directories. This prevents sample-directory README files being prepared,
-summarised, indexed or exported as books.
+Short version for a new repository:
+
+```bash
+gh repo create iamfoz/bookmem --public --source=. --remote=origin --description "Machine-readable Markdown book corpus for agent retrieval"
+git branch -M main
+git push -u origin main --tags
+```
+
+## Documentation
+
+Start here:
+
+- [Documentation index](docs/README.md)
+- [Quick start](docs/QUICKSTART.md)
+- [Installation](docs/INSTALL.md)
+- [Hermes integration](docs/HERMES.md)
+- [Command reference](docs/COMMAND_REFERENCE.md)
+- [Repository release plan](docs/REPOSITORY_RELEASE_PLAN.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+## API
+
+BookMem is mainly a CLI application, but the package modules are importable. The most stable integration points are:
+
+```text
+bookmem search ...
+bookmem answer-pack ...
+bookmem workspace answer-pack ...
+bookmem serve
+bookmem serve-mcp
+bookmem export --format jsonl
+```
+
+For programmatic integration, prefer the local API, MCP server or JSON CLI output until the Python API stabilises.
+
+## Maintainers
+
+- Martyn Forryan
+
+## Acknowledgements
+
+BookMem is inspired by practical agent-memory and retrieval workflows, and acknowledges a debt of gratitude to the MIT-licensed CortexReach `memory-lancedb-pro` project as an important source of ideas for LanceDB-backed memory/retrieval design.
+
+## Contributing
+
+Issues and pull requests are welcome once the public repository is available.
+
+Before contributing:
+
+```bash
+python -m pip install -e ".[dev]"
+pytest
+ruff check .
+bookmem doctor
+```
+
+Please keep documentation updated with code changes and avoid committing generated indexes, private books, secrets or local data.
+
+## License
+
+GPL-3.0-only © Martyn Forryan

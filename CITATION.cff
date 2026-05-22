@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use BookMem, please cite the repository."
+title: "BookMem"
+authors:
+  - family-names: "Forryan"
+    given-names: "Martyn"
+version: "0.62.0"
+date-released: "2026-05-22"
+license: "GPL-3.0-only"
+repository-code: "https://github.com/iamfoz/bookmem"

@@ -91,6 +91,21 @@ info "Installing the wrapper at ~/.hermes/bin/bookmem"
 run_bookmem hermes install-wrapper
 info "Wrapper installed."
 
+# --- Step 4: install the BookMem research skill -----------------------------
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_SRC="${SCRIPT_DIR}/SKILL.md"
+SKILL_DEST_DIR="${HOME}/.hermes/skills/research/bookmem"
+
+if [ -f "${SKILL_SRC}" ]; then
+  info "Installing the BookMem research skill to ${SKILL_DEST_DIR}"
+  mkdir -p "${SKILL_DEST_DIR}"
+  cp "${SKILL_SRC}" "${SKILL_DEST_DIR}/SKILL.md"
+  info "Skill installed."
+else
+  warn "Skill source not found at ${SKILL_SRC}; skipping skill installation."
+fi
+
 # --- Done -------------------------------------------------------------------
 
 info "Done."
@@ -101,6 +116,7 @@ BookMem is installed for Hermes.
   Runtime home:  ~/.hermes/bookmem
   Wrapper:       ~/.hermes/bin/bookmem
   Package:       installed in ~/.hermes/hermes-agent/venv
+  Skill:         ~/.hermes/skills/research/bookmem/SKILL.md
 
 Verify the integration (passive, no embeddings or LanceDB init):
 

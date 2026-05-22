@@ -24,16 +24,13 @@ fallback.
 ## Files in this directory
 
 - `install.sh` — Bash installer. Installs the BookMem package into the Hermes
-  agent venv, creates the runtime home, and installs the wrapper. Safe to
-  re-run.
-- `bookmem.tool.yaml` — Hermes tool manifest. Describes the BookMem tool and
-  the sub-commands an agent may invoke (`search`, `answer-pack`, `read-around`,
-  `read-chapter`, `workspace answer-pack`, `claims compare`, `passages search`,
-  `reading-list`, `jobs status`, `doctor`, `hermes status`).
-- `bookmem.skill.md` — Skill document. Tells a Hermes agent how to use BookMem
-  safely: prefer cited answer packs, always cite sources, prefer `--json` for
-  machine parsing, and never run destructive commands without explicit user
-  confirmation.
+  agent venv, creates the runtime home, installs the wrapper, and installs the
+  research skill. Safe to re-run.
+- `SKILL.md` — Hermes research skill. Tells a Hermes agent how to use BookMem
+  safely: answer with cited answer packs, never present a claim without
+  BookMem's citation, prefer `--json` for machine parsing, and never run
+  corpus-mutating commands without explicit confirmation. Installed to
+  `~/.hermes/skills/research/bookmem/`.
 - `README.md` — This file.
 
 ## Install
@@ -124,5 +121,6 @@ BookMem through the wrapper, for example:
 ~/.hermes/bin/bookmem answer-pack "What do my books say about goals?" --json
 ```
 
-Register `bookmem.tool.yaml` with your Hermes setup as the tool manifest, and
-provide `bookmem.skill.md` as the usage skill so the agent uses BookMem safely.
+`install.sh` installs the research skill to
+`~/.hermes/skills/research/bookmem/SKILL.md` (or copy `SKILL.md` there
+manually) so the agent uses BookMem safely.

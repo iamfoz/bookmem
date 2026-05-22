@@ -10,6 +10,12 @@ the project is stabilising.
 
 ## [Unreleased]
 
+### Added
+- Reserved for changes not yet released.
+
+
+## [0.62.1] - 2026-05-22
+
 ### Fixed
 - Fixed broken imports that prevented several modules from loading: `topic_maps`
   imports in `web_ui.py`, `reading_lists.py` and `saved_queries.py`, the `map_topic`
@@ -311,7 +317,8 @@ the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.62.0...HEAD
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.62.1...HEAD
+[0.62.1]: https://github.com/iamfoz/bookmem/compare/v0.62.0...v0.62.1
 [0.62.0]: https://github.com/iamfoz/bookmem/compare/v0.61.10...v0.62.0
 [0.61.10]: https://github.com/iamfoz/bookmem/compare/v0.61.0...v0.61.10
 [0.61.0]: https://github.com/iamfoz/bookmem/compare/v0.60.0...v0.61.0

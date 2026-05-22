@@ -8,7 +8,6 @@ This directory contains the operational documentation for BookMem.
 - [Installation](INSTALL.md)
 - [Hermes integration](HERMES.md)
 - [Command reference](COMMAND_REFERENCE.md)
-- [Repository release plan](REPOSITORY_RELEASE_PLAN.md)
 
 ## Core concepts
 

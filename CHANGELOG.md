@@ -13,17 +13,16 @@ the project is stabilising.
 ### Added
 - Reserved for changes not yet released.
 
+
 ## [0.62.0] - 2026-05-22
 
 ### Added
 - Added full documentation suite with installation, quick start, Hermes integration,
-  command reference, architecture, operations, repository release plan and troubleshooting.
-- Added GitHub repository creation and release-history commands for `iamfoz/bookmem`.
+  command reference, architecture, operations and troubleshooting.
 - Added Standard README-style root README with practical usage examples.
 
 ### Changed
 - Reworked changelog to follow Keep a Changelog 1.1.0.
-- Consolidated noisy micro-release history into SemVer feature milestones.
 - Updated project URLs to `https://github.com/iamfoz/bookmem`.
 
 ## [0.61.10] - 2026-05-20

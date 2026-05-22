@@ -22,7 +22,6 @@ BookMem turns a folder of Markdown books into a searchable, citable, agent-frien
   - [Local API and MCP](#local-api-and-mcp)
   - [Profiles](#profiles)
   - [Maintenance](#maintenance)
-  - [Repository release commands](#repository-release-commands)
 - [Documentation](#documentation)
 - [API](#api)
 - [Maintainers](#maintainers)
@@ -466,17 +465,6 @@ Export graph visualisations:
 bookmem graph export --format all
 ```
 
-### Repository release commands
-
-A full set of commands for creating `github.com/iamfoz/bookmem`, reconstructing a plausible month-long SemVer release history, tagging releases and pushing them is in [docs/REPOSITORY_RELEASE_PLAN.md](docs/REPOSITORY_RELEASE_PLAN.md).
-
-Short version for a new repository:
-
-```bash
-gh repo create iamfoz/bookmem --public --source=. --remote=origin --description "Machine-readable Markdown book corpus for agent retrieval"
-git branch -M main
-git push -u origin main --tags
-```
 
 ## Documentation
 
@@ -487,7 +475,6 @@ Start here:
 - [Installation](docs/INSTALL.md)
 - [Hermes integration](docs/HERMES.md)
 - [Command reference](docs/COMMAND_REFERENCE.md)
-- [Repository release plan](docs/REPOSITORY_RELEASE_PLAN.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 

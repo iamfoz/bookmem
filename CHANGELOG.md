@@ -14,6 +14,21 @@ the project is stabilising.
 - Reserved for changes not yet released.
 
 
+## [0.63.3] - 2026-05-22
+
+### Fixed
+- Re-running `ingest` (without `--changed-only`) no longer accumulates
+  duplicate chunks. A full ingest now removes a file's existing rows before
+  re-adding them, so repeated ingests are idempotent.
+- `bookmem.__version__` is derived from installed package metadata instead of
+  a hardcoded string, so `bookmem doctor` and other version displays report
+  the actual installed version.
+
+### Changed
+- `bookmem doctor` now names the specific citation-style and reference-format
+  validation problems instead of only reporting a count.
+
+
 ## [0.63.2] - 2026-05-22
 
 ### Fixed
@@ -380,7 +395,8 @@ the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.2...HEAD
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.3...HEAD
+[0.63.3]: https://github.com/iamfoz/bookmem/compare/v0.63.2...v0.63.3
 [0.63.2]: https://github.com/iamfoz/bookmem/compare/v0.63.1...v0.63.2
 [0.63.1]: https://github.com/iamfoz/bookmem/compare/v0.63.0...v0.63.1
 [0.63.0]: https://github.com/iamfoz/bookmem/compare/v0.62.1...v0.63.0

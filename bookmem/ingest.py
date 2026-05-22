@@ -103,9 +103,11 @@ def ingest_books(reset: bool = False, changed_only: bool = False) -> None:
         table = db.create_table(settings.table_name, data=df)
         console.print(f"[green]Created table: {settings.table_name}[/green]")
     else:
-        if changed_only and not reset:
-            for path in md_files:
-                _delete_existing_rows(table, path)
+        # Adding to an existing table: drop any prior rows for the files being
+        # ingested first, so re-running `ingest` is idempotent and never
+        # accumulates duplicate chunks.
+        for path in md_files:
+            _delete_existing_rows(table, path)
         table.add(df)
         console.print(f"[green]Added rows to table: {settings.table_name}[/green]")
 

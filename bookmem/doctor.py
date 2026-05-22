@@ -211,6 +211,16 @@ def check_cleaning_profiles() -> DoctorCheck:
     return DoctorCheck("Cleaning profiles", STATUS_OK, f"{len(profiles)} cleaning profile(s) loaded.")
 
 
+def _validation_message(issues: list[dict[str, str]]) -> str:
+    """Summarise validation issues, naming the first few specifics."""
+    detail = "; ".join(
+        f"{issue.get('style') or issue.get('format') or '?'} "
+        f"({issue.get('message') or issue.get('issue') or 'invalid'})"
+        for issue in issues[:3]
+    )
+    return f"{len(issues)} validation issue(s): {detail}"
+
+
 def check_citation_styles() -> DoctorCheck:
     try:
         issues = validate_citation_styles()
@@ -218,7 +228,7 @@ def check_citation_styles() -> DoctorCheck:
         return DoctorCheck("Citation styles", STATUS_FAIL, f"Citation styles failed to load: {exc}")
 
     if issues:
-        return DoctorCheck("Citation styles", STATUS_FAIL, f"{len(issues)} validation issue(s).")
+        return DoctorCheck("Citation styles", STATUS_FAIL, _validation_message(issues))
     return DoctorCheck("Citation styles", STATUS_OK, "Citation styles valid.")
 
 
@@ -229,7 +239,7 @@ def check_reference_formats() -> DoctorCheck:
         return DoctorCheck("Reference formats", STATUS_FAIL, f"Reference export formats failed to load: {exc}")
 
     if issues:
-        return DoctorCheck("Reference formats", STATUS_FAIL, f"{len(issues)} validation issue(s).")
+        return DoctorCheck("Reference formats", STATUS_FAIL, _validation_message(issues))
     return DoctorCheck("Reference formats", STATUS_OK, "Reference export formats valid.")
 
 

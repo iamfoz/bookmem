@@ -1,0 +1,152 @@
+# BookMem tool manifest for Hermes agents.
+#
+# Describes the BookMem command-line tool and the sub-commands a Hermes agent
+# may invoke. There is no canonical Hermes manifest schema bundled with
+# BookMem, so this file uses a small, self-describing format (schema_version 1).
+#
+# Invocation:
+#   The tool is invoked through the BookMem wrapper installed by
+#   `bookmem hermes install-wrapper`:
+#
+#       ~/.hermes/bin/bookmem <subcommand> [args...]
+#
+#   The wrapper sets BOOKMEM_HOME=~/.hermes/bookmem and selects the `hermes`
+#   profile. Equivalent direct form (no wrapper):
+#
+#       ~/.hermes/hermes-agent/venv/bin/bookmem --profile hermes <subcommand> [args...]
+#
+# Machine use:
+#   Sub-commands marked `json: true` accept a `--json` flag and emit
+#   machine-readable JSON. An agent parsing output programmatically should pass
+#   `--json` wherever it is supported. Read-style sub-commands print formatted
+#   text panels intended for human-readable context.
+
+schema_version: 1
+
+name: bookmem
+version: "1"
+description: >-
+  BookMem turns a private Markdown book corpus into a searchable, citable
+  research source. Use it to search books, build cited answer packs, read
+  passages with citations, and inspect claims, passages and reading lists.
+
+# Default executable. Prefer the wrapper; it sets BOOKMEM_HOME and the profile.
+command: ~/.hermes/bin/bookmem
+
+# Fallback invocation when the wrapper is not installed.
+alternate_command: ~/.hermes/hermes-agent/venv/bin/bookmem
+alternate_args:
+  - --profile
+  - hermes
+
+runtime:
+  home: ~/.hermes/bookmem
+  package_location: ~/.hermes/hermes-agent/venv
+  wrapper: ~/.hermes/bin/bookmem
+  profile: hermes
+
+conventions:
+  json_flag: --json
+  json_note: >-
+    Pass --json on every sub-command that supports it when parsing output
+    programmatically.
+  citations: >-
+    BookMem results include citation strings. Always surface BookMem's own
+    citation strings when reporting findings to the user.
+
+subcommands:
+
+  - name: search
+    description: >-
+      Search the whole book corpus and return matching passages with source
+      title, author, heading path, line range, chunk ID and citation.
+    args: ["search", "<query>"]
+    json: false
+    example: '~/.hermes/bin/bookmem search "systems versus goals"'
+
+  - name: answer-pack
+    description: >-
+      Build a structured, cited answer pack for a research question across the
+      whole corpus. Preferred entry point for answering user questions.
+    args: ["answer-pack", "<question>"]
+    json: true
+    example: '~/.hermes/bin/bookmem answer-pack "What do my books say about risk and return?" --json'
+
+  - name: read-around
+    description: >-
+      Read a target chunk together with neighbouring chunks for context. Use
+      after search to expand a passage before quoting it.
+    args: ["read-around", "<chunk_id>", "--before", "<n>", "--after", "<n>"]
+    json: false
+    example: '~/.hermes/bin/bookmem read-around <chunk_id> --before 2 --after 3'
+
+  - name: read-chapter
+    description: >-
+      Read all indexed chunks for a named chapter in a specific book.
+    args: ["read-chapter", "--book", "<book_id_or_title>", "--chapter", "<chapter>"]
+    json: false
+    example: '~/.hermes/bin/bookmem read-chapter --book <book_id> --chapter "Chapter 6"'
+
+  - name: workspace answer-pack
+    description: >-
+      Build a cited answer pack scoped to a single workspace. Use this instead
+      of answer-pack when the relevant workspace is already known, for tighter
+      and faster results.
+    args: ["workspace", "answer-pack", "<workspace>", "<question>"]
+    json: true
+    example: '~/.hermes/bin/bookmem workspace answer-pack finance "risk and return" --json'
+
+  - name: claims compare
+    description: >-
+      Compare how different books make claims about a topic, surfacing
+      agreement and disagreement across the corpus.
+    args: ["claims", "compare", "<topic>"]
+    json: true
+    example: '~/.hermes/bin/bookmem claims compare "compound interest" --json'
+
+  - name: passages search
+    description: >-
+      Search extracted notable passages (the commonplace collection) for a
+      topic or phrase.
+    args: ["passages", "search", "<query>"]
+    json: true
+    example: '~/.hermes/bin/bookmem passages search "energy management" --json'
+
+  - name: reading-list
+    description: >-
+      Generate a reading list from the corpus for a topic or a stated goal.
+    args: ["reading-list", "--topic", "<topic>"]
+    json: true
+    example: '~/.hermes/bin/bookmem reading-list --topic "personal finance for beginners" --json'
+
+  - name: jobs status
+    description: >-
+      Report the status of a background BookMem job by job ID. Read-only.
+    args: ["jobs", "status", "<job_id>"]
+    json: true
+    example: '~/.hermes/bin/bookmem jobs status <job_id> --json'
+
+  - name: doctor
+    description: >-
+      Run BookMem health checks. Read-only diagnostics in this form. Do NOT
+      pass --fix without explicit user confirmation, as --fix mutates state.
+    args: ["doctor"]
+    json: true
+    example: '~/.hermes/bin/bookmem doctor --json'
+
+  - name: hermes status
+    description: >-
+      Passive health check of the Hermes integration: runtime home, runtime
+      directories, seeded config and the hermes profile. Does not load
+      embeddings, initialise LanceDB or contact Hugging Face.
+    args: ["hermes", "status"]
+    json: true
+    example: '~/.hermes/bin/bookmem hermes status --json'
+
+notes:
+  - >-
+    Sub-commands listed here are read-oriented and safe for routine agent use.
+  - >-
+    Destructive or corpus-mutating commands (for example prepare-books,
+    ingest, ingest --reset, restore and doctor --fix) are intentionally not
+    exposed here and must only be run with explicit user confirmation.

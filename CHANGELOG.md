@@ -14,6 +14,43 @@ the project is stabilising.
 - Reserved for changes not yet released.
 
 
+## [0.63.0] - 2026-05-22
+
+### Added
+- First-class Hermes agent integration. BookMem now resolves a runtime root
+  (`BOOKMEM_HOME`) that is independent of the repository checkout and of the
+  Hermes virtualenv.
+- `bookmem/paths.py`, a central path resolver. The runtime root is resolved in
+  order from: the `--home` option, the `BOOKMEM_HOME` environment variable, the
+  active profile's `paths.home_dir`, Hermes auto-detection, and finally the
+  current working directory (standalone fallback).
+- Global `bookmem --home PATH` option to set the runtime root for a command.
+- `bookmem hermes init` to create the `~/.hermes/bookmem` runtime home and seed
+  it with default config. Idempotent; supports `--dry-run` and `--force`.
+- `bookmem hermes status`, a passive Hermes health check that does not load
+  embedding models, initialise LanceDB or contact Hugging Face.
+- `bookmem hermes install-wrapper` to create `~/.hermes/bin/bookmem`, a wrapper
+  that sets `BOOKMEM_HOME` and runs BookMem from the Hermes venv with the
+  `hermes` profile. `bookmem hermes install-help` prints the install commands.
+- A `hermes` config profile and `contrib/hermes/` integration assets: an
+  install script, a Hermes tool manifest, an agent skill guide and a README.
+- The default `config/` tree is packaged into the wheel so `bookmem hermes
+  init` can seed config without the repository checkout on disk.
+
+### Changed
+- Config profiles now drive runtime path resolution consistently: a profile's
+  `paths.home_dir` seeds `BOOKMEM_HOME`, and `config.get_settings()` derives
+  its directory defaults from the central path resolver.
+
+### Fixed
+- BookMem runtime data is no longer tied to the current working directory.
+  Hermes installs keep data and config under `~/.hermes/bookmem`, never inside
+  the Hermes virtualenv, and do not require the repository checkout to be the
+  working directory.
+- Machine-readable `--json` CLI output is emitted without Rich line-wrapping,
+  so piped JSON is no longer corrupted at the console width.
+
+
 ## [0.62.1] - 2026-05-22
 
 ### Fixed
@@ -317,7 +354,8 @@ the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.62.1...HEAD
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.0...HEAD
+[0.63.0]: https://github.com/iamfoz/bookmem/compare/v0.62.1...v0.63.0
 [0.62.1]: https://github.com/iamfoz/bookmem/compare/v0.62.0...v0.62.1
 [0.62.0]: https://github.com/iamfoz/bookmem/compare/v0.61.10...v0.62.0
 [0.61.10]: https://github.com/iamfoz/bookmem/compare/v0.61.0...v0.61.10

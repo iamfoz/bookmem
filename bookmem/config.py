@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+from . import paths
+
 
 class Settings(BaseModel):
     books_dir: Path = Path("./data/books")
@@ -17,15 +19,27 @@ class Settings(BaseModel):
     chunk_overlap_chars: int = 500
 
 
+def _env_path(name: str) -> Path | None:
+    value = os.getenv(name)
+    return Path(value) if value else None
+
+
 def get_settings() -> Settings:
+    """Resolve settings.
+
+    Directory defaults come from the central path resolver (:mod:`bookmem.paths`),
+    so they honour ``--home``, ``BOOKMEM_HOME``, the active profile and Hermes
+    auto-detection. Individual ``BOOKMEM_*`` environment variables still override
+    specific paths for power users and container deployments.
+    """
     load_dotenv()
     return Settings(
-        books_dir=Path(os.getenv("BOOKMEM_BOOKS_DIR", "./data/books")),
-        db_dir=Path(os.getenv("BOOKMEM_DB_DIR", "./data/lancedb")),
+        books_dir=_env_path("BOOKMEM_BOOKS_DIR") or paths.books_dir(),
+        db_dir=_env_path("BOOKMEM_DB_DIR") or paths.lancedb_dir(),
         table_name=os.getenv("BOOKMEM_TABLE", "book_chunks"),
-        taxonomy_path=Path(os.getenv("BOOKMEM_TAXONOMY_PATH", "./config/bmdc.yaml")),
-        manifest_path=Path(os.getenv("BOOKMEM_MANIFEST_PATH")) if os.getenv("BOOKMEM_MANIFEST_PATH") else None,
-        summaries_dir=Path(os.getenv("BOOKMEM_SUMMARIES_DIR")) if os.getenv("BOOKMEM_SUMMARIES_DIR") else None,
+        taxonomy_path=_env_path("BOOKMEM_TAXONOMY_PATH") or (paths.config_dir() / "bmdc.yaml"),
+        manifest_path=_env_path("BOOKMEM_MANIFEST_PATH"),
+        summaries_dir=_env_path("BOOKMEM_SUMMARIES_DIR") or paths.summaries_dir(),
         embedding_model=os.getenv(
             "BOOKMEM_EMBEDDING_MODEL",
             "sentence-transformers/all-MiniLM-L6-v2",

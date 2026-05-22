@@ -132,47 +132,77 @@ audit logs
 jobs status
 ```
 
-Recommended Hermes layout:
+In Hermes mode the BookMem package is installed into the existing Hermes agent
+virtualenv (`~/.hermes/hermes-agent/venv`). There is no separate BookMem
+virtualenv. Runtime data and config live separately under `~/.hermes/bookmem`,
+not inside the venv, and the repo checkout is not needed as the working
+directory at runtime.
 
-```text
-~/.hermes/
-  hermes-agent/
-  bookmem/
-    data/
-    config/
-    exports/
-```
-
-Install BookMem into the same Python environment Hermes can call, or expose it as a CLI command in Hermes' tool PATH:
+Clone the repo:
 
 ```bash
-cd ~/.hermes
-git clone https://github.com/iamfoz/bookmem.git
-cd bookmem
-
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
-
-bookmem --profile assistant_agent doctor
+git clone https://github.com/iamfoz/bookmem.git ~/code/bookmem
+cd ~/code/bookmem
 ```
 
-Create or edit a Hermes tool entry that calls BookMem commands. A simple pattern is:
+Install the BookMem package into the Hermes venv:
+
+```bash
+$HOME/.hermes/hermes-agent/venv/bin/python -m pip install -U .
+```
+
+For an editable development install:
+
+```bash
+$HOME/.hermes/hermes-agent/venv/bin/python -m pip install -U -e .
+```
+
+The `python -m pip` form is preferred because it guarantees pip runs in the
+intended interpreter. If a pip executable exists directly,
+`$HOME/.hermes/hermes-agent/venv/bin/pip install -U .` is also acceptable.
+
+Create the runtime home and copy the default config:
+
+```bash
+$HOME/.hermes/hermes-agent/venv/bin/bookmem hermes init
+```
+
+This creates `~/.hermes/bookmem` and its subdirectories. Optionally install a
+wrapper at `~/.hermes/bin/bookmem` that sets `BOOKMEM_HOME` and runs
+`bookmem --profile hermes`:
+
+```bash
+$HOME/.hermes/hermes-agent/venv/bin/bookmem hermes install-wrapper
+```
+
+Put Markdown books under:
+
+```text
+~/.hermes/bookmem/data/raw-books/
+```
+
+Run BookMem with the `hermes` profile so all runtime paths resolve under
+`~/.hermes/bookmem`:
+
+```bash
+bookmem --profile hermes hermes status
+bookmem --profile hermes workspace list
+```
+
+Configure Hermes to call `~/.hermes/bin/bookmem`. A simple tool pattern is:
 
 ```yaml
 tools:
   bookmem_search:
-    command: /Users/YOU/.hermes/bookmem/.venv/bin/bookmem
+    command: /Users/YOU/.hermes/bin/bookmem
     args:
-      - --profile
-      - assistant_agent
       - search
 ```
 
 For MCP-capable Hermes setups:
 
 ```bash
-bookmem --profile assistant_agent serve-mcp
+bookmem --profile hermes serve-mcp
 ```
 
 For containerised Hermes setups, run the API service:
@@ -188,8 +218,8 @@ Recommended Hermes-safe defaults:
 ```bash
 bookmem permissions check assistant_agent search
 bookmem permissions list assistant_agent
-bookmem --profile assistant_agent workspace search productivity "systems versus goals"
-bookmem --profile assistant_agent answer-pack "What do my books say about systems versus goals?" --json
+bookmem --profile hermes workspace search productivity "systems versus goals"
+bookmem --profile hermes answer-pack "What do my books say about systems versus goals?" --json
 ```
 
 See [docs/HERMES.md](docs/HERMES.md).
@@ -433,7 +463,11 @@ Built-in profiles:
 local
 docker
 assistant_agent
+hermes
 ```
+
+The `hermes` profile points all runtime paths at `~/.hermes/bookmem`. See
+[docs/HERMES.md](docs/HERMES.md).
 
 ### Maintenance
 

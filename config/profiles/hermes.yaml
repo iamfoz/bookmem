@@ -1,0 +1,37 @@
+schema_version: 1
+
+profile:
+  name: hermes
+  label: Hermes
+  description: Hermes agent integration profile.
+  environment: hermes
+
+paths:
+  home_dir: ~/.hermes/bookmem
+  data_dir: ~/.hermes/bookmem/data
+  config_dir: ~/.hermes/bookmem/config
+  exports_dir: ~/.hermes/bookmem/exports
+  backups_dir: ~/.hermes/bookmem/backups
+  lancedb_dir: ~/.hermes/bookmem/data/lancedb
+  logs_dir: ~/.hermes/bookmem/logs
+
+services:
+  api:
+    host: 127.0.0.1
+    port: 8765
+    require_api_key: true
+  mcp:
+    enabled: true
+
+retrieval:
+  default_workspace:
+  default_limit: 8
+
+agent:
+  permissions_profile: assistant_agent
+  require_confirmation_for_writes: true
+
+features:
+  auto_restore_points: true
+  audit_log: true
+  plugins_enabled: false

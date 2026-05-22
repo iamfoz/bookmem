@@ -58,6 +58,36 @@ Run commands inside the container:
 docker compose run --rm bookmem-api bookmem doctor
 ```
 
+## Hermes install
+
+In Hermes mode the BookMem package is installed into the existing Hermes agent
+virtualenv (`~/.hermes/hermes-agent/venv`). There is no separate BookMem
+virtualenv. Runtime data and config live separately under `~/.hermes/bookmem`.
+
+Clone the repo, then install the package into the Hermes venv:
+
+```bash
+git clone https://github.com/iamfoz/bookmem.git ~/code/bookmem
+cd ~/code/bookmem
+
+$HOME/.hermes/hermes-agent/venv/bin/python -m pip install -U .
+```
+
+For an editable development install:
+
+```bash
+$HOME/.hermes/hermes-agent/venv/bin/python -m pip install -U -e .
+```
+
+Initialise the runtime home and optionally install the wrapper:
+
+```bash
+$HOME/.hermes/hermes-agent/venv/bin/bookmem hermes init
+$HOME/.hermes/hermes-agent/venv/bin/bookmem hermes install-wrapper
+```
+
+See [Hermes integration](HERMES.md) for the full setup.
+
 ## First run
 
 ```bash

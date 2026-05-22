@@ -28,6 +28,8 @@ class ConfigProfile:
     exports_dir: str
     backups_dir: str
     lancedb_dir: str
+    home_dir: str | None
+    logs_dir: str
     api_host: str | None
     api_port: int | None
     api_require_key: bool
@@ -42,9 +44,28 @@ class ConfigProfile:
 
 
 def profile_files() -> list[Path]:
-    if not PROFILES_DIR.exists():
-        return []
-    return sorted(PROFILES_DIR.glob("*.yaml")) + sorted(PROFILES_DIR.glob("*.yml"))
+    """Return profile YAML files, newest-wins by stem.
+
+    Profiles shipped with BookMem (the bundled ``config/profiles``) are always
+    available so ``--profile hermes`` works before ``bookmem hermes init`` has
+    copied config into the runtime home. A profile of the same name in the
+    runtime ``config/profiles`` directory overrides the bundled one.
+    """
+    from .paths import bundled_config_dir
+
+    search_dirs: list[Path] = []
+    bundled = bundled_config_dir()
+    if bundled is not None:
+        search_dirs.append(bundled / "profiles")
+    search_dirs.append(PROFILES_DIR)
+
+    by_stem: dict[str, Path] = {}
+    for directory in search_dirs:
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.glob("*.yaml")) + sorted(directory.glob("*.yml")):
+            by_stem[path.stem] = path
+    return list(by_stem.values())
 
 
 def load_profile_file(path: Path) -> ConfigProfile:
@@ -74,6 +95,8 @@ def load_profile_file(path: Path) -> ConfigProfile:
         exports_dir=str(paths.get("exports_dir") or "exports"),
         backups_dir=str(paths.get("backups_dir") or "backups"),
         lancedb_dir=str(paths.get("lancedb_dir") or "data/lancedb"),
+        home_dir=str(paths.get("home_dir")) if paths.get("home_dir") else None,
+        logs_dir=str(paths.get("logs_dir") or "logs"),
         api_host=str(api.get("host")) if api.get("host") is not None else None,
         api_port=int(api.get("port")) if api.get("port") is not None else None,
         api_require_key=bool(api.get("require_api_key", False)),
@@ -142,11 +165,18 @@ def profile_environment(profile_name: str | None) -> Iterator[ConfigProfile | No
         "BOOKMEM_AGENT_PERMISSIONS_PROFILE": profile.permissions_profile or "",
     }
 
-    old = {key: os.environ.get(key) for key in env_updates}
+    # A profile's home_dir seeds BOOKMEM_HOME, but an explicit BOOKMEM_HOME
+    # already in the environment (or a --home option) takes precedence.
+    seed_home = bool(profile.home_dir) and not (os.environ.get("BOOKMEM_HOME") or "").strip()
+
+    tracked = list(env_updates) + ["BOOKMEM_HOME"]
+    old = {key: os.environ.get(key) for key in tracked}
     try:
         for key, value in env_updates.items():
             if value:
                 os.environ[key] = value
+        if seed_home:
+            os.environ["BOOKMEM_HOME"] = str(profile.home_dir)
         yield profile
     finally:
         for key, value in old.items():

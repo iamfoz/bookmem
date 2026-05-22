@@ -1,5 +1,45 @@
 # Configuration
 
+## Runtime root
+
+BookMem resolves a runtime root for the current command. When the root is
+explicit, BookMem makes it the working directory so that `data/`, `config/`,
+`exports/`, `backups/` and `logs/` all resolve under it.
+
+The runtime root is resolved with this precedence:
+
+```text
+1. --home PATH command-line option
+2. BOOKMEM_HOME environment variable
+3. the selected profile's paths.home_dir
+4. Hermes auto-detection (interpreter running inside
+   ~/.hermes/hermes-agent/venv)
+5. the current working directory (standalone fallback)
+```
+
+Standalone usage is unchanged: with no explicit root, relative `./data` and
+`./config` resolve from the current working directory (legacy behaviour).
+
+### `BOOKMEM_HOME`
+
+`BOOKMEM_HOME` sets the runtime root through the environment:
+
+```bash
+export BOOKMEM_HOME=~/.hermes/bookmem
+bookmem search "systems thinking"
+```
+
+It is overridden by `--home` and overrides the profile's `paths.home_dir`.
+
+### `--home`
+
+`--home` sets the runtime root for a single command and takes precedence over
+everything else:
+
+```bash
+bookmem --home ~/.hermes/bookmem search "systems thinking"
+```
+
 ## Main config
 
 Core configuration lives under:
@@ -35,7 +75,21 @@ Built-in profiles:
 local
 docker
 assistant_agent
+hermes
 ```
+
+### `hermes` profile
+
+The `hermes` profile points all runtime paths at `~/.hermes/bookmem`:
+
+```bash
+bookmem --profile hermes setup status
+```
+
+It sets the runtime root through `paths.home_dir`, so `data/`, `config/`,
+`exports/`, `backups/` and `logs/` resolve under `~/.hermes/bookmem`. Use it
+when the BookMem package is installed into the Hermes agent virtualenv. See
+[Hermes integration](HERMES.md).
 
 ## API authentication
 

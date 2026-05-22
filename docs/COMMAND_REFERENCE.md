@@ -2,6 +2,17 @@
 
 This is a practical command index. Use `bookmem <command> --help` for exact options.
 
+## Global options
+
+```bash
+bookmem --profile <name> <command>
+bookmem --home <path> <command>
+```
+
+`--home` overrides `BOOKMEM_HOME` and the selected profile's `paths.home_dir`,
+making `<path>` the runtime root for `data/`, `config/`, `exports/`,
+`backups/` and `logs/`. See [Configuration](CONFIGURATION.md).
+
 ## Setup
 
 ```bash
@@ -90,6 +101,21 @@ bookmem serve-mcp
 bookmem ui
 bookmem tui
 ```
+
+## Hermes
+
+```bash
+bookmem hermes init
+bookmem hermes init --dry-run
+bookmem hermes status
+bookmem hermes status --json
+bookmem hermes install-wrapper
+bookmem hermes install-help
+```
+
+`hermes init` creates `~/.hermes/bookmem` and its subdirectories and copies the
+default config. `hermes install-wrapper` creates `~/.hermes/bin/bookmem`.
+`hermes status` is a passive health check. See [Hermes integration](HERMES.md).
 
 ## Maintenance
 

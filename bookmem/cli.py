@@ -222,6 +222,10 @@ list_jobs = _lazy_call("bookmem.jobs", "list_jobs")
 read_job = _lazy_call("bookmem.jobs", "read_job")
 tail_job = _lazy_call("bookmem.jobs", "tail_job")
 job_as_dict = _lazy_call("bookmem.jobs", "job_as_dict")
+hermes_init = _lazy_call("bookmem.hermes", "hermes_init")
+hermes_status = _lazy_call("bookmem.hermes", "hermes_status")
+hermes_install_wrapper = _lazy_call("bookmem.hermes", "install_wrapper")
+hermes_install_instructions = _lazy_call("bookmem.hermes", "install_instructions")
 
 app = typer.Typer(help="BookMem: agent-readable Markdown book corpus")
 review_app = typer.Typer(help="Generate, inspect and apply review queues")
@@ -248,6 +252,7 @@ graph_app = typer.Typer(help="Build and export graph visualisations")
 plugins_app = typer.Typer(help="Discover and validate BookMem plugins")
 profile_app = typer.Typer(help="Manage BookMem config profiles/environments")
 jobs_app = typer.Typer(help="Inspect long-running job status and logs")
+hermes_app = typer.Typer(help="Hermes agent integration: runtime home, setup and wrapper")
 app.add_typer(review_app, name="review")
 app.add_typer(notes_app, name="notes")
 app.add_typer(import_app, name="import")
@@ -272,6 +277,7 @@ app.add_typer(graph_app, name="graph")
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(profile_app, name="profile")
 app.add_typer(jobs_app, name="jobs")
+app.add_typer(hermes_app, name="hermes")
 console = Console()
 
 
@@ -281,14 +287,24 @@ console = Console()
 def main_callback(
     ctx: typer.Context,
     profile: str | None = typer.Option(None, "--profile", help="Config profile/environment to use."),
+    home: Path | None = typer.Option(
+        None, "--home", help="BookMem runtime root. Overrides BOOKMEM_HOME and profile paths."
+    ),
 ):
     """BookMem command root."""
+    from bookmem.paths import activate_home, set_home_override
+
     ctx.obj = ctx.obj or {}
     ctx.obj["profile"] = profile
+    if home is not None:
+        set_home_override(home)
     if profile:
         # Validate and apply environment overlay for command duration.
         ctx.obj["_profile_context"] = profile_environment(profile)
         ctx.obj["_profile"] = ctx.obj["_profile_context"].__enter__()
+    # Resolve the runtime root and make it the working directory so BookMem's
+    # relative paths resolve under it. Standalone usage is a deliberate no-op.
+    ctx.obj["home"] = str(activate_home())
 
 
 
@@ -350,7 +366,7 @@ def review_machine_drafts_command(
     payload = drafts_as_dict(drafts)
 
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Machine drafts")
@@ -384,7 +400,7 @@ def review_approve_summary_command(
 
     result = approve_summary(book_id, reviewer=reviewer)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[green]Approved summary for {book_id}[/green]")
     for path in result.get("changed", []):
@@ -402,7 +418,7 @@ def review_approve_concepts_command(
 
     result = approve_concepts(book_id, reviewer=reviewer)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[green]Approved concepts for {book_id}[/green]")
     console.print(f"Concepts changed: {len(result.get('changed_concepts', []))}")
@@ -420,7 +436,7 @@ def review_reject_concept_command(
 
     result = reject_concept(concept_id, reason=reason, reviewer=reviewer)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[yellow]Rejected concept {concept_id}[/yellow]")
     if reason:
@@ -438,7 +454,7 @@ def review_mark_human_reviewed_command(
 
     result = mark_human_reviewed(path, reviewer=reviewer)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[green]Marked human-reviewed:[/green] {result['path']}")
 
@@ -455,7 +471,7 @@ def review_set_summary_status_command(
 
     result = set_summary_status(book_id, status=status, reviewer=reviewer)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[green]Summary status updated:[/green] {book_id} -> {status}")
 
@@ -472,7 +488,7 @@ def review_set_concepts_status_command(
 
     result = set_concepts_status(book_id, status=status, reviewer=reviewer)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[green]Concept status updated:[/green] {book_id} -> {status}")
 
@@ -1564,7 +1580,7 @@ def stats_command(
 
     payload = stats_payload(stats, limit=limit)
     if json_output:
-        console.print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     totals = collection_totals(stats)
@@ -1845,7 +1861,7 @@ def calibre_scan_command(
 
     books = scan_calibre_library(library_path)
     if json_output:
-        console.print(json_lib.dumps([calibre_book_as_dict(book) for book in books], indent=2, ensure_ascii=False))
+        print(json_lib.dumps([calibre_book_as_dict(book) for book in books], indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title=f"Calibre library: {library_path}")
@@ -1875,7 +1891,7 @@ def calibre_metadata_command(
 
     matches = find_calibre_book(library_path, query)
     if json_output:
-        console.print(json_lib.dumps([calibre_book_as_dict(book) for book in matches], indent=2, ensure_ascii=False))
+        print(json_lib.dumps([calibre_book_as_dict(book) for book in matches], indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title=f"Calibre metadata matches: {query}")
@@ -1932,7 +1948,7 @@ def calibre_enrich_command(
         "frontmatter": frontmatter,
     }
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
     if not match:
         console.print("[yellow]No Calibre match found[/yellow]")
@@ -1962,7 +1978,7 @@ def import_epub_command(
 
     result = import_epub(source, output_dir=output_dir, overwrite=overwrite)
     if json_output:
-        console.print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
         return
     console.print(
         Panel(
@@ -1989,7 +2005,7 @@ def import_html_command(
 
     result = import_html(source, output_dir=output_dir, overwrite=overwrite)
     if json_output:
-        console.print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
         return
     console.print(
         Panel(
@@ -2014,7 +2030,7 @@ def import_pdf_command(
 
     result = import_pdf(source, output_dir=output_dir, overwrite=overwrite)
     if json_output:
-        console.print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(import_result_as_dict(result), indent=2, ensure_ascii=False))
         return
     console.print(
         Panel(
@@ -2042,7 +2058,7 @@ def import_calibre_command(
 
     results = import_calibre(library_path, output_dir=output_dir, overwrite=overwrite)
     if json_output:
-        console.print(json_lib.dumps([import_result_as_dict(item) for item in results], indent=2, ensure_ascii=False))
+        print(json_lib.dumps([import_result_as_dict(item) for item in results], indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Calibre metadata imported")
@@ -2084,7 +2100,7 @@ def grimmory_export_command(
         overwrite=overwrite,
     )
     if json_output:
-        console.print(json_lib.dumps([grimmory_result_as_dict(result) for result in results], indent=2, ensure_ascii=False))
+        print(json_lib.dumps([grimmory_result_as_dict(result) for result in results], indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Grimmory export")
@@ -2133,7 +2149,7 @@ def extract_claims_command(
 
     result = extract_claims(book, limit=limit, write=not no_write, tag=tag or [])
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
         return
 
     console.print(
@@ -2164,7 +2180,7 @@ def claims_search_command(
 
     rows = search_claims(query, limit=limit, stance=stance)
     if json_output:
-        console.print(json_lib.dumps(rows, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(rows, indent=2, ensure_ascii=False, default=str))
         return
 
     table_out = Table(title=f"Claims search: {query}")
@@ -2328,7 +2344,7 @@ def passages_extract_command(
 
     result = extract_passages(book, limit=limit, tag=tag or [], write=not no_write)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
         return
 
     console.print(
@@ -2357,7 +2373,7 @@ def passages_search_command(
 
     rows = search_passages(query, limit=limit)
     if json_output:
-        console.print(json_lib.dumps(rows, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(rows, indent=2, ensure_ascii=False, default=str))
         return
 
     table_out = Table(title=f"Passage search: {query}")
@@ -2389,7 +2405,7 @@ def passages_favourite_command(
 
     passage = favourite_passage(chunk_id, tags=tag or [], note=note)
     if json_output:
-        console.print(json_lib.dumps(passage, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(passage, indent=2, ensure_ascii=False, default=str))
         return
 
     console.print(
@@ -2431,7 +2447,7 @@ def reading_metadata_infer_command(
     result = infer_reading_metadata(book, write=write, overwrite=overwrite)
     payload = reading_metadata_result_as_dict(result)
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -2473,7 +2489,7 @@ def reading_list_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
         return
 
     console.print(
@@ -2531,7 +2547,7 @@ def query_save_command(
     )
     payload = result.__dict__
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
     console.print(
         Panel(
@@ -2554,7 +2570,7 @@ def query_list_command(
 
     queries = list_saved_queries()
     if json_output:
-        console.print(json_lib.dumps(queries, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(queries, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Saved queries")
@@ -2585,7 +2601,7 @@ def query_run_command(
 
     result = run_saved_query(name, update_last_run=update_last_run)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
         return
 
     sq = result["saved_query"]
@@ -2633,7 +2649,7 @@ def brief_generate_command(
         markdown=not no_markdown,
     )
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
         return
 
     brief = result["brief"]
@@ -2664,7 +2680,7 @@ def workspace_list_command(
 
     workspaces = list_workspaces_as_dict()
     if json_output:
-        console.print(json_lib.dumps(workspaces, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(workspaces, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Workspaces")
@@ -2694,7 +2710,7 @@ def workspace_validate_command(
 
     issues = validate_workspaces()
     if json_output:
-        console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+        print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
         return
 
     if not issues:
@@ -2722,7 +2738,7 @@ def workspace_search_command(
 
     result = workspace_search(workspace, query, limit=limit)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False, default=str))
         return
 
     ws = result["workspace"]
@@ -2778,7 +2794,7 @@ def workspace_answer_pack_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(pack, indent=2, ensure_ascii=False, default=str))
+        print(json_lib.dumps(pack, indent=2, ensure_ascii=False, default=str))
         return
 
     ws = pack["workspace"]
@@ -2822,7 +2838,7 @@ def permissions_check_command(
     payload = decision_as_dict(decision)
 
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     colour = {
@@ -2860,7 +2876,7 @@ def permissions_list_command(
 
     payload = list_agent_permissions(agent)
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -2890,7 +2906,7 @@ def permissions_agents_command(
 
     payload = list_agents()
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Permission agents")
@@ -2919,7 +2935,7 @@ def permissions_validate_command(
 
     issues = validate_permissions()
     if json_output:
-        console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+        print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
         return
 
     if not issues:
@@ -2947,7 +2963,7 @@ def restore_points_list_command(
 
     points = list_restore_points()
     if json_output:
-        console.print(json_lib.dumps(points, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(points, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Restore points")
@@ -2986,7 +3002,7 @@ def restore_points_create_command(
     )
     payload = restore_point_as_dict(point)
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3011,7 +3027,7 @@ def restore_points_show_command(
 
     point = show_restore_point(restore_point_id)
     if json_output:
-        console.print(json_lib.dumps(point, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(point, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3056,7 +3072,7 @@ def rollback_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3089,7 +3105,7 @@ def audit_tail_command(
 
     records = tail_audit(limit=limit)
     if json_output:
-        console.print(json_lib.dumps(records, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(records, indent=2, ensure_ascii=False))
         return
     _print_audit_table(records, title=f"Last {len(records)} audit record(s)")
 
@@ -3105,7 +3121,7 @@ def audit_search_command(
 
     records = search_audit(query, limit=limit)
     if json_output:
-        console.print(json_lib.dumps(records, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(records, indent=2, ensure_ascii=False))
         return
     _print_audit_table(records, title=f"Audit search: {query}")
 
@@ -3155,7 +3171,7 @@ def clean_derived_command(
     payload = clean_result_as_dict(result)
 
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     mode = "DRY RUN" if result.dry_run else "EXECUTE"
@@ -3209,7 +3225,7 @@ def migrations_status_command(
 
     status = migration_status()
     if json_output:
-        console.print(json_lib.dumps(status, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(status, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3252,7 +3268,7 @@ def migrations_apply_command(
 
     if json_output:
         result = apply_migrations(dry_run=dry_run, target=target)
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     plan = apply_migrations(dry_run=True, target=target)
@@ -3299,7 +3315,7 @@ def migrations_create_command(
 
     result = create_migration(name)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3322,7 +3338,7 @@ def setup_presets_command(
 
     presets = presets_as_dict()
     if json_output:
-        console.print(json_lib.dumps(presets, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(presets, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Setup presets")
@@ -3344,7 +3360,7 @@ def setup_status_command(
 
     status = setup_status(include_index=include_index)
     if json_output:
-        console.print(json_lib.dumps(status, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(status, indent=2, ensure_ascii=False))
         return
 
     doctor = status["doctor"]
@@ -3378,7 +3394,7 @@ def setup_plan_command(
     steps = setup_steps_for_preset(presets[preset])
     payload = [step.__dict__ for step in steps]
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title=f"Setup plan: {preset}")
@@ -3416,7 +3432,7 @@ def setup_run_command(
     if json_output:
         result = run_setup_preset(preset, dry_run=dry_run, status_callback=callback)
         result["messages"] = messages
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     presets = load_setup_presets()
@@ -3462,7 +3478,7 @@ def eval_queries_command(
 
     queries = load_eval_queries(query_file)
     if json_output:
-        console.print(json_lib.dumps(eval_queries_as_dict(queries), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(eval_queries_as_dict(queries), indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title=f"Evaluation queries: {query_file}")
@@ -3499,7 +3515,7 @@ def eval_retrieval_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3549,7 +3565,7 @@ def embeddings_info_command(
 
     info = current_embedding_info()
     if json_output:
-        console.print(json_lib.dumps(info, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(info, indent=2, ensure_ascii=False))
         return
 
     runtime = info["current_runtime"]
@@ -3585,7 +3601,7 @@ def embeddings_models_command(
         issues = validate_embedding_models()
         if issues:
             if json_output:
-                console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+                print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
             else:
                 table_out = Table(title="Embedding model validation issues")
                 table_out.add_column("Model")
@@ -3600,7 +3616,7 @@ def embeddings_models_command(
 
     profiles = embedding_profiles()
     if json_output:
-        console.print(json_lib.dumps(profiles_as_dict(profiles), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(profiles_as_dict(profiles), indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Embedding model profiles")
@@ -3635,7 +3651,7 @@ def embeddings_benchmark_command(
 
     result = benchmark_embeddings(profile_name=model, runs=runs)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     profile = result["profile"]
@@ -3672,7 +3688,7 @@ def embeddings_reindex_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     profile = result["profile"]
@@ -3704,7 +3720,7 @@ def index_status_command(
     report = index_status()
 
     if json_output:
-        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -3761,7 +3777,7 @@ def extract_concepts_command(
 
     result = extract_concepts_from_book(book, limit=limit, write=write, overwrite=overwrite)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title=f"Concepts extracted: {result['title']}")
@@ -3806,7 +3822,7 @@ def concepts_rebuild_index_command(
 
     result = rebuild_concept_index()
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
     console.print(f"[green]{result['concept_count']} concept(s) indexed[/green]")
 
@@ -3823,7 +3839,7 @@ def concepts_search_command(
 
     results = search_concepts(query, class_code=class_filter, limit=limit)
     if json_output:
-        console.print(json_lib.dumps(results, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(results, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title=f"Concept search: {query}")
@@ -3857,7 +3873,7 @@ def concepts_list_command(
 
     results = list_concepts(class_code=class_filter, concept_type=concept_type, limit=limit)
     if json_output:
-        console.print(json_lib.dumps(results, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(results, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Concepts")
@@ -3886,7 +3902,7 @@ def prompts_list_command(
 
     prompts = list_prompts()
     if json_output:
-        console.print(json_lib.dumps(prompt_assets_as_dict(prompts), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(prompt_assets_as_dict(prompts), indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Prompt packs")
@@ -3932,7 +3948,7 @@ def answer_pack_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(pack, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(pack, indent=2, ensure_ascii=False))
         return
 
     console.print(Panel(
@@ -4005,7 +4021,7 @@ def jobs_list_command(
 
     rows = list_jobs(limit=limit, status=status)
     if json_output:
-        console.print(json_lib.dumps(rows, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(rows, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Jobs")
@@ -4044,7 +4060,7 @@ def jobs_status_command(
     job = read_job(job_id)
     payload = job_as_dict(job)
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4099,7 +4115,7 @@ def profile_current_command(
     payload["active_source"] = "BOOKMEM_PROFILE" if __import__("os").environ.get("BOOKMEM_PROFILE") else "data/manifests/current_profile.yaml or default"
 
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4126,7 +4142,7 @@ def profile_list_command(
 
     profiles = profiles_as_dict()
     if json_output:
-        console.print(json_lib.dumps(profiles, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(profiles, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Config profiles")
@@ -4159,7 +4175,7 @@ def profile_show_command(
     profile = get_profile(name)
     payload = profile_as_dict(profile)
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4190,7 +4206,7 @@ def profile_validate_command(
 
     issues = validate_profile(name)
     if json_output:
-        console.print(json_lib.dumps({"profile": name, "issues": issues}, indent=2, ensure_ascii=False))
+        print(json_lib.dumps({"profile": name, "issues": issues}, indent=2, ensure_ascii=False))
         return
 
     if not issues:
@@ -4226,7 +4242,7 @@ def plugins_list_command(
 
     payload = plugins_as_dict(plugins)
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     summary = plugin_summary()
@@ -4276,7 +4292,7 @@ def plugins_validate_command(
 
     issues = validate_plugins()
     if json_output:
-        console.print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
+        print(json_lib.dumps({"issues": issues}, indent=2, ensure_ascii=False))
         return
 
     if not issues:
@@ -4334,7 +4350,7 @@ def graph_export_command(
         )
 
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     if isinstance(result, list):
@@ -4396,7 +4412,7 @@ def build_graph_command(
     graph = build_book_graph(books_dir=books_dir, output_path=output, min_score=min_score)
 
     if json_output:
-        console.print(json_lib.dumps(graph, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(graph, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4429,7 +4445,7 @@ def related_command(
     result = related_books(query=query, topic=topic, limit=limit, graph_path=graph_path)
 
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     label = topic or query or "(none)"
@@ -4473,7 +4489,7 @@ def editions_command(
         records = list_editions(books_dir, query=query, ensure=True)
 
     if json_output:
-        console.print(json_lib.dumps(edition_records_as_dict(records), indent=2, ensure_ascii=False))
+        print(json_lib.dumps(edition_records_as_dict(records), indent=2, ensure_ascii=False))
         return
 
     grouped = group_editions(records)
@@ -4515,7 +4531,7 @@ def enrich_openlibrary_command(
 
     result = enrich_with_openlibrary(book, write=write, overwrite=overwrite, timeout=timeout)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4543,7 +4559,7 @@ def enrich_google_books_command(
 
     result = enrich_with_google_books(book, write=write, overwrite=overwrite, timeout=timeout)
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4582,7 +4598,7 @@ def enrich_metadata_command(
     )
 
     if json_output:
-        console.print(json_lib.dumps(result, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(result, indent=2, ensure_ascii=False))
         return
 
     table_out = Table(title="Metadata enrichment")
@@ -4635,7 +4651,7 @@ def backup_command(
     payload = backup_result_as_dict(result)
 
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     console.print(
@@ -4679,7 +4695,7 @@ def restore_command(
     payload["manifest"] = manifest
 
     if json_output:
-        console.print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(payload, indent=2, ensure_ascii=False))
         return
 
     title = "Restore dry run" if dry_run else "Restore complete"
@@ -4721,7 +4737,7 @@ def doctor_command(
         report.setdefault("reasons", []).extend(deep_report.get("reasons", []))
 
     if json_output:
-        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
         if report["status"] == "FAIL":
             raise typer.Exit(code=1)
         return
@@ -4904,7 +4920,7 @@ def clean_check_command(
     report = assess_cleanliness(book)
 
     if json_output:
-        console.print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
     else:
         table_out = Table(title=f"Clean check: {book}")
         table_out.add_column("Check")
@@ -5071,6 +5087,117 @@ def serve_api(
         raise typer.Exit(code=1)
 
     uvicorn.run("bookmem.api:app", host=host, port=port, reload=reload)
+
+
+@hermes_app.command("init")
+def hermes_init_command(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would change without writing."),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing config files."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Create the Hermes runtime home (~/.hermes/bookmem) and seed default config."""
+    import json as json_lib
+
+    report = hermes_init(dry_run=dry_run, force=force)
+    if json_output:
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        return
+
+    console.print(Panel(f"[bold]BookMem Hermes home:[/bold] {report['home']}", title="hermes init", expand=False))
+    verb = "Would create" if dry_run else "Created"
+    console.print(
+        f"{verb} {len(report['created_dirs'])} director(ies); "
+        f"{len(report['existing_dirs'])} already present."
+    )
+    console.print(
+        f"Config: {len(report['copied_config_files'])} file(s) "
+        f"{'to copy' if dry_run else 'copied'}, {len(report['skipped_config_files'])} kept as-is."
+    )
+    for warning in report.get("warnings", []):
+        console.print(f"[yellow]{warning}[/yellow]")
+    console.print(f"[green]hermes init: {report['status']}[/green]")
+
+
+@hermes_app.command("status")
+def hermes_status_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Report Hermes integration health. Passive: no embeddings or LanceDB init."""
+    import json as json_lib
+
+    report = hermes_status()
+    if json_output:
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        raise typer.Exit(code=0 if report.get("ok") else 1)
+
+    console.print(Panel(
+        f"[bold]Home:[/bold] {report['home']}\n"
+        f"[bold]Home source:[/bold] {report['home_source']}\n"
+        f"[bold]BOOKMEM_HOME:[/bold] {report.get('bookmem_home_env') or '(unset)'}\n"
+        f"[bold]Running in Hermes venv:[/bold] {report['running_in_hermes_venv']}\n"
+        f"[bold]Interpreter:[/bold] {report['interpreter']}",
+        title="hermes status",
+        expand=False,
+    ))
+    table_out = Table(title="Checks")
+    table_out.add_column("Check")
+    table_out.add_column("Status")
+    table_out.add_column("Detail")
+    for check in report["checks"]:
+        marker = "[green]OK[/green]" if check["ok"] else "[red]FAIL[/red]"
+        table_out.add_row(check["check"], marker, check["detail"])
+    console.print(table_out)
+    raise typer.Exit(code=0 if report.get("ok") else 1)
+
+
+@hermes_app.command("install-wrapper")
+def hermes_install_wrapper_command(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would change without writing."),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing wrapper."),
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Create ~/.hermes/bin/bookmem, a wrapper that runs BookMem via the Hermes venv."""
+    import json as json_lib
+
+    report = hermes_install_wrapper(dry_run=dry_run, force=force)
+    if json_output:
+        print(json_lib.dumps(report, indent=2, ensure_ascii=False))
+        raise typer.Exit(code=1 if report["status"] == "error" else 0)
+
+    colours = {"ok": "green", "planned": "cyan", "skipped": "yellow", "error": "red"}
+    colour = colours.get(report["status"], "white")
+    console.print(f"[{colour}]{report['status']}[/{colour}]: {report.get('message', '')}")
+    if report.get("script") and report["status"] in {"ok", "planned"}:
+        console.print(Panel(report["script"].rstrip(), title=str(report["wrapper"]), expand=False))
+    raise typer.Exit(code=1 if report["status"] == "error" else 0)
+
+
+@hermes_app.command("install-help")
+def hermes_install_help_command(
+    json_output: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+):
+    """Print the canonical commands for installing BookMem into the Hermes venv."""
+    import json as json_lib
+
+    info = hermes_install_instructions()
+    if json_output:
+        print(json_lib.dumps(info, indent=2, ensure_ascii=False))
+        return
+    console.print(Panel(
+        "Install BookMem into the Hermes agent venv (preferred):\n\n"
+        "  cd ~/code/bookmem\n"
+        f"  {info['install']}\n\n"
+        "Editable development install:\n\n"
+        "  cd ~/code/bookmem\n"
+        f"  {info['editable_install']}\n\n"
+        "Then initialise the runtime home and wrapper:\n\n"
+        f"  {info['post_install'][0]}\n"
+        f"  {info['post_install'][1]}",
+        title="Hermes install",
+        expand=False,
+    ))
+    for note in info["notes"]:
+        console.print(f"[dim]- {note}[/dim]")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,18 @@ the project is stabilising.
 - Reserved for changes not yet released.
 
 
+## [0.63.1] - 2026-05-22
+
+### Fixed
+- Book discovery no longer skips a corpus stored under a hidden directory.
+  Exclusion rules are now evaluated against each file's path relative to the
+  corpus root, so the Hermes runtime home (`~/.hermes/bookmem`, under the
+  hidden `~/.hermes` directory) is scanned correctly. Previously `ingest`,
+  `summarise-books` and other commands reported "No Markdown files found" on
+  a Hermes install because the leading `.hermes` path component was treated
+  as a hidden directory to skip.
+
+
 ## [0.63.0] - 2026-05-22
 
 ### Added
@@ -354,7 +366,8 @@ the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.0...HEAD
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.1...HEAD
+[0.63.1]: https://github.com/iamfoz/bookmem/compare/v0.63.0...v0.63.1
 [0.63.0]: https://github.com/iamfoz/bookmem/compare/v0.62.1...v0.63.0
 [0.62.1]: https://github.com/iamfoz/bookmem/compare/v0.62.0...v0.62.1
 [0.62.0]: https://github.com/iamfoz/bookmem/compare/v0.61.10...v0.62.0

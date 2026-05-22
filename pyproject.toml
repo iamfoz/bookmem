@@ -1,6 +1,6 @@
 [project]
 name = "bookmem"
-version = "0.63.0"
+version = "0.63.1"
 description = "Machine-readable Markdown book corpus for agent retrieval"
 readme = "README.md"
 license = "GPL-3.0-only"

@@ -238,3 +238,22 @@ def test_support_markdown_not_discovered_as_books(tmp_path):
     assert "README.md" not in found
     assert "CHANGELOG.md" not in found
     assert "CONTRIBUTING.md" not in found
+
+
+def test_books_discovered_under_hidden_directory(tmp_path):
+    """A corpus under a hidden dir (~/.hermes/bookmem) must still be discovered."""
+    from bookmem.book_files import discover_book_markdown_files
+
+    books = tmp_path / ".hermes" / "bookmem" / "data" / "books"
+    (books / "158-self-improvement").mkdir(parents=True)
+    book = books / "158-self-improvement" / "Atomic Habits - James Clear.md"
+    book.write_text("---\ntitle: Atomic Habits\n---\n\n# Atomic Habits\n", encoding="utf-8")
+    # In-corpus exclusions (support files, .staging) must still apply.
+    (books / "README.md").write_text("# readme\n", encoding="utf-8")
+    (books / ".staging").mkdir()
+    (books / ".staging" / "Draft.md").write_text("# draft\n", encoding="utf-8")
+
+    found = {path.name for path in discover_book_markdown_files(books)}
+    assert "Atomic Habits - James Clear.md" in found
+    assert "README.md" not in found
+    assert "Draft.md" not in found

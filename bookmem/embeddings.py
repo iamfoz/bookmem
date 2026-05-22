@@ -40,8 +40,13 @@ def embedding_dimension() -> int | None:
     """Return embedding dimension without forcing callers to know model internals."""
     try:
         model = get_model()
-        if hasattr(model, "get_sentence_embedding_dimension"):
-            return int(model.get_sentence_embedding_dimension())
+        # `get_sentence_embedding_dimension` was renamed to
+        # `get_embedding_dimension`; prefer the current name and fall back to
+        # the old one for older sentence-transformers releases.
+        for method_name in ("get_embedding_dimension", "get_sentence_embedding_dimension"):
+            method = getattr(model, method_name, None)
+            if callable(method):
+                return int(method())
     except Exception:
         return None
     return None

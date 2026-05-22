@@ -10,8 +10,10 @@ the project is stabilising.
 
 ## [Unreleased]
 
-### Added
-- Reserved for changes not yet released.
+### Fixed
+- Use the current `get_embedding_dimension` API from sentence-transformers,
+  falling back to the older `get_sentence_embedding_dimension` name, so
+  `ingest` no longer prints a deprecation warning after indexing.
 
 
 ## [0.63.1] - 2026-05-22

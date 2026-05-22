@@ -67,11 +67,20 @@ def search_books(
 
     if mode == "vector":
         vector = embed_texts([query])[0]
-        q = table.search(vector)
+        q = table.search(vector, vector_column_name="vector")
     elif mode == "fts":
         q = table.search(query, query_type="fts")
     else:
-        q = table.search(query, query_type="hybrid", vector_column_name="vector")
+        # Hybrid search. BookMem computes embeddings with sentence-transformers
+        # and registers no LanceDB embedding function on the table, so the query
+        # vector must be supplied explicitly alongside the full-text query —
+        # otherwise LanceDB raises "No embedding function for vector".
+        vector = embed_texts([query])[0]
+        q = (
+            table.search(query_type="hybrid", vector_column_name="vector")
+            .text(query)
+            .vector(vector)
+        )
 
     if where_clause:
         q = q.where(where_clause)

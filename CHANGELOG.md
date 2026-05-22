@@ -10,7 +10,19 @@ the project is stabilising.
 
 ## [Unreleased]
 
+### Added
+- Reserved for changes not yet released.
+
+
+## [0.63.2] - 2026-05-22
+
 ### Fixed
+- Hybrid search — the default search mode — no longer fails with "No embedding
+  function for vector". BookMem computes embeddings with sentence-transformers
+  and registers no LanceDB embedding function on the table, so it now supplies
+  the query vector to LanceDB explicitly alongside the full-text query. This
+  also restores `answer-pack`, `route`, `ask-search` and other commands that
+  search the corpus.
 - Use the current `get_embedding_dimension` API from sentence-transformers,
   falling back to the older `get_sentence_embedding_dimension` name, so
   `ingest` no longer prints a deprecation warning after indexing.
@@ -368,7 +380,8 @@ the project is stabilising.
   file preparation.
 - Added LanceDB ingestion and basic hybrid retrieval commands.
 
-[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.1...HEAD
+[Unreleased]: https://github.com/iamfoz/bookmem/compare/v0.63.2...HEAD
+[0.63.2]: https://github.com/iamfoz/bookmem/compare/v0.63.1...v0.63.2
 [0.63.1]: https://github.com/iamfoz/bookmem/compare/v0.63.0...v0.63.1
 [0.63.0]: https://github.com/iamfoz/bookmem/compare/v0.62.1...v0.63.0
 [0.62.1]: https://github.com/iamfoz/bookmem/compare/v0.62.0...v0.62.1
